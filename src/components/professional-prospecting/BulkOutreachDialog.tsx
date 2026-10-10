@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { reserveDmWindow, closeDmWindow, finishDmOpen } from "@/lib/prospecting/dmWindow";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -170,9 +171,9 @@ export function BulkOutreachDialog({
     toast.success(`${profile.profile_name || "Perfil"} rejeitado`);
   };
 
-  const copyAndOpen = async (profile: BulkProfile) => {
+  const copyAndOpen = async (profile: BulkProfile, win: Window | null) => {
     const msg = getMessageForProfile(profile.id);
-    if (!msg || !msg.message) return;
+    if (!msg || !msg.message) { closeDmWindow(win); return; }
     try {
       if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
       if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
@@ -185,17 +186,21 @@ export function BulkOutreachDialog({
 
       const username = extractInstagramUsername(profile.profile_url);
       const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-      window.open(dmUrl, "_blank");
-      toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
-
-      // Only mark as opened, NOT as sent
-      setOpenedIds(prev => new Set(prev).add(profile.id));
+      // Only mark as opened (NOT sent) when the DM window really opened.
+      finishDmOpen(win, dmUrl, () => {
+        setOpenedIds(prev => new Set(prev).add(profile.id));
+        toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
+      });
     } catch (error) {
+      closeDmWindow(win);
       toast.error("Não foi possível abrir a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
   };
 
   const handleCopyAndOpen = async (profile: BulkProfile) => {
+    // Reservada no clique; só navega após as verificações.
+    const win = reserveDmWindow();
+    let handedOff = false;
     try {
       const wsId = workspaceId || currentWorkspace?.id;
       if (!wsId) throw new Error("Espaço de trabalho indisponível");
@@ -215,9 +220,12 @@ export function BulkOutreachDialog({
         toast.warning(describeProspectingIdentity(identity));
         return;
       }
-      await copyAndOpen(profile);
+      handedOff = true;
+      await copyAndOpen(profile, win);
     } catch (error) {
       toast.error("Não foi possível verificar este contacto", { description: error instanceof Error ? error.message : "Tente novamente" });
+    } finally {
+      if (!handedOff) closeDmWindow(win);
     }
   };
 
@@ -672,7 +680,7 @@ export function BulkOutreachDialog({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setReviewProfile(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (reviewProfile) { const id = reviewProfile.profile.id; setReviewConfirmedIds(prev => new Set(prev).add(id)); void copyAndOpen(reviewProfile.profile); } setReviewProfile(null); }}>
+            <AlertDialogAction onClick={() => { if (reviewProfile) { const id = reviewProfile.profile.id; setReviewConfirmedIds(prev => new Set(prev).add(id)); void copyAndOpen(reviewProfile.profile, reserveDmWindow()); } setReviewProfile(null); }}>
               É outro contacto, continuar
             </AlertDialogAction>
           </AlertDialogFooter>

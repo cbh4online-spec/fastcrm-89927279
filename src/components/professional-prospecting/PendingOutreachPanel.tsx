@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { reserveDmWindow, closeDmWindow, finishDmOpen } from "@/lib/prospecting/dmWindow";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -247,14 +248,15 @@ export function PendingOutreachPanel() {
 
   // Abrir a DM não confirma a entrega; o utilizador confirma depois do envio.
   const handleSingleOpen = useCallback(async (item: OutreachItem) => {
-    if (!await canContinue(item)) return;
+    const win = reserveDmWindow();
+    if (!await canContinue(item)) { closeDmWindow(win); return; }
     try {
     let msg = item.message;
 
     // Generate if missing
     if (!msg) {
       const result = await generateMessage(item);
-      if (!result?.message) return;
+      if (!result?.message) { closeDmWindow(win); return; }
       msg = result.message;
     }
 
@@ -262,17 +264,16 @@ export function PendingOutreachPanel() {
     msg = composeMessageWithLink(msg, url);
     await navigator.clipboard.writeText(msg);
 
-    // Open Instagram DM via ig.me link
     const username = item.profile_url?.match(/instagram\.com\/([^/?]+)/)?.[1];
-    if (username) {
-      window.open(`https://ig.me/m/${username}`, "_blank");
-    } else if (item.profile_url) {
-      window.open(item.profile_url, "_blank");
-    }
-
-    rememberOpened(item, msg, url);
-    toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
+    const dmUrl = username ? `https://ig.me/m/${username}` : item.profile_url;
+    if (!dmUrl) { closeDmWindow(win); throw new Error("Perfil sem ligação para abrir a conversa"); }
+    const finalText = msg;
+    finishDmOpen(win, dmUrl, () => {
+      rememberOpened(item, finalText, url);
+      toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
+    });
     } catch (error) {
+      closeDmWindow(win);
       toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
   }, [canContinue, generateMessage, media.data]);
@@ -355,21 +356,22 @@ export function PendingOutreachPanel() {
   }, [pendingItems, generateMessage, queryClient]);
 
   const handleBulkCopyAndOpen = useCallback(async (item: OutreachItem) => {
-    if (!await canContinue(item)) return;
+    const win = reserveDmWindow();
+    if (!await canContinue(item)) { closeDmWindow(win); return; }
     try {
-    if (!item.message) return;
+    if (!item.message) { closeDmWindow(win); return; }
     const url = await freshUrl(item);
     const text = composeMessageWithLink(item.message, url);
     await navigator.clipboard.writeText(text);
     const username = item.profile_url?.match(/instagram\.com\/([^/?]+)/)?.[1];
-    if (username) {
-      window.open(`https://ig.me/m/${username}`, "_blank");
-    } else if (item.profile_url) {
-      window.open(item.profile_url, "_blank");
-    }
-    rememberOpened(item, text, url);
-    toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
+    const dmUrl = username ? `https://ig.me/m/${username}` : item.profile_url;
+    if (!dmUrl) { closeDmWindow(win); throw new Error("Perfil sem ligação para abrir a conversa"); }
+    finishDmOpen(win, dmUrl, () => {
+      rememberOpened(item, text, url);
+      toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
+    });
     } catch (error) {
+      closeDmWindow(win);
       toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
   }, [canContinue, media.data]);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { reserveDmWindow, closeDmWindow, finishDmOpen } from "@/lib/prospecting/dmWindow";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -223,18 +224,21 @@ export function ProspectingMessageDialog({
 
   const handleOpenInstagram = async () => {
     const stepNum = currentStep + 1;
+    const win = reserveDmWindow();
     try {
-      if (!await canContactProfile()) return;
+      if (!await canContactProfile()) { closeDmWindow(win); return; }
       const url = (await media.ensureFresh(profile.id, stepNum))?.url ?? null;
       const text = composeMessageWithLink(steps[currentStep].message, url);
       await navigator.clipboard.writeText(text);
       setOpenedSnapshot({ step: stepNum, text, url: sentMediaUrlFor(text, url) });
       const username = extractInstagramUsername(profile.profile_url);
       const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-      window.open(dmUrl, "_blank");
-      setOpenedStep(stepNum);
-      toast.success("Mensagem copiada. Cole-a e envie na conversa; depois confirme aqui.");
+      finishDmOpen(win, dmUrl, () => {
+        setOpenedStep(stepNum);
+        toast.success("Mensagem copiada. Cole-a e envie na conversa; depois confirme aqui.");
+      });
     } catch (error) {
+      closeDmWindow(win);
       toast.error("Não foi possível abrir a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
   };
