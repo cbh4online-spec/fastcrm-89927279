@@ -39,7 +39,7 @@ export function partitionByIdentity<T extends { id: string }>(
   return out;
 }
 
-export type ConfirmOutreachStatus = ProspectingIdentityStatus | "sent" | "already_sent";
+export type ConfirmOutreachStatus = ProspectingIdentityStatus | "sent" | "already_sent" | "stopped";
 
 export interface ConfirmOutreachArgs {
   workspaceId: string;
@@ -54,6 +54,8 @@ export interface ConfirmOutreachArgs {
   tone?: string | null;
   scheduleFollowUps?: boolean;
   followUpMessages?: { step_index: number; message: string | null; message_plain: string | null }[];
+  /** Renumera filas antigas (1/2 → 2/3) dentro da RPC, só depois de todas as verificações. */
+  renumberLegacy?: boolean;
 }
 
 export interface ConfirmOutreachResult {
@@ -85,6 +87,7 @@ export async function confirmOutreachSent(
     p_tone: args.tone ?? null,
     p_schedule_followups: args.scheduleFollowUps ?? false,
     p_followup_messages: args.followUpMessages ?? [],
+    p_renumber_legacy: args.renumberLegacy ?? false,
   });
   if (error) throw new Error(error.message);
   const record = (data ?? {}) as Record<string, unknown>;
@@ -98,6 +101,7 @@ const STOP_MESSAGES: Record<string, string> = {
   opportunity: "Envio não registado: existe uma oportunidade em curso.",
   unavailable: "Envio não registado: a verificação de registo existente não está disponível.",
   already_sent: "Este passo já estava registado como enviado.",
+  stopped: "Envio não registado: a sequência deste perfil foi parada (resposta, rejeição ou cancelamento).",
 };
 
 /**

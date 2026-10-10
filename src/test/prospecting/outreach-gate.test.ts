@@ -70,3 +70,26 @@ describe("identity cache invalidation after import", () => {
     expect(qc.getQueryState([PROSPECTING_IDENTITY_QUERY_KEY, "w2", "main", "x"])?.isInvalidated).toBe(false);
   });
 });
+
+describe("confirmação endurecida", () => {
+  it("«stopped» e «exists» nunca registam", async () => {
+    for (const status of ["stopped", "exists"]) {
+      const { client } = fakeClient([{ status, recorded: false }]);
+      await expect(confirmOutreachWithReview(client, args, () => true)).rejects.toThrow(/não registado/);
+    }
+  });
+  it("renumeração legada vai para a RPC (sem escritas diretas antes da verificação)", async () => {
+    const { client, calls } = fakeClient([{ status: "sent", recorded: true }]);
+    await confirmOutreachWithReview(client, { ...args, renumberLegacy: true }, () => true);
+    expect(calls[0].p_renumber_legacy).toBe(true);
+    const { readFileSync } = await import("node:fs");
+    const aida = readFileSync("src/components/professional-prospecting/ProspectingMessageDialog.tsx", "utf8");
+    const confirm = aida.slice(aida.indexOf("const handleConfirmSent"), aida.indexOf("const handleToneChange"));
+    expect(confirm).not.toMatch(/from\("prospecting_outreach_queue"\)/);
+  });
+  it("conversão em massa passa allowPossible aos possíveis duplicados confirmados", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/components/professional-prospecting/ProspectingResults.tsx", "utf8");
+    expect(src).toMatch(/allowPossible: reviewConfirmed\.has\(profile\.id\)/);
+  });
+});

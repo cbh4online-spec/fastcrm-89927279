@@ -253,29 +253,6 @@ export function ProspectingMessageDialog({
     try {
       if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
       if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
-      const { data: existing, error: readError } = await supabase
-        .from("prospecting_outreach_queue")
-        .select("id, step_index, status")
-        .eq("workspace_id", workspaceId)
-        .eq("profile_id", profile.id)
-        .in("step_index", [1, 2, 3]);
-      if (readError) throw readError;
-      const rows = existing ?? [];
-
-      // Filas criadas pela versão antiga usavam 1/2 para os dias 3/7.
-      if (stepNum === 1 && rows.some((row) => row.step_index === 1 && row.status !== "sent") && !rows.some((row) => row.step_index === 3)) {
-        const oldSecond = rows.find((row) => row.step_index === 2);
-        if (oldSecond) {
-          const { error } = await supabase.from("prospecting_outreach_queue").update({ step_index: 3 }).eq("id", oldSecond.id);
-          if (error) throw error;
-        }
-        const oldFirst = rows.find((row) => row.step_index === 1 && row.status !== "sent")!;
-        const { error } = await supabase.from("prospecting_outreach_queue").update({ step_index: 2 }).eq("id", oldFirst.id);
-        if (error) throw error;
-        oldFirst.step_index = 2;
-        if (oldSecond) oldSecond.step_index = 3;
-      }
-
       // Fresh identity re-check + lock + queue/outreach_step in one transaction.
       await confirmOutreachWithReview(supabase, {
         workspaceId,
@@ -287,6 +264,7 @@ export function ProspectingMessageDialog({
         messagePlain: steps[currentStep].message_plain || steps[currentStep].message,
         tone,
         scheduleFollowUps: stepNum === 1,
+        renumberLegacy: stepNum === 1,
         followUpMessages: [2, 3].map((s) => ({
           step_index: s,
           message: steps[s - 1]?.message || null,

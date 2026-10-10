@@ -109989,6 +109989,7 @@ export type Database = {
           p_message_plain?: string
           p_profile_id: string
           p_queue_id?: string
+          p_renumber_legacy?: boolean
           p_schedule_followups?: boolean
           p_sent_message: string
           p_step_index: number
