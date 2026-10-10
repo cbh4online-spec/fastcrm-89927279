@@ -169,7 +169,7 @@ export function PowerHourFocusView({
       {/* Ações */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Button onClick={onOpen} className="gap-2" disabled={!message.trim()}>
-          <ExternalLink className="w-4 h-4" /> Abrir DM
+          <ExternalLink className="w-4 h-4" /> Preparar DM
           <kbd className="ml-1 text-[10px] opacity-70">Espaço</kbd>
         </Button>
         <Button onClick={onSent} variant={opened ? "default" : "outline"} className="gap-2">
@@ -186,7 +186,7 @@ export function PowerHourFocusView({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground text-center">
-        Abrir DM copia a mensagem e abre o Instagram. Cole, envie e volte para confirmar.
+        Preparar DM verifica e copia a mensagem; depois use «Abrir conversa», cole, envie e volte para confirmar.
       </p>
     </div>
   );
