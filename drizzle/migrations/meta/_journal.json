@@ -470,6 +470,13 @@
       "when": 1791636905404,
       "tag": "0066_prospecting_confirm_linked_followup_and_stopped_precedence",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1791637986827,
+      "tag": "0067_prospecting_renumber_open_rows_only",
+      "breakpoints": true
     }
   ]
 }
