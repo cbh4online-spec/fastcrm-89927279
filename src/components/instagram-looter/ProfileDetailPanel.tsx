@@ -72,6 +72,11 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
   const loadProfile = async () => {
     setIsLoadingProfile(true);
     setAiInsight(null);
+    // Never carry A's saved id or open modal over to B.
+    setProfile(null);
+    setSavedProfileId(null);
+    setShowCreateLead(false);
+    setShowAddToCollection(false);
     try {
       const { profile: data } = await getProfile(username);
       setProfile(data);
@@ -416,6 +421,7 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
         {/* Create Lead Modal */}
         {profile && (
           <CreateLeadModal
+            key={profile.username}
             open={showCreateLead}
             onOpenChange={setShowCreateLead}
             profile={profile}
