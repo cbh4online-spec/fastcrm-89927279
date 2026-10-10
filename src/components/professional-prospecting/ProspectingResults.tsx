@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { instagramEnrichmentUsername } from "@/lib/prospecting/enrichTarget";
 import { partitionByIdentity, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -410,12 +411,11 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     }
 
     // Extract username from URL
-    const urlMatch = profile.profile_url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
-    if (!urlMatch) {
-      toast.error("Não foi possível extrair o username do perfil");
+    const username = instagramEnrichmentUsername(profile.platform, profile.profile_url);
+    if (!username) {
+      toast.error("O endereço guardado não é um perfil Instagram válido; enriquecimento não pedido");
       return;
     }
-    const username = urlMatch[1];
 
     setEnrichingIds(prev => new Set(prev).add(profile.id));
     
