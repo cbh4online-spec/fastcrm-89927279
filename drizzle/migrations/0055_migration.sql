@@ -1,0 +1,13 @@
+DROP POLICY IF EXISTS "System can insert module usage" ON public.module_usage;
+DROP POLICY IF EXISTS "System can insert action logs" ON public.module_action_logs;
+DROP POLICY IF EXISTS "System can insert memory access logs" ON public.ai_memory_access_log;
+DROP POLICY IF EXISTS "Service insert order events" ON public.c2c_order_events;
+DROP POLICY IF EXISTS "System can insert audit logs" ON public.order_audit_log;
+DROP POLICY IF EXISTS "System can insert referrals" ON public.store_referrals;
+DROP POLICY IF EXISTS "System can insert rule executions" ON public.conversation_rule_executions;
+DROP POLICY IF EXISTS "System can insert usage events" ON public.usage_events;
+DROP POLICY IF EXISTS "System can insert transitions" ON public.journey_transitions;
+DROP POLICY IF EXISTS "Service can insert metrics" ON public.rag_retrieval_metrics;
+DROP POLICY IF EXISTS "Authenticated users can insert event_runtime_failures" ON public.event_runtime_failures;
+DROP POLICY IF EXISTS "Service role inserts clicks" ON public.c2c_affiliate_clicks;
+DROP POLICY IF EXISTS "Anyone can read gift card transactions" ON public.store_gift_card_transactions;
