@@ -59,6 +59,11 @@ interface Props {
    * mesmo que um template ou resposta rápida tenha substituído o texto.
    */
   requiredLink?: string | null;
+  /**
+   * Só envio assistido («Abrir no WhatsApp» + «Já enviei»). Usado na prospeção:
+   * os canais diretos não validam consentimento/oposição de marketing no servidor.
+   */
+  assistedOnly?: boolean;
   /** Aviso sobre conteúdo partilhado (ex.: vídeo enviado só como ligação). */
   mediaNotice?: string | null;
 }
@@ -77,6 +82,7 @@ export function WhatsAppMessageDialog({
   onSent,
   mediaNotice,
   requiredLink,
+  assistedOnly = false,
 }: Props) {
   const [phase, setPhase] = useState<DeliveryPhase>("compose");
   const [sentText, setSentText] = useState<string>("");
@@ -92,8 +98,8 @@ export function WhatsAppMessageDialog({
   const { data: templates = [] } = useWhatsAppProTemplates();
   const send = useSendWhatsAppMessage();
 
-  const proAvailable = !!instance?.active;
-  const ghlAvailable = !!ghlActive && !!conversation?.id;
+  const proAvailable = !assistedOnly && !!instance?.active;
+  const ghlAvailable = !assistedOnly && !!ghlActive && !!conversation?.id;
 
   useEffect(() => {
     if (!open) return;
@@ -159,6 +165,7 @@ export function WhatsAppMessageDialog({
 
   const handleSend = async () => {
     if (!normalized || !canSend) return;
+    if (assistedOnly && channel !== "link") return;
     const text = finalText.trim();
     if (channel === "link") {
       // Abrir o WhatsApp não é envio: nada é registado até «Já enviei».
@@ -303,6 +310,7 @@ export function WhatsAppMessageDialog({
             <div className="space-y-2">
               <Label>Canal de envio</Label>
               <RadioGroup value={channel} onValueChange={(v) => setChannel(v as WhatsAppSendChannel)} className="space-y-2">
+                {!assistedOnly && <>
                 <ChannelOption
                   value="pro"
                   disabled={!proAvailable || loadingInstance}
@@ -325,13 +333,19 @@ export function WhatsAppMessageDialog({
                         : "Envia pela conversa GHL existente."
                   }
                 />
+                </>}
                 <ChannelOption
                   value="link"
                   title="Abrir no WhatsApp"
                   hint="Abre o WhatsApp com o texto pré-preenchido. Sem confirmação de entrega."
                 />
               </RadioGroup>
-              {!proAvailable && !ghlAvailable && (
+              {assistedOnly && (
+                <p className="text-xs text-muted-foreground">
+                  Na prospeção só está disponível o envio assistido: abre o WhatsApp e confirme com «Já enviei». O envio direto fica bloqueado até existir verificação de consentimento no servidor.
+                </p>
+              )}
+              {!assistedOnly && !proAvailable && !ghlAvailable && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="flex flex-wrap items-center gap-1">

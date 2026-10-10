@@ -421,6 +421,7 @@ export function PendingOutreachPanel() {
           entityName={waItem.profile_name}
           initialMessage={waItem.message_plain || waItem.message}
           requiredLink={waUrl}
+          assistedOnly
           mediaNotice={waUrl ? WHATSAPP_VIDEO_NOTICE : null}
           onSent={async ({ message, linkIncluded }) => {
             await markSent(waItem, message, linkIncluded ? waUrl : null);
