@@ -72,7 +72,7 @@ export function useSubmitReview() {
         rating: data.rating,
         comment: data.comment || null,
         reviewer_id: user.id,
-      }).select().single();
+      }).select("id, listing_id, seller_id, rating").single();
       if (error) {
         if (error.message?.includes("duplicate")) throw new Error("Já avaliaste este artigo");
         throw error;
