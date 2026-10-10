@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { buildDmUrl, safeDmUrl, tryCopyText } from "./dmWindow";
+import { buildDmUrl, parseInstagramProfileUsername, safeDmUrl, tryCopyText } from "./dmWindow";
 import { PreparedDmPanel } from "@/components/professional-prospecting/PreparedDmPanel";
 
 beforeEach(() => { vi.restoreAllMocks(); });
@@ -11,12 +11,27 @@ const bad = ["javascript:alert(1)", "data:text/html,<script>1</script>", "http:/
 describe("validação de ligação da DM", () => {
   it.each(bad)("rejeita %s", (url) => {
     expect(safeDmUrl(url)).toBeNull();
-    expect(buildDmUrl(null, url)).toBeNull();
+    expect(buildDmUrl(url)).toBeNull();
   });
   it("aceita https do Instagram/ig.me e rejeita username malicioso", () => {
     expect(safeDmUrl("https://ig.me/m/abc")).toBe("https://ig.me/m/abc");
-    expect(buildDmUrl("abc.d", "javascript:x")).toBe("https://ig.me/m/abc.d");
-    expect(buildDmUrl("a/../x", "javascript:x")).toBeNull();
+  });
+  it.each([
+    "https://evilinstagram.com/joao", "https://instagram.com.evil.com/joao", "https://ig.me/m/joao",
+    "http://instagram.com/joao", "https://instagram.com/reel/ABC", "https://instagram.com/reels/ABC",
+    "https://www.instagram.com/p/ABC/", "https://instagram.com/stories/joao/123", "https://instagram.com/explore",
+    "https://instagram.com/direct/inbox", "https://instagram.com/accounts/login", "https://instagram.com/reel",
+    "https://instagram.com/p", "https://instagram.com/joao/reels", "https://instagram.com/", "https://user@instagram.com/joao",
+    "https://instagram.com:444/joao", "https://instagram.com/jo..ao", "javascript:alert(1)",
+  ])("origem que não é perfil %s: sem DM", (src) => {
+    expect(parseInstagramProfileUsername(src)).toBeNull();
+    expect(buildDmUrl(src)).toBeNull();
+  });
+  it.each([
+    ["https://instagram.com/joao", "joao"], ["https://www.instagram.com/Joao.Silva_/", "joao.silva_"],
+    ["https://m.instagram.com/joao?hl=pt", "joao"],
+  ])("perfil válido %s", (src, user) => {
+    expect(buildDmUrl(src)).toBe(`https://ig.me/m/${user}`);
   });
 });
 

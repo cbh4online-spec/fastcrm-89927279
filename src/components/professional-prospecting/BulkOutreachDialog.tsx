@@ -34,11 +34,6 @@ import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/ca
 import { confirmOutreachWithReview, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 
-const extractInstagramUsername = (url: string): string | null => {
-  const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
-  return match ? match[1] : null;
-};
-
 interface BulkProfile {
   id: string;
   profile_name: string | null;
@@ -206,7 +201,7 @@ export function BulkOutreachDialog({
       const url = (await media.ensureFresh(profile.id, 1))?.url ?? null;
       const text = composeMessageWithLink(msg.message_plain || msg.message, url);
       const copied = await tryCopyText(text);
-      setPreparedDms((prev) => ({ ...prev, [profile.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(extractInstagramUsername(profile.profile_url), profile.profile_url), copied } }));
+      setPreparedDms((prev) => ({ ...prev, [profile.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(profile.profile_url), copied } }));
       if (copied) {
         setCopiedId(profile.id);
         setTimeout(() => setCopiedId(null), 2000);

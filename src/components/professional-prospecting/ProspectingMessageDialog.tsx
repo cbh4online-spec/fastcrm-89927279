@@ -24,11 +24,6 @@ import { useOutreachMedia } from "@/hooks/useOutreachMedia";
 import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicker";
 import { composeMessageWithLink, sentMediaUrlFor } from "@/lib/prospecting/outreachMedia";
 
-const extractInstagramUsername = (url: string): string | null => {
-  const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
-  return match ? match[1] : null;
-};
-
 interface ProfileData {
   id: string;
   profile_url: string;
@@ -225,7 +220,7 @@ export function ProspectingMessageDialog({
       const url = (await media.ensureFresh(profile.id, stepNum))?.url ?? null;
       const text = composeMessageWithLink(steps[currentStep].message, url);
       const copiedOk = await tryCopyText(text);
-      setPrepared({ step: stepNum, text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(extractInstagramUsername(profile.profile_url), profile.profile_url), copied: copiedOk });
+      setPrepared({ step: stepNum, text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(profile.profile_url), copied: copiedOk });
       if (copiedOk) toast.success("Mensagem copiada. Clique em «Abrir conversa».");
       return copiedOk;
     } catch (error) {
