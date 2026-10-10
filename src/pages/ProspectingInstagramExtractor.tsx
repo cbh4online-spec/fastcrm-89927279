@@ -49,6 +49,8 @@ import { PendingOutreachPanel } from "@/components/professional-prospecting/Pend
 import { ProspectingEffectivenessCard } from "@/components/professional-prospecting/ProspectingEffectivenessCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { useProspectingIdentityBatch, PROSPECTING_IDENTITY_QUERY_KEY } from "@/hooks/useProspectingIdentityBatch";
+import { ProspectingIdentityBadge } from "@/components/prospecting/ProspectingIdentityBadge";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import {
@@ -137,6 +139,31 @@ export default function ProspectingInstagramExtractor() {
       return true;
     });
   }, [profiles, search, minFollowers, contactFilter]);
+
+  const IDENTITY_PAGE_SIZE = 50;
+  const [resultsPage, setResultsPage] = useState(0);
+  useEffect(() => setResultsPage(0), [search, minFollowers, contactFilter, jobIdForResults]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / IDENTITY_PAGE_SIZE));
+  const safePage = Math.min(resultsPage, pageCount - 1);
+  const visibleProfiles = useMemo(
+    () => filtered.slice(safePage * IDENTITY_PAGE_SIZE, (safePage + 1) * IDENTITY_PAGE_SIZE),
+    [filtered, safePage],
+  );
+  // One batched RPC per visible page, scoped to the current workspace.
+  const identityItems = useMemo(
+    () =>
+      visibleProfiles.map((p) => ({
+        key: p.id,
+        profile_id: p.id,
+        name: p.profile_name || p.instagram_username || "",
+        email: p.extracted_email,
+        phone: p.extracted_phone,
+        instagram_url: p.profile_url,
+        website: p.instagram_external_url,
+      })),
+    [visibleProfiles],
+  );
+  const identity = useProspectingIdentityBatch(identityItems);
 
   const withEmail = profiles.filter((p) => p.extracted_email).length;
   const withPhone = profiles.filter((p) => p.extracted_phone).length;
@@ -540,7 +567,7 @@ export default function ProspectingInstagramExtractor() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((p) => (
+                  {visibleProfiles.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>
                         <Checkbox
@@ -563,9 +590,10 @@ export default function ProspectingInstagramExtractor() {
                               {p.instagram_is_verified && (
                                 <BadgeCheck className="h-3.5 w-3.5 text-sky-500" aria-label="Verificado" />
                               )}
-                              {p.converted_lead_id && (
-                                <Badge variant="secondary" className="text-[10px]">Lead</Badge>
-                              )}
+                              <ProspectingIdentityBadge
+                                check={identity.data?.[p.id] ?? (identity.isError ? { status: "unavailable", matches: [] } : undefined)}
+                                loading={identity.isFetching}
+                              />
                             </div>
                             <p className="truncate text-xs text-muted-foreground">
                               {p.profile_name ?? "—"}
@@ -597,6 +625,21 @@ export default function ProspectingInstagramExtractor() {
                   ))}
                 </TableBody>
               </Table>
+              {pageCount > 1 && (
+                <div className="flex items-center justify-between gap-2 pt-3 text-xs text-muted-foreground">
+                  <span>
+                    Página {safePage + 1} de {pageCount} · {filtered.length} perfis
+                  </span>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" disabled={safePage === 0} onClick={() => setResultsPage(safePage - 1)}>
+                      Anterior
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={safePage >= pageCount - 1} onClick={() => setResultsPage(safePage + 1)}>
+                      Seguinte
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -612,6 +655,7 @@ export default function ProspectingInstagramExtractor() {
         onComplete={() => {
           setSelected(new Set());
           queryClient.invalidateQueries({ queryKey: ["instagram-extraction-results"] });
+          queryClient.invalidateQueries({ queryKey: [PROSPECTING_IDENTITY_QUERY_KEY] });
         }}
         userId={user?.id}
       />
