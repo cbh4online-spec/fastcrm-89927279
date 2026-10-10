@@ -448,7 +448,10 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
   // Bulk actions
   // Every bulk action only touches selected profiles on the visible page with a
   // verified identity; hidden pages or unverified rows are never processed.
+  // IDs de possíveis duplicados que o utilizador confirmou explicitamente nesta ação.
+  const reviewConfirmed = new Set<string>();
   const gateSelection = (mode: "contact" | "any"): Profile[] | null => {
+    reviewConfirmed.clear();
     const gate = partitionByIdentity(pageProfiles, selectedIds, identity.data, identityReady && !identity.isFetching && !identity.isError);
     if (gate.ignored > 0) {
       toast.error("Há perfis selecionados sem verificação de registo existente nesta página. Aguarde a verificação ou limpe a seleção.");
@@ -456,7 +459,11 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     }
     if (mode === "any") return [...gate.allowed, ...gate.review, ...gate.stopped];
     if (gate.stopped.length > 0) toast.info(`${gate.stopped.length} perfil(is) já existem, têm oportunidade ou não podem ser contactados e ficaram de fora`);
-    if (gate.review.length > 0 && !window.confirm(`${gate.review.length} perfil(is): ${REVIEW_CONFIRM_TEXT}`)) return gate.allowed;
+    if (gate.review.length > 0 && !window.confirm(`${gate.review.length} perfil(is): ${REVIEW_CONFIRM_TEXT}`)) {
+      toast.info(`${gate.review.length} possível(is) duplicado(s) ficaram de fora`);
+      return gate.allowed;
+    }
+    gate.review.forEach((p) => reviewConfirmed.add(p.id));
     return [...gate.allowed, ...gate.review];
   };
 
@@ -477,7 +484,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
           tags: [],
           additionalNotes: "",
         };
-        await convertMutation.mutateAsync({ profile, options: defaultOptions });
+        await convertMutation.mutateAsync({ profile, options: defaultOptions, allowPossible: reviewConfirmed.has(profile.id) });
         converted++;
       } catch (e) {
         console.error("Bulk convert error for", profile.id, e);
