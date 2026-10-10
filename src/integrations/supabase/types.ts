@@ -110032,6 +110032,7 @@ export type Database = {
         }
         Returns: Json
       }
+      prospecting_phone_variants: { Args: { p_raw: string }; Returns: string[] }
       publish_builder_asset: {
         Args: {
           _asset_id: string
