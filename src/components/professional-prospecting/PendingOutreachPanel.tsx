@@ -66,7 +66,7 @@ export function PendingOutreachPanel() {
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
   const [waItem, setWaItem] = useState<OutreachItem | null>(null);
   // Texto exato (mensagem + ligação) copiado/aberto por item, gravado ao confirmar.
-  const [openedTexts, setOpenedTexts] = useState<Record<string, string>>({});
+  const [openedTexts, setOpenedTexts] = useState<Record<string, { text: string; url: string | null }>>({});
 
   const isWhatsAppStep = (item: OutreachItem) =>
     !!item.lead_id && resolveCadenceChannel(item.step_index, item.phone) === "whatsapp";
@@ -123,7 +123,7 @@ export function PendingOutreachPanel() {
   const mediaUrl = (item: OutreachItem) => media.get(item.profile_id, item.step_index)?.url ?? null;
   const composeFor = (item: OutreachItem, text: string) => composeMessageWithLink(text, mediaUrl(item));
   const rememberOpened = (item: OutreachItem, text: string) => {
-    setOpenedTexts((prev) => ({ ...prev, [item.id]: text }));
+    setOpenedTexts((prev) => ({ ...prev, [item.id]: { text, url: mediaUrl(item) } }));
     setOpenedIds((previous) => new Set(previous).add(item.id));
   };
   const renderMediaPicker = (item: OutreachItem) => {
@@ -200,13 +200,13 @@ export function PendingOutreachPanel() {
   }, [queryClient]);
 
   // Mark as sent: one atomic RPC (queue ready->sent with exact text, then profile step).
-  const markSent = useCallback(async (item: OutreachItem, sentText: string) => {
+  const markSent = useCallback(async (item: OutreachItem, sentText: string, sentUrl: string | null) => {
     const { error } = await (supabase as unknown as {
       rpc: (n: string, a: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }>;
     }).rpc("prospecting_mark_outreach_sent", {
       p_queue_id: item.id,
       p_sent_message: sentText,
-      p_media_url: mediaUrl(item),
+      p_media_url: sentUrl,
     });
     if (error) throw new Error(error.message);
     setBulkSent((prev) => new Set(prev).add(item.id));
@@ -222,7 +222,7 @@ export function PendingOutreachPanel() {
         payload: { profile_id: item.profile_id, step_index: item.step_index, channel: isWhatsAppStep(item) ? 'whatsapp' : 'instagram' },
       });
     }
-  }, [currentWorkspace?.id, queryClient, media.data]);
+  }, [currentWorkspace?.id, queryClient]);
 
   // Reject item
   const rejectMutation = useMutation({
@@ -273,10 +273,10 @@ export function PendingOutreachPanel() {
   }, [canContinue, generateMessage, media.data]);
 
   const handleSingleConfirm = useCallback(async (item: OutreachItem) => {
-    const text = openedTexts[item.id];
-    if (!openedIds.has(item.id) || !text) return;
+    const opened = openedTexts[item.id];
+    if (!openedIds.has(item.id) || !opened) return;
     try {
-      await markSent(item, text);
+      await markSent(item, opened.text, opened.url);
       queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       setOpenedIds((previous) => { const next = new Set(previous); next.delete(item.id); return next; });
@@ -361,10 +361,10 @@ export function PendingOutreachPanel() {
   }, [canContinue, media.data]);
 
   const handleBulkConfirmSent = useCallback(async (item: OutreachItem) => {
-    const text = openedTexts[item.id];
-    if (!openedIds.has(item.id) || !text) return;
+    const opened = openedTexts[item.id];
+    if (!openedIds.has(item.id) || !opened) return;
     try {
-      await markSent(item, text);
+      await markSent(item, opened.text, opened.url);
       setCurrentBulkIndex((prev) => prev + 1);
       queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
@@ -408,7 +408,7 @@ export function PendingOutreachPanel() {
           initialMessage={waItem.message_plain || waItem.message}
           mediaNotice={mediaUrl(waItem) ? WHATSAPP_VIDEO_NOTICE : null}
           onSent={async ({ message }) => {
-            await markSent(waItem, message);
+            await markSent(waItem, message, mediaUrl(waItem));
             queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
           }}
         />
