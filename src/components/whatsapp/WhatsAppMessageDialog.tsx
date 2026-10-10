@@ -102,8 +102,9 @@ export function WhatsAppMessageDialog({
   const ghlAvailable = !assistedOnly && !!ghlActive && !!conversation?.id;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || phase !== "compose") return;
     setChannel(proAvailable ? "pro" : ghlAvailable ? "ghl" : "link");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, proAvailable, ghlAvailable]);
 
   useEffect(() => {
@@ -200,7 +201,7 @@ export function WhatsAppMessageDialog({
    * `message_sent`. Se só a atividade falhar, nada é repetido nem duplicado.
    */
   const handleConfirmAssisted = async () => {
-    if (phase !== "opened" || !normalized || recording) return;
+    if (phase !== "opened" || channel !== "link" || !normalized || recording) return;
     const text = composeMessageWithLink(sentText, requiredLink ?? null);
     setRecording(true);
     try {
@@ -309,7 +310,16 @@ export function WhatsAppMessageDialog({
 
             <div className="space-y-2">
               <Label>Canal de envio</Label>
-              <RadioGroup value={channel} onValueChange={(v) => setChannel(v as WhatsAppSendChannel)} className="space-y-2">
+              <RadioGroup
+                value={channel}
+                onValueChange={(v) => {
+                  // Depois de abrir (ou enviar), o canal fica fixo até confirmar/cancelar.
+                  if (phase !== "compose") return;
+                  setChannel(v as WhatsAppSendChannel);
+                }}
+                disabled={phase !== "compose"}
+                className="space-y-2"
+              >
                 {!assistedOnly && <>
                 <ChannelOption
                   value="pro"
@@ -385,7 +395,7 @@ export function WhatsAppMessageDialog({
               {channel === "link" ? "Abrir no WhatsApp" : "Enviar"}
             </Button>
           )}
-          {phase === "opened" && (
+          {phase === "opened" && channel === "link" && (
             <Button onClick={handleConfirmAssisted} disabled={recording} className="gap-2">
               {recording && <Loader2 className="h-4 w-4 animate-spin" />}
               Já enviei
