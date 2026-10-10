@@ -144,17 +144,22 @@ export interface ProspectingIdentityBatchItem extends ProspectingIdentityCandida
   profile_id?: string | null;
 }
 
-export const PROSPECTING_IDENTITY_BATCH_SIZE = 100;
+/** Small chunks keep each RPC under the DB statement timeout on large workspaces. */
+export const PROSPECTING_IDENTITY_BATCH_SIZE = 10;
+const PROSPECTING_IDENTITY_CONCURRENCY = 3;
 
-/** One RPC per page of up to 100 candidates; never per row. Missing keys become "unavailable". */
+/** A few small RPCs per visible page (≤100), never per row. Missing keys become "unavailable". */
 export async function checkProspectingIdentityBatch(
   client: SupabaseClient<Database>,
   workspaceId: string,
   items: ProspectingIdentityBatchItem[],
 ): Promise<Record<string, ProspectingIdentityCheck>> {
   const out: Record<string, ProspectingIdentityCheck> = {};
+  const chunks: ProspectingIdentityBatchItem[][] = [];
   for (let i = 0; i < items.length; i += PROSPECTING_IDENTITY_BATCH_SIZE) {
-    const chunk = items.slice(i, i + PROSPECTING_IDENTITY_BATCH_SIZE);
+    chunks.push(items.slice(i, i + PROSPECTING_IDENTITY_BATCH_SIZE));
+  }
+  const runChunk = async (chunk: ProspectingIdentityBatchItem[]) => {
     const { data, error } = await (client as unknown as ProspectingRpcClient).rpc("prospecting_identity_check_batch", {
       p_workspace_id: workspaceId,
       p_candidates: chunk,
@@ -170,6 +175,9 @@ export async function checkProspectingIdentityBatch(
       }
     }
     for (const item of chunk) if (!out[item.key]) out[item.key] = { status: "unavailable", matches: [] };
+  };
+  for (let i = 0; i < chunks.length; i += PROSPECTING_IDENTITY_CONCURRENCY) {
+    await Promise.all(chunks.slice(i, i + PROSPECTING_IDENTITY_CONCURRENCY).map(runChunk));
   }
   return out;
 }

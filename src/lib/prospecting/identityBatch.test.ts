@@ -9,13 +9,13 @@ const m = (entity_type: ProspectingIdentityMatch["entity_type"], extra: Partial<
 });
 
 describe("checkProspectingIdentityBatch", () => {
-  it("usa uma única chamada por página de 100 e sempre o workspace atual", async () => {
+  it("usa lotes de 10 (nunca por linha) e sempre o workspace atual", async () => {
     const rpc = vi.fn().mockImplementation((_n: string, args: { p_candidates: Array<{ key: string }> }) =>
       Promise.resolve({ data: args.p_candidates.map((c) => ({ key: c.key, result: { status: "new", matches: [] } })), error: null }));
     const client = { rpc } as unknown as SupabaseClient<Database>;
     const items = Array.from({ length: 150 }, (_, i) => ({ key: `k${i}`, name: `N${i}` }));
     const out = await checkProspectingIdentityBatch(client, ws, items);
-    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(rpc).toHaveBeenCalledTimes(15); // lotes de 10 para não exceder o timeout
     expect(rpc.mock.calls.every((c) => c[0] === "prospecting_identity_check_batch" && c[1].p_workspace_id === ws)).toBe(true);
     expect(Object.keys(out)).toHaveLength(150);
   });
