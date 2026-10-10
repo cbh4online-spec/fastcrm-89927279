@@ -28,6 +28,12 @@ import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { resolveCadenceChannel } from "@/lib/prospecting/cadence";
 import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 import { WhatsAppMessageDialog } from "@/components/whatsapp/WhatsAppMessageDialog";
+import { useOutreachMedia } from "@/hooks/useOutreachMedia";
+import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicker";
+import { composeMessageWithLink } from "@/lib/prospecting/outreachMedia";
+
+const WHATSAPP_VIDEO_NOTICE =
+  "O vídeo/ligação vai como ligação no texto. O FastCRM não envia ficheiros MP4 pelo WhatsApp nesta versão.";
 
 interface OutreachItem {
   id: string;
@@ -59,6 +65,8 @@ export function PendingOutreachPanel() {
   const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
   const [waItem, setWaItem] = useState<OutreachItem | null>(null);
+  // Texto exato (mensagem + ligação) copiado/aberto por item, gravado ao confirmar.
+  const [openedTexts, setOpenedTexts] = useState<Record<string, string>>({});
 
   const isWhatsAppStep = (item: OutreachItem) =>
     !!item.lead_id && resolveCadenceChannel(item.step_index, item.phone) === "whatsapp";
@@ -110,6 +118,27 @@ export function PendingOutreachPanel() {
     enabled: !!currentWorkspace?.id,
     refetchInterval: 60000,
   });
+
+  const media = useOutreachMedia(pendingItems.map((i) => i.profile_id));
+  const mediaUrl = (item: OutreachItem) => media.get(item.profile_id, item.step_index)?.url ?? null;
+  const composeFor = (item: OutreachItem, text: string) => composeMessageWithLink(text, mediaUrl(item));
+  const rememberOpened = (item: OutreachItem, text: string) => {
+    setOpenedTexts((prev) => ({ ...prev, [item.id]: text }));
+    setOpenedIds((previous) => new Set(previous).add(item.id));
+  };
+  const renderMediaPicker = (item: OutreachItem) => {
+    const target = { profileIds: [item.profile_id], steps: [item.step_index] };
+    return (
+      <OutreachMediaPicker
+        key={`${currentWorkspace?.id}:${item.profile_id}:${item.step_index}`}
+        media={media.get(item.profile_id, item.step_index)}
+        busy={media.setUrl.isPending || media.uploadVideo.isPending || media.remove.isPending}
+        onSetUrl={(url) => media.setUrl.mutateAsync({ ...target, url })}
+        onUpload={(file) => media.uploadVideo.mutateAsync({ ...target, file })}
+        onRemove={() => media.remove.mutateAsync(target)}
+      />
+    );
+  };
 
   const { data: scheduledCount = 0 } = useQuery({
     queryKey: ["scheduled-outreach-count", currentWorkspace?.id],
@@ -170,25 +199,16 @@ export function PendingOutreachPanel() {
     }
   }, [queryClient]);
 
-  // Mark as sent
-  const markSent = useCallback(async (item: OutreachItem) => {
-    const { error: profileError } = await supabase
-      .from("professional_prospecting_profiles")
-      .update({ outreach_step: item.step_index } as any)
-      .eq("id", item.profile_id)
-      .eq("workspace_id", item.workspace_id)
-      .or(`outreach_step.is.null,outreach_step.lt.${item.step_index}`);
-    if (profileError) throw profileError;
-    const { data: updated, error: queueError } = await supabase
-      .from("prospecting_outreach_queue")
-      .update({ status: "sent" } as any)
-      .eq("id", item.id)
-      .eq("workspace_id", item.workspace_id)
-      .eq("status", "ready")
-      .select("id")
-      .maybeSingle();
-    if (queueError) throw queueError;
-    if (!updated) throw new Error("Este follow-up já não está pronto para envio.");
+  // Mark as sent: one atomic RPC (queue ready->sent with exact text, then profile step).
+  const markSent = useCallback(async (item: OutreachItem, sentText: string) => {
+    const { error } = await (supabase as unknown as {
+      rpc: (n: string, a: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }>;
+    }).rpc("prospecting_mark_outreach_sent", {
+      p_queue_id: item.id,
+      p_sent_message: sentText,
+      p_media_url: mediaUrl(item),
+    });
+    if (error) throw new Error(error.message);
     setBulkSent((prev) => new Set(prev).add(item.id));
     queryClient.invalidateQueries({ queryKey: ["prospecting-effectiveness", item.workspace_id] });
     console.log(`[PROSPECTING] Outreach sent: profile=${item.profile_id}, step=${item.step_index}`);
@@ -202,7 +222,7 @@ export function PendingOutreachPanel() {
         payload: { profile_id: item.profile_id, step_index: item.step_index, channel: isWhatsAppStep(item) ? 'whatsapp' : 'instagram' },
       });
     }
-  }, [currentWorkspace?.id, queryClient]);
+  }, [currentWorkspace?.id, queryClient, media.data]);
 
   // Reject item
   const rejectMutation = useMutation({
@@ -234,6 +254,7 @@ export function PendingOutreachPanel() {
       msg = result.message;
     }
 
+    msg = composeFor(item, msg);
     await navigator.clipboard.writeText(msg);
 
     // Open Instagram DM via ig.me link
@@ -244,17 +265,18 @@ export function PendingOutreachPanel() {
       window.open(item.profile_url, "_blank");
     }
 
-    setOpenedIds((previous) => new Set(previous).add(item.id));
+    rememberOpened(item, msg);
     toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
     } catch (error) {
       toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
-  }, [canContinue, generateMessage]);
+  }, [canContinue, generateMessage, media.data]);
 
   const handleSingleConfirm = useCallback(async (item: OutreachItem) => {
-    if (!openedIds.has(item.id)) return;
+    const text = openedTexts[item.id];
+    if (!openedIds.has(item.id) || !text) return;
     try {
-      await markSent(item);
+      await markSent(item, text);
       queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       setOpenedIds((previous) => { const next = new Set(previous); next.delete(item.id); return next; });
@@ -262,7 +284,7 @@ export function PendingOutreachPanel() {
     } catch (error) {
       toast.error("Não foi possível registar o envio", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
-  }, [openedIds, markSent, queryClient]);
+  }, [openedIds, openedTexts, markSent, queryClient]);
 
   // WhatsApp step: open the guarded WhatsApp dialog with the generated text
   const handleWhatsAppSend = useCallback(async (item: OutreachItem) => {
@@ -273,8 +295,8 @@ export function PendingOutreachPanel() {
       if (!result?.message) return;
       msg = result.message_plain || result.message;
     }
-    setWaItem({ ...item, message_plain: msg });
-  }, [canContinue, generateMessage]);
+    setWaItem({ ...item, message_plain: composeFor(item, msg) });
+  }, [canContinue, generateMessage, media.data]);
 
   // Contact replied: stop the remaining cadence for this profile
   const stopCadenceMutation = useMutation({
@@ -322,33 +344,34 @@ export function PendingOutreachPanel() {
   const handleBulkCopyAndOpen = useCallback(async (item: OutreachItem) => {
     if (!await canContinue(item)) return;
     try {
-    if (item.message) {
-      await navigator.clipboard.writeText(item.message);
-    }
+    if (!item.message) return;
+    const text = composeFor(item, item.message);
+    await navigator.clipboard.writeText(text);
     const username = item.profile_url?.match(/instagram\.com\/([^/?]+)/)?.[1];
     if (username) {
       window.open(`https://ig.me/m/${username}`, "_blank");
     } else if (item.profile_url) {
       window.open(item.profile_url, "_blank");
     }
-    setOpenedIds((previous) => new Set(previous).add(item.id));
+    rememberOpened(item, text);
     toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
     } catch (error) {
       toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
-  }, [canContinue]);
+  }, [canContinue, media.data]);
 
   const handleBulkConfirmSent = useCallback(async (item: OutreachItem) => {
-    if (!openedIds.has(item.id)) return;
+    const text = openedTexts[item.id];
+    if (!openedIds.has(item.id) || !text) return;
     try {
-      await markSent(item);
+      await markSent(item, text);
       setCurrentBulkIndex((prev) => prev + 1);
       queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
     } catch (error) {
       toast.error("Não foi possível registar o envio", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
-  }, [openedIds, markSent, queryClient]);
+  }, [openedIds, openedTexts, markSent, queryClient]);
 
   const handleBulkReject = useCallback((item: OutreachItem) => {
     rejectMutation.mutate(item);
@@ -383,8 +406,9 @@ export function PendingOutreachPanel() {
           entityId={waItem.lead_id}
           entityName={waItem.profile_name}
           initialMessage={waItem.message_plain || waItem.message}
-          onSent={async () => {
-            await markSent(waItem);
+          mediaNotice={mediaUrl(waItem) ? WHATSAPP_VIDEO_NOTICE : null}
+          onSent={async ({ message }) => {
+            await markSent(waItem, message);
             queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
           }}
         />
@@ -504,6 +528,8 @@ export function PendingOutreachPanel() {
                     </div>
                   )}
 
+                  {renderMediaPicker(current)}
+
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <Button
@@ -620,6 +646,7 @@ export function PendingOutreachPanel() {
                       Mensagem será gerada ao enviar
                     </p>
                   )}
+                  {renderMediaPicker(item)}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
