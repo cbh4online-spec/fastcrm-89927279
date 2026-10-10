@@ -392,6 +392,7 @@ export function BulkOutreachDialog({
           {phase === "sending" && profiles.length > 0 && (
             <div className="mt-3">
               <OutreachMediaPicker
+        loadState={media.isLoading ? "loading" : media.isError ? "error" : "ready"}
                 key={`common:${currentWorkspace?.id}:${profiles.map((p) => p.id).join(",")}`}
                 title={`Conteúdo comum (aplica-se aos ${profiles.length} perfis, 1.ª mensagem)`}
                 media={(() => {
@@ -409,6 +410,7 @@ export function BulkOutreachDialog({
           {phase === "sending" && focusMode && focusProfile && (
             <div className="mt-3">
               <OutreachMediaPicker
+        loadState={media.isLoading ? "loading" : media.isError ? "error" : "ready"}
                 key={`${currentWorkspace?.id}:${focusProfile.id}:1`}
                 title={`Conteúdo para ${focusProfile.profile_name || "este perfil"}`}
                 media={media.get(focusProfile.id, 1)}

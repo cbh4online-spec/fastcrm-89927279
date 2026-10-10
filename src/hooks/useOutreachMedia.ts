@@ -16,6 +16,7 @@ import {
 } from "@/lib/prospecting/outreachMedia";
 
 export const OUTREACH_MEDIA_QUERY_KEY = "prospecting-outreach-media";
+export const MEDIA_SAVING_MESSAGE = "Aguarde: o vídeo/link ainda está a ser guardado.";
 export const MEDIA_READ_FAILED_MESSAGE =
   "Não foi possível confirmar o vídeo/link associado. A abordagem não foi preparada; tente novamente.";
 
@@ -163,6 +164,7 @@ export function useOutreachMedia(profileIds: string[]) {
     // Leitura garantida na base de dados: nunca depende da cache ainda a carregar
     // nem trata um erro de leitura como «sem conteúdo».
     if (!workspaceId) throw new Error(MEDIA_READ_FAILED_MESSAGE);
+    if (setUrl.isPending || uploadVideo.isPending || remove.isPending) throw new Error(MEDIA_SAVING_MESSAGE);
     const { data, error: readError } = await mediaTable()
       .select("*")
       .eq("workspace_id", workspaceId)

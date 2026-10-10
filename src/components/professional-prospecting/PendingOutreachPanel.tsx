@@ -132,6 +132,7 @@ export function PendingOutreachPanel() {
     const target = { profileIds: [item.profile_id], steps: [item.step_index] };
     return (
       <OutreachMediaPicker
+        loadState={media.isLoading ? "loading" : media.isError ? "error" : "ready"}
         key={`${currentWorkspace?.id}:${item.profile_id}:${item.step_index}`}
         media={media.get(item.profile_id, item.step_index)}
         busy={media.setUrl.isPending || media.uploadVideo.isPending || media.remove.isPending}

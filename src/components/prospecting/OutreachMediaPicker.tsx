@@ -21,10 +21,12 @@ interface Props {
   onSetUrl: (url: string) => Promise<unknown>;
   onUpload: (file: File) => Promise<unknown>;
   onRemove: () => Promise<unknown>;
+  /** Estado da leitura do conteúdo guardado. */
+  loadState?: "loading" | "error" | "ready";
 }
 
 /** Associa um link https ou um MP4 (≤16 MB) a uma etapa. Só pré-visualização textual. */
-export function OutreachMediaPicker({ media, busy, disabled, title = "Vídeo ou link a partilhar", onSetUrl, onUpload, onRemove }: Props) {
+export function OutreachMediaPicker({ media, busy, disabled, title = "Vídeo ou link a partilhar", onSetUrl, onUpload, onRemove, loadState = "ready" }: Props) {
   const id = useId();
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,8 @@ export function OutreachMediaPicker({ media, busy, disabled, title = "Vídeo ou 
   return (
     <div className="space-y-2 rounded-md border border-border p-3">
       <p className="text-xs font-medium">{title}</p>
+      {loadState === "loading" && <p role="status" className="text-xs text-muted-foreground">A carregar o conteúdo guardado… a ligação é confirmada antes de copiar/abrir.</p>}
+      {loadState === "error" && <p role="alert" className="text-xs text-destructive">Não foi possível ler o conteúdo guardado. Copiar/abrir confirma-o de novo e pára se continuar a falhar.</p>}
 
       {media && !editing && (
         <div className="flex flex-wrap items-center gap-2 text-xs">
