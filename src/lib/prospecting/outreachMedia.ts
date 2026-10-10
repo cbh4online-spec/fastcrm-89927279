@@ -24,6 +24,7 @@ export interface OutreachMedia {
   size_bytes: number | null;
   url_expires_at: string | null;
   created_by: string;
+  updated_at?: string | null;
 }
 
 export type ShareUrlResult = { ok: boolean; url?: string; error?: string };

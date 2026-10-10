@@ -16,6 +16,7 @@ import {
 } from "@/lib/prospecting/outreachMedia";
 
 export const OUTREACH_MEDIA_QUERY_KEY = "prospecting-outreach-media";
+export const MEDIA_CHANGED_MESSAGE = "O vídeo/link foi alterado por outra pessoa. Reveja o conteúdo e tente novamente.";
 export const MEDIA_SAVING_MESSAGE = "Aguarde: o vídeo/link ainda está a ser guardado.";
 export const MEDIA_READ_FAILED_MESSAGE =
   "Não foi possível confirmar o vídeo/link associado. A abordagem não foi preparada; tente novamente.";
@@ -165,28 +166,43 @@ export function useOutreachMedia(profileIds: string[]) {
     // nem trata um erro de leitura como «sem conteúdo».
     if (!workspaceId) throw new Error(MEDIA_READ_FAILED_MESSAGE);
     if (setUrl.isPending || uploadVideo.isPending || remove.isPending) throw new Error(MEDIA_SAVING_MESSAGE);
-    const { data, error: readError } = await mediaTable()
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .eq("profile_id", profileId)
-      .eq("step_index", stepIndex)
-      .maybeSingle();
-    if (readError) throw new Error(MEDIA_READ_FAILED_MESSAGE);
-    const row = (data as OutreachMedia | null) ?? null;
-    if (!row || row.kind !== "video" || !needsVideoLinkRenewal(row)) return row;
-    if (!workspaceId || !user?.id || !row.storage_path) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
-    const { data: signed, error: signErr } = await supabase.storage
-      .from(PROSPECTING_VIDEO_BUCKET)
-      .createSignedUrl(row.storage_path, PROSPECTING_VIDEO_LINK_TTL_SECONDS);
-    if (signErr || !signed?.signedUrl) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
-    const url_expires_at = new Date(Date.now() + PROSPECTING_VIDEO_LINK_TTL_SECONDS * 1000).toISOString();
-    const { error } = await mediaTable()
-      .update({ url: signed.signedUrl, url_expires_at, created_by: user.id })
-      .eq("id", row.id)
-      .eq("workspace_id", workspaceId);
-    if (error) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
-    void invalidate();
-    return { ...row, url: signed.signedUrl, url_expires_at, created_by: user.id };
+    const readRow = async (): Promise<OutreachMedia | null> => {
+      const { data, error: readError } = await mediaTable()
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .eq("profile_id", profileId)
+        .eq("step_index", stepIndex)
+        .maybeSingle();
+      if (readError) throw new Error(MEDIA_READ_FAILED_MESSAGE);
+      return (data as OutreachMedia | null) ?? null;
+    };
+    // Compare-and-swap: só renova se a linha ainda é o mesmo vídeo/ligação lidos.
+    // Se outro membro a substituiu entretanto (0 linhas), relê e usa a linha atual.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const row = await readRow();
+      if (!row || row.kind !== "video" || !needsVideoLinkRenewal(row)) return row;
+      if (!user?.id || !row.storage_path) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
+      const { data: signed, error: signErr } = await supabase.storage
+        .from(PROSPECTING_VIDEO_BUCKET)
+        .createSignedUrl(row.storage_path, PROSPECTING_VIDEO_LINK_TTL_SECONDS);
+      if (signErr || !signed?.signedUrl) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
+      const url_expires_at = new Date(Date.now() + PROSPECTING_VIDEO_LINK_TTL_SECONDS * 1000).toISOString();
+      let cas = mediaTable()
+        .update({ url: signed.signedUrl, url_expires_at, created_by: user.id })
+        .eq("id", row.id)
+        .eq("workspace_id", workspaceId)
+        .eq("kind", "video")
+        .eq("storage_path", row.storage_path)
+        .eq("url", row.url);
+      if (row.updated_at) cas = cas.eq("updated_at", row.updated_at);
+      const { data: updated, error } = await cas.select("id");
+      if (error) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
+      if (Array.isArray(updated) && updated.length === 1) {
+        void invalidate();
+        return { ...row, url: signed.signedUrl, url_expires_at, created_by: user.id };
+      }
+    }
+    throw new Error(MEDIA_CHANGED_MESSAGE);
   };
 
   return { ...query, get, ensureFresh, setUrl, uploadVideo, remove };
