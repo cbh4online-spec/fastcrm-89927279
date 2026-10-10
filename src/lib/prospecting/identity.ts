@@ -138,3 +138,53 @@ export function prospectingIdentityHref(check: ProspectingIdentityCheck): string
   const section = match.entity_type === "lead" ? "leads" : match.entity_type === "contact" ? "contacts" : match.entity_type === "company" ? "companies" : null;
   return section ? `/dashboard/${section}/${match.entity_id}` : null;
 }
+
+export interface ProspectingIdentityBatchItem extends ProspectingIdentityCandidate {
+  key: string;
+  profile_id?: string | null;
+}
+
+export const PROSPECTING_IDENTITY_BATCH_SIZE = 100;
+
+/** One RPC per page of up to 100 candidates; never per row. Missing keys become "unavailable". */
+export async function checkProspectingIdentityBatch(
+  client: SupabaseClient<Database>,
+  workspaceId: string,
+  items: ProspectingIdentityBatchItem[],
+): Promise<Record<string, ProspectingIdentityCheck>> {
+  const out: Record<string, ProspectingIdentityCheck> = {};
+  for (let i = 0; i < items.length; i += PROSPECTING_IDENTITY_BATCH_SIZE) {
+    const chunk = items.slice(i, i + PROSPECTING_IDENTITY_BATCH_SIZE);
+    const { data, error } = await (client as unknown as ProspectingRpcClient).rpc("prospecting_identity_check_batch", {
+      p_workspace_id: workspaceId,
+      p_candidates: chunk,
+    });
+    if (error) throw new Error(`Não foi possível verificar duplicados: ${error.message}`);
+    if (!Array.isArray(data)) throw new Error("A verificação de duplicados devolveu uma resposta inválida.");
+    for (const row of data as Array<{ key?: unknown; result?: unknown }>) {
+      if (typeof row?.key !== "string") continue;
+      try {
+        out[row.key] = parseCheck(row.result);
+      } catch {
+        out[row.key] = { status: "unavailable", matches: [] };
+      }
+    }
+    for (const item of chunk) if (!out[item.key]) out[item.key] = { status: "unavailable", matches: [] };
+  }
+  return out;
+}
+
+export type ProspectingIdentityTone = "new" | "warning" | "danger" | "info" | "muted";
+
+/** Short label for result lists: names the existing record type, not just "Lead". */
+export function prospectingIdentityLabel(check: ProspectingIdentityCheck): { label: string; tone: ProspectingIdentityTone } {
+  if (check.status === "unavailable") return { label: "Verificação indisponível", tone: "muted" };
+  if (check.status === "blocked") return { label: "Não contactar", tone: "danger" };
+  if (check.status === "opportunity") return { label: "Oportunidade em curso", tone: "warning" };
+  if (check.status === "review") return { label: "Possível duplicado", tone: "warning" };
+  if (check.status === "new") return { label: "Novo", tone: "new" };
+  const type = check.matches[0]?.entity_type;
+  const label = type === "contact" ? "Já é contacto" : type === "company" ? "Já é empresa"
+    : type === "profile" ? "Já recolhido" : "Já é lead";
+  return { label, tone: "info" };
+}
