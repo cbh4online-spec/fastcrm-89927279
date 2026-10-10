@@ -421,6 +421,13 @@
       "when": 1791631989952,
       "tag": "0059_prospecting_identity_instagram_paths_and_batch",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1791632370826,
+      "tag": "0060_prospecting_identity_batch_revoke_anon",
+      "breakpoints": true
     }
   ]
 }
