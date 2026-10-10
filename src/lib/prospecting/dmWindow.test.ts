@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const warning = vi.fn(); const error = vi.fn();
 vi.mock("sonner", () => ({ toast: { warning: (...a: unknown[]) => warning(...a), error: (...a: unknown[]) => error(...a) } }));
-import { reserveDmWindow, finishDmOpen } from "./dmWindow";
+import { reserveDmWindow, finishDmOpen, openDmDirect, safeDmUrl } from "./dmWindow";
 
 beforeEach(() => { warning.mockReset(); error.mockReset(); vi.restoreAllMocks(); });
 
@@ -38,5 +38,29 @@ describe("abertura de DM", () => {
     const onOpened = vi.fn();
     expect(finishDmOpen(win, "https://ig.me/m/x", onOpened)).toBe(false);
     expect(onOpened).not.toHaveBeenCalled();
+  });
+});
+
+describe("validação de ligação da DM", () => {
+  const bad = ["javascript:alert(1)", "data:text/html,<script>1</script>", "http://ig.me/m/x", "", "   ",
+    "file:///etc/passwd", "https://user:pw@ig.me/m/x", "https://evil.com/ig.me", "https://instagram.com.evil.com/x", "https://ig.me:8443/m/x"];
+  it.each(bad)("rejeita %s: fecha janela, não navega nem marca aberto", (url) => {
+    const replace = vi.fn(); const close = vi.fn();
+    const win = { closed: false, location: { replace }, close } as unknown as Window;
+    const open = vi.spyOn(window, "open");
+    const onOpened = vi.fn();
+    expect(safeDmUrl(url)).toBeNull();
+    expect(finishDmOpen(win, url, onOpened)).toBe(false);
+    expect(replace).not.toHaveBeenCalled();
+    expect(close).toHaveBeenCalled();
+    expect(onOpened).not.toHaveBeenCalled();
+    expect(warning).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalled();
+    expect(openDmDirect(url)).toBe(false);
+    expect(open).not.toHaveBeenCalled();
+  });
+  it("aceita https do Instagram/ig.me", () => {
+    expect(safeDmUrl("https://ig.me/m/abc")).toBe("https://ig.me/m/abc");
+    expect(safeDmUrl("https://www.instagram.com/abc/")).toBe("https://www.instagram.com/abc/");
   });
 });
