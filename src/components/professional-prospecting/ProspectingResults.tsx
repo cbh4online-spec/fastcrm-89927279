@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { safeProfileLink, INVALID_PROFILE_LINK_MESSAGE } from "@/lib/prospecting/profileLink";
 import { instagramEnrichmentUsername } from "@/lib/prospecting/enrichTarget";
 import { partitionByIdentity, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1208,12 +1209,10 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
                           size="sm"
                           onClick={() => {
                             navigator.clipboard.writeText(profile.profile_url);
+                            const href = safeProfileLink(profile.platform, profile.profile_url);
                             toast.success("URL copiado!", {
-                              description: profile.profile_url,
-                              action: {
-                                label: "Abrir",
-                                onClick: () => window.open(profile.profile_url, "_blank", "noopener,noreferrer"),
-                              },
+                              description: href ? profile.profile_url : `${profile.profile_url} — ${INVALID_PROFILE_LINK_MESSAGE}`,
+                              ...(href ? { action: { label: "Abrir", onClick: () => { window.open(href, "_blank", "noopener,noreferrer"); } } } : {}),
                             });
                           }}
                         >

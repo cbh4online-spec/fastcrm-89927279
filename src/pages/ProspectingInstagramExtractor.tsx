@@ -1,3 +1,4 @@
+import { safeProfileLink, INVALID_PROFILE_LINK_MESSAGE } from "@/lib/prospecting/profileLink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -642,11 +643,20 @@ export default function ProspectingInstagramExtractor() {
                       <TableCell className="text-sm">{p.inferred_location ?? "—"}</TableCell>
                       <TableCell className="text-sm">{p.instagram_category ?? "—"}</TableCell>
                       <TableCell>
-                        <Button asChild size="icon" variant="ghost" aria-label="Abrir perfil no Instagram">
-                          <a href={p.profile_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
+                        {(() => {
+                          const href = safeProfileLink("instagram", p.profile_url);
+                          return href ? (
+                            <Button asChild size="icon" variant="ghost" aria-label="Abrir perfil no Instagram">
+                              <a href={href} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                          ) : (
+                            <Button size="icon" variant="ghost" disabled aria-label={INVALID_PROFILE_LINK_MESSAGE} title={INVALID_PROFILE_LINK_MESSAGE}>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Button>
+                          );
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))}
