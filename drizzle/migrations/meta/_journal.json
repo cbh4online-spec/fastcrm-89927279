@@ -393,6 +393,13 @@
       "when": 1791618161761,
       "tag": "0055_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791618649503,
+      "tag": "0056_restrict_public_branding_reviews_livechat",
+      "breakpoints": true
     }
   ]
 }

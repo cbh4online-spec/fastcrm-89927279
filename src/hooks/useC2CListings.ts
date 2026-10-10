@@ -337,7 +337,7 @@ export function useC2CSellerReviews(sellerId: string | undefined) {
       if (!sellerId) return { reviews: [], average: 0, count: 0 };
       const { data, error } = await supabase
         .from("c2c_reviews")
-        .select("*")
+        .select("id, workspace_id, listing_id, reviewer_id, seller_id, rating, comment, created_at, transaction_id, title, reply, reply_at, is_verified_purchase, is_hidden")
         .eq("seller_id", sellerId)
         .order("created_at", { ascending: false });
       if (error) throw error;

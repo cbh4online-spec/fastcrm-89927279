@@ -23,7 +23,7 @@ export function useListingReviews(listingId: string | undefined) {
       if (!listingId) return [];
       const { data, error } = await supabase
         .from("c2c_reviews")
-        .select("*")
+        .select("id, workspace_id, listing_id, reviewer_id, seller_id, rating, comment, created_at, transaction_id, title, reply, reply_at, is_verified_purchase, is_hidden")
         .eq("listing_id", listingId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -41,7 +41,7 @@ export function useSellerReviews(sellerId: string | undefined) {
       if (!sellerId) return [];
       const { data, error } = await supabase
         .from("c2c_reviews")
-        .select("*")
+        .select("id, workspace_id, listing_id, reviewer_id, seller_id, rating, comment, created_at, transaction_id, title, reply, reply_at, is_verified_purchase, is_hidden")
         .eq("seller_id", sellerId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -72,7 +72,7 @@ export function useSubmitReview() {
         rating: data.rating,
         comment: data.comment || null,
         reviewer_id: user.id,
-      }).select().single();
+      }).select("id, listing_id, seller_id, rating").single();
       if (error) {
         if (error.message?.includes("duplicate")) throw new Error("Já avaliaste este artigo");
         throw error;
