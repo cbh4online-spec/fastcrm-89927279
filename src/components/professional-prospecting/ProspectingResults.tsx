@@ -312,6 +312,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     onSuccess: (lead, { profile }) => {
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: [PROSPECTING_IDENTITY_QUERY_KEY] });
       setConvertDialogOpen(false);
       setProfileToConvert(null);
       toast.success("Lead criado com sucesso com dados enriquecidos!");
