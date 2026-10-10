@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { reserveDmWindow, closeDmWindow, finishDmOpen } from "@/lib/prospecting/dmWindow";
+import { buildDmUrl, tryCopyText, type PreparedDm } from "@/lib/prospecting/dmWindow";
+import { PreparedDmPanel } from "./PreparedDmPanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -99,6 +100,29 @@ export function BulkOutreachDialog({
   const media = useOutreachMedia(profiles.map((p) => p.id));
   const mediaBusy = media.setUrl.isPending || media.uploadVideo.isPending || media.remove.isPending;
   const [openedSnapshots, setOpenedSnapshots] = useState<Record<string, { text: string; url: string | null }>>({});
+  const [preparedDms, setPreparedDms] = useState<Record<string, PreparedDm>>({});
+  const forgetPrepared = (id: string) => {
+    setPreparedDms((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    setOpenedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+  };
+  // Só o clique real em «Abrir conversa» regista o texto exato e ativa «Já enviei».
+  const handleDmOpened = (id: string) => {
+    const prepared = preparedDms[id];
+    if (!prepared) return;
+    setOpenedSnapshots((prev) => ({ ...prev, [id]: { text: prepared.text, url: prepared.mediaUrl } }));
+    setOpenedIds((prev) => new Set(prev).add(id));
+  };
+  const renderPrepared = (id: string) => {
+    const prepared = preparedDms[id];
+    if (!prepared) return null;
+    return (
+      <PreparedDmPanel
+        prepared={prepared}
+        onCopied={(ok) => setPreparedDms((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], copied: ok } } : prev))}
+        onOpened={() => handleDmOpened(id)}
+      />
+    );
+  };
 
   const totalProfiles = profiles.length;
   const rejectedCount = rejectedIds.size;
@@ -132,6 +156,7 @@ export function BulkOutreachDialog({
       setSkippedIds(new Set());
       setEditedMessages({});
       setOpenedSnapshots({});
+      setPreparedDms({});
     } else {
       setSessionStartedAt(Date.now());
     }
@@ -171,36 +196,28 @@ export function BulkOutreachDialog({
     toast.success(`${profile.profile_name || "Perfil"} rejeitado`);
   };
 
-  const copyAndOpen = async (profile: BulkProfile, win: Window | null) => {
+  const copyAndOpen = async (profile: BulkProfile) => {
     const msg = getMessageForProfile(profile.id);
-    if (!msg || !msg.message) { closeDmWindow(win); return; }
+    forgetPrepared(profile.id);
+    if (!msg || !msg.message) return;
     try {
       if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
       if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
       const url = (await media.ensureFresh(profile.id, 1))?.url ?? null;
       const text = composeMessageWithLink(msg.message_plain || msg.message, url);
-      await navigator.clipboard.writeText(text);
-      setOpenedSnapshots((prev) => ({ ...prev, [profile.id]: { text, url: sentMediaUrlFor(text, url) } }));
-      setCopiedId(profile.id);
-      setTimeout(() => setCopiedId(null), 2000);
-
-      const username = extractInstagramUsername(profile.profile_url);
-      const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-      // Only mark as opened (NOT sent) when the DM window really opened.
-      finishDmOpen(win, dmUrl, () => {
-        setOpenedIds(prev => new Set(prev).add(profile.id));
-        toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
-      });
+      const copied = await tryCopyText(text);
+      setPreparedDms((prev) => ({ ...prev, [profile.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(extractInstagramUsername(profile.profile_url), profile.profile_url), copied } }));
+      if (copied) {
+        setCopiedId(profile.id);
+        setTimeout(() => setCopiedId(null), 2000);
+        toast.success("Mensagem copiada. Clique em «Abrir conversa».");
+      }
     } catch (error) {
-      closeDmWindow(win);
-      toast.error("Não foi possível abrir a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
+      toast.error("Não foi possível preparar a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
   };
 
   const handleCopyAndOpen = async (profile: BulkProfile) => {
-    // Reservada no clique; só navega após as verificações.
-    const win = reserveDmWindow();
-    let handedOff = false;
     try {
       const wsId = workspaceId || currentWorkspace?.id;
       if (!wsId) throw new Error("Espaço de trabalho indisponível");
@@ -220,12 +237,9 @@ export function BulkOutreachDialog({
         toast.warning(describeProspectingIdentity(identity));
         return;
       }
-      handedOff = true;
-      await copyAndOpen(profile, win);
+      await copyAndOpen(profile);
     } catch (error) {
       toast.error("Não foi possível verificar este contacto", { description: error instanceof Error ? error.message : "Tente novamente" });
-    } finally {
-      if (!handedOff) closeDmWindow(win);
     }
   };
 
@@ -440,7 +454,7 @@ export function BulkOutreachDialog({
               processedCount={sentCount + rejectedCount}
               total={totalProfiles}
               sessionStartedAt={sessionStartedAt}
-              onMessageChange={(value) => setEditedMessages(prev => ({ ...prev, [focusProfile.id]: value }))}
+              onMessageChange={(value) => { forgetPrepared(focusProfile.id); setEditedMessages(prev => ({ ...prev, [focusProfile.id]: value })); }}
               onOpen={() => handleCopyAndOpen(focusProfile)}
               onSent={() => handleConfirmSent(focusProfile)}
               onSkip={() => {
@@ -450,6 +464,7 @@ export function BulkOutreachDialog({
               onReject={() => handleReject(focusProfile)}
             />
           )}
+          {phase === "sending" && focusMode && focusProfile && renderPrepared(focusProfile.id)}
 
           {/* Phase: Sending — lista */}
           {phase === "sending" && (!focusMode || !focusProfile) && (
@@ -598,8 +613,9 @@ export function BulkOutreachDialog({
                                   ) : (
                                     <Copy className="w-3 h-3" />
                                   )}
-                                  Abrir perfil
+                                  Preparar mensagem
                                 </Button>
+                                {renderPrepared(profile.id)}
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -680,7 +696,7 @@ export function BulkOutreachDialog({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setReviewProfile(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (reviewProfile) { const id = reviewProfile.profile.id; setReviewConfirmedIds(prev => new Set(prev).add(id)); void copyAndOpen(reviewProfile.profile, reserveDmWindow()); } setReviewProfile(null); }}>
+            <AlertDialogAction onClick={() => { if (reviewProfile) { const id = reviewProfile.profile.id; setReviewConfirmedIds(prev => new Set(prev).add(id)); void copyAndOpen(reviewProfile.profile); } setReviewProfile(null); }}>
               É outro contacto, continuar
             </AlertDialogAction>
           </AlertDialogFooter>

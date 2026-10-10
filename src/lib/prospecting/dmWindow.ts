@@ -1,17 +1,13 @@
-import { toast } from "sonner";
-
 /**
- * Abertura de DM resistente a bloqueadores de pop-ups.
- * A janela é reservada de forma síncrona no clique (about:blank, sem navegar) e
- * só é encaminhada para a DM depois das verificações assíncronas. Se o browser
- * bloquear, nada é marcado como aberto: o utilizador recebe um botão explícito
- * e só esse clique bem-sucedido ativa «Já enviei».
+ * Abertura de DM em dois passos explícitos, sem janelas about:blank:
+ * 1) «Preparar» (clique) verifica identidade/media e mostra o texto exato; a cópia
+ *    é tentada com o foco ainda no FastCRM e, se falhar, o utilizador copia com novo clique.
+ * 2) «Abrir conversa» é um link real (<a href target=_blank>) clicado pelo utilizador,
+ *    com href https validado. Só esse clique ativa «Já enviei».
  */
-export const DM_POPUP_BLOCKED_MESSAGE =
-  "O browser bloqueou a nova janela. Use o botão «Abrir conversa» ou permita pop-ups para este site.";
-
 const ALLOWED_DM_HOSTS = new Set(["ig.me", "instagram.com", "www.instagram.com", "m.instagram.com"]);
 export const DM_INVALID_URL_MESSAGE = "Ligação de conversa inválida: só são aceites ligações https do Instagram.";
+export const DM_COPY_FAILED_MESSAGE = "Não foi possível copiar automaticamente. Selecione o texto ou use «Copiar».";
 
 /** Aceita apenas https:// para hosts Instagram/ig.me, sem credenciais nem porta. */
 export function safeDmUrl(raw: unknown): string | null {
@@ -25,73 +21,26 @@ export function safeDmUrl(raw: unknown): string | null {
   return u.toString();
 }
 
-export function reserveDmWindow(): Window | null {
-  try {
-    const win = window.open("about:blank", "_blank");
-    if (win) {
-      try { win.opener = null; } catch { /* ignore */ }
-    }
-    return win;
-  } catch {
-    return null;
-  }
+/** Ligação de DM a partir do perfil (ig.me se houver username), já validada. */
+export function buildDmUrl(username: string | null | undefined, profileUrl: string | null | undefined): string | null {
+  const clean = username && /^[A-Za-z0-9._]{1,30}$/.test(username) ? username : null;
+  return safeDmUrl(clean ? `https://ig.me/m/${clean}` : profileUrl);
 }
 
-export function closeDmWindow(win: Window | null | undefined) {
-  try { if (win && !win.closed) win.close(); } catch { /* ignore */ }
-}
-
-function navigate(win: Window | null | undefined, url: string): boolean {
-  if (!win || win.closed) return false;
+/** Tenta copiar; devolve false (sem lançar) se o browser recusar. */
+export async function tryCopyText(text: string): Promise<boolean> {
   try {
-    win.location.replace(url);
+    if (!navigator.clipboard?.writeText) return false;
+    await navigator.clipboard.writeText(text);
     return true;
   } catch {
     return false;
   }
 }
 
-/** Abre diretamente (deve ser chamado num clique do utilizador). */
-export function openDmDirect(url: string): boolean {
-  const safe = safeDmUrl(url);
-  if (!safe) return false;
-  url = safe;
-  try {
-    const win = window.open(url, "_blank");
-    if (!win) return false;
-    try { win.opener = null; } catch { /* ignore */ }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Encaminha a janela reservada para a DM. Devolve true se abriu; caso contrário
- * mostra instrução com botão manual e chama `onOpened` só se esse clique abrir.
- */
-export function finishDmOpen(win: Window | null | undefined, rawUrl: string | null | undefined, onOpened: () => void): boolean {
-  const url = safeDmUrl(rawUrl);
-  if (!url) {
-    closeDmWindow(win);
-    toast.error("A conversa não abriu", { description: DM_INVALID_URL_MESSAGE });
-    return false;
-  }
-  if (navigate(win, url)) {
-    onOpened();
-    return true;
-  }
-  closeDmWindow(win);
-  toast.warning("A conversa não abriu", {
-    description: `${DM_POPUP_BLOCKED_MESSAGE} Ligação: ${url}`,
-    duration: 20000,
-    action: {
-      label: "Abrir conversa",
-      onClick: () => {
-        if (openDmDirect(url)) onOpened();
-        else toast.error("O browser voltou a bloquear a janela", { description: `Abra manualmente: ${url}` });
-      },
-    },
-  });
-  return false;
+export interface PreparedDm {
+  text: string;
+  mediaUrl: string | null;
+  dmUrl: string | null;
+  copied: boolean;
 }

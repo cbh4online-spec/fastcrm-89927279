@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { reserveDmWindow, closeDmWindow, finishDmOpen } from "@/lib/prospecting/dmWindow";
+import { buildDmUrl, tryCopyText, type PreparedDm } from "@/lib/prospecting/dmWindow";
+import { PreparedDmPanel } from "./PreparedDmPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,9 +126,30 @@ export function PendingOutreachPanel() {
   // Renova a ligação do MP4 se estiver a expirar, antes de preparar a mensagem.
   const freshUrl = async (item: OutreachItem) => (await media.ensureFresh(item.profile_id, item.step_index))?.url ?? null;
   const [waUrl, setWaUrl] = useState<string | null>(null);
-  const rememberOpened = (item: OutreachItem, text: string, url: string | null) => {
-    setOpenedTexts((prev) => ({ ...prev, [item.id]: { text, url: sentMediaUrlFor(text, url) } }));
+  const [preparedDms, setPreparedDms] = useState<Record<string, PreparedDm>>({});
+  const forgetPrepared = (itemId: string) => {
+    setPreparedDms((prev) => { const n = { ...prev }; delete n[itemId]; return n; });
+    setOpenedIds((prev) => { const n = new Set(prev); n.delete(itemId); return n; });
+  };
+  // Só o clique real em «Abrir conversa» regista o texto exato e ativa «Já enviei».
+  const rememberOpened = (item: OutreachItem) => {
+    const prepared = preparedDms[item.id];
+    if (!prepared) return;
+    setOpenedTexts((prev) => ({ ...prev, [item.id]: { text: prepared.text, url: prepared.mediaUrl } }));
     setOpenedIds((previous) => new Set(previous).add(item.id));
+  };
+  const renderPrepared = (item: OutreachItem) => {
+    const prepared = preparedDms[item.id];
+    if (!prepared) return null;
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <PreparedDmPanel
+          prepared={prepared}
+          onCopied={(ok) => setPreparedDms((prev) => (prev[item.id] ? { ...prev, [item.id]: { ...prev[item.id], copied: ok } } : prev))}
+          onOpened={() => rememberOpened(item)}
+        />
+      </div>
+    );
   };
   const renderMediaPicker = (item: OutreachItem) => {
     const target = { profileIds: [item.profile_id], steps: [item.step_index] };
@@ -137,9 +159,9 @@ export function PendingOutreachPanel() {
         key={`${currentWorkspace?.id}:${item.profile_id}:${item.step_index}`}
         media={media.get(item.profile_id, item.step_index)}
         busy={media.setUrl.isPending || media.uploadVideo.isPending || media.remove.isPending}
-        onSetUrl={(url) => media.setUrl.mutateAsync({ ...target, url })}
-        onUpload={(file) => media.uploadVideo.mutateAsync({ ...target, file })}
-        onRemove={() => media.remove.mutateAsync(target)}
+        onSetUrl={(url) => { forgetPrepared(item.id); return media.setUrl.mutateAsync({ ...target, url }); }}
+        onUpload={(file) => { forgetPrepared(item.id); return media.uploadVideo.mutateAsync({ ...target, file }); }}
+        onRemove={() => { forgetPrepared(item.id); return media.remove.mutateAsync(target); }}
       />
     );
   };
@@ -248,35 +270,25 @@ export function PendingOutreachPanel() {
 
   // Abrir a DM não confirma a entrega; o utilizador confirma depois do envio.
   const handleSingleOpen = useCallback(async (item: OutreachItem) => {
-    const win = reserveDmWindow();
-    if (!await canContinue(item)) { closeDmWindow(win); return; }
+    forgetPrepared(item.id);
     try {
+    if (!await canContinue(item)) return;
     let msg = item.message;
-
-    // Generate if missing
     if (!msg) {
       const result = await generateMessage(item);
-      if (!result?.message) { closeDmWindow(win); return; }
+      if (!result?.message) return;
       msg = result.message;
     }
-
     const url = await freshUrl(item);
-    msg = composeMessageWithLink(msg, url);
-    await navigator.clipboard.writeText(msg);
-
+    const text = composeMessageWithLink(msg, url);
     const username = item.profile_url?.match(/instagram\.com\/([^/?]+)/)?.[1];
-    const dmUrl = username ? `https://ig.me/m/${username}` : item.profile_url;
-    if (!dmUrl) { closeDmWindow(win); throw new Error("Perfil sem ligação para abrir a conversa"); }
-    const finalText = msg;
-    finishDmOpen(win, dmUrl, () => {
-      rememberOpened(item, finalText, url);
-      toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
-    });
+    const copied = await tryCopyText(text);
+    setPreparedDms((prev) => ({ ...prev, [item.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(username, item.profile_url), copied } }));
+    if (copied) toast.success("Mensagem copiada. Clique em «Abrir conversa».");
     } catch (error) {
-      closeDmWindow(win);
-      toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
+      toast.error("Não foi possível preparar a mensagem", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
-  }, [canContinue, generateMessage, media.data]);
+  }, [canContinue, generateMessage, media.data, preparedDms]);
 
   const handleSingleConfirm = useCallback(async (item: OutreachItem) => {
     const opened = openedTexts[item.id];
@@ -356,25 +368,21 @@ export function PendingOutreachPanel() {
   }, [pendingItems, generateMessage, queryClient]);
 
   const handleBulkCopyAndOpen = useCallback(async (item: OutreachItem) => {
-    const win = reserveDmWindow();
-    if (!await canContinue(item)) { closeDmWindow(win); return; }
+    forgetPrepared(item.id);
     try {
-    if (!item.message) { closeDmWindow(win); return; }
+    if (!await canContinue(item)) return;
+    if (!item.message) return;
+    const msg = item.message;
     const url = await freshUrl(item);
-    const text = composeMessageWithLink(item.message, url);
-    await navigator.clipboard.writeText(text);
+    const text = composeMessageWithLink(msg, url);
     const username = item.profile_url?.match(/instagram\.com\/([^/?]+)/)?.[1];
-    const dmUrl = username ? `https://ig.me/m/${username}` : item.profile_url;
-    if (!dmUrl) { closeDmWindow(win); throw new Error("Perfil sem ligação para abrir a conversa"); }
-    finishDmOpen(win, dmUrl, () => {
-      rememberOpened(item, text, url);
-      toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
-    });
+    const copied = await tryCopyText(text);
+    setPreparedDms((prev) => ({ ...prev, [item.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(username, item.profile_url), copied } }));
+    if (copied) toast.success("Mensagem copiada. Clique em «Abrir conversa».");
     } catch (error) {
-      closeDmWindow(win);
-      toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
+      toast.error("Não foi possível preparar a mensagem", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
-  }, [canContinue, media.data]);
+  }, [canContinue, media.data, preparedDms]);
 
   const handleBulkConfirmSent = useCallback(async (item: OutreachItem) => {
     const opened = openedTexts[item.id];
@@ -547,6 +555,7 @@ export function PendingOutreachPanel() {
                   )}
 
                   {renderMediaPicker(current)}
+                  {renderPrepared(current)}
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
@@ -557,7 +566,7 @@ export function PendingOutreachPanel() {
                       disabled={!current.message || generatingIds.has(current.id)}
                     >
                       <Copy className="w-3.5 h-3.5" />
-                      Copiar e Abrir DM
+                      Preparar mensagem
                     </Button>
                     <Button
                       size="sm"
@@ -665,6 +674,7 @@ export function PendingOutreachPanel() {
                     </p>
                   )}
                   {renderMediaPicker(item)}
+                  {renderPrepared(item)}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
@@ -682,7 +692,7 @@ export function PendingOutreachPanel() {
                     ) : (
                       <Send className="w-3.5 h-3.5" />
                     )}
-                    {isWhatsAppStep(item) ? "WhatsApp" : "Abrir DM"}
+                    {isWhatsAppStep(item) ? "WhatsApp" : "Preparar DM"}
                   </Button>
                   {!isWhatsAppStep(item) && openedIds.has(item.id) && (
                     <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleSingleConfirm(item); }}>

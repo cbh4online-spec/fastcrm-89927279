@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { reserveDmWindow, closeDmWindow, finishDmOpen } from "@/lib/prospecting/dmWindow";
+import { buildDmUrl, tryCopyText, type PreparedDm } from "@/lib/prospecting/dmWindow";
+import { PreparedDmPanel } from "./PreparedDmPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -99,9 +100,11 @@ export function ProspectingMessageDialog({
   const composedFor = (stepIdx: number) => composeMessageWithLink(steps[stepIdx].message, stepMediaUrl(stepIdx + 1));
   // Texto exato aberto (mensagem + ligação), gravado ao confirmar «Já enviei».
   const [openedSnapshot, setOpenedSnapshot] = useState<{ step: number; text: string; url: string | null } | null>(null);
+  const [prepared, setPrepared] = useState<(PreparedDm & { step: number }) | null>(null);
   useEffect(() => {
     setOpenedStep(null);
     setOpenedSnapshot(null);
+    setPrepared(null);
   }, [profile.id, currentWorkspace?.id]);
 
   const [steps, setSteps] = useState<StepMessage[]>([
@@ -209,39 +212,36 @@ export function ProspectingMessageDialog({
     return true;
   };
 
-  const handleCopy = async () => {
+  // Passo 1: preparar (verificações + texto exato + cópia com foco no FastCRM). Não abre janelas.
+  const handlePrepare = async () => {
+    const stepNum = currentStep + 1;
+    setOpenedStep(null);
+    setOpenedSnapshot(null);
     try {
-      if (!await canContactProfile()) return;
-      const url = (await media.ensureFresh(profile.id, currentStep + 1))?.url ?? null;
-      await navigator.clipboard.writeText(composeMessageWithLink(steps[currentStep].message, url));
-      setCopied(true);
-      toast.success("Mensagem copiada!");
-      setTimeout(() => setCopied(false), 2000);
+      if (!await canContactProfile()) { setPrepared(null); return; }
+      const url = (await media.ensureFresh(profile.id, stepNum))?.url ?? null;
+      const text = composeMessageWithLink(steps[currentStep].message, url);
+      const copiedOk = await tryCopyText(text);
+      setPrepared({ step: stepNum, text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(extractInstagramUsername(profile.profile_url), profile.profile_url), copied: copiedOk });
+      if (copiedOk) toast.success("Mensagem copiada. Clique em «Abrir conversa».");
     } catch (error) {
-      toast.error("Não foi possível verificar este contacto", { description: error instanceof Error ? error.message : "Tente novamente" });
+      setPrepared(null);
+      toast.error("Não foi possível preparar a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
     }
   };
 
-  const handleOpenInstagram = async () => {
-    const stepNum = currentStep + 1;
-    const win = reserveDmWindow();
-    try {
-      if (!await canContactProfile()) { closeDmWindow(win); return; }
-      const url = (await media.ensureFresh(profile.id, stepNum))?.url ?? null;
-      const text = composeMessageWithLink(steps[currentStep].message, url);
-      await navigator.clipboard.writeText(text);
-      setOpenedSnapshot({ step: stepNum, text, url: sentMediaUrlFor(text, url) });
-      const username = extractInstagramUsername(profile.profile_url);
-      const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-      finishDmOpen(win, dmUrl, () => {
-        setOpenedStep(stepNum);
-        toast.success("Mensagem copiada. Cole-a e envie na conversa; depois confirme aqui.");
-      });
-    } catch (error) {
-      closeDmWindow(win);
-      toast.error("Não foi possível abrir a abordagem", { description: error instanceof Error ? error.message : "Tente novamente" });
-    }
+  // Passo 2: só o clique real no link «Abrir conversa» ativa «Já enviei».
+  const handleOpened = () => {
+    if (!prepared || prepared.step !== currentStep + 1) return;
+    setOpenedSnapshot({ step: prepared.step, text: prepared.text, url: prepared.mediaUrl });
+    setOpenedStep(prepared.step);
   };
+
+  useEffect(() => {
+    setPrepared(null);
+    setOpenedStep(null);
+    setOpenedSnapshot(null);
+  }, [currentStep, steps[currentStep]?.message]);
 
   const handleConfirmSent = async () => {
     const workspaceId = currentWorkspace?.id;
@@ -462,7 +462,7 @@ export function ProspectingMessageDialog({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleCopy}
+            onClick={() => { void handlePrepare().then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }}
             disabled={!steps[currentStep]?.message || steps[currentStep]?.isLoading}
             className="gap-1"
           >
@@ -481,12 +481,12 @@ export function ProspectingMessageDialog({
 
           <Button
             size="sm"
-            onClick={handleOpenInstagram}
+            onClick={handlePrepare}
             disabled={!steps[currentStep]?.message || steps[currentStep]?.isLoading || isSaving}
             className="gap-1"
           >
             <ExternalLink className="w-4 h-4" />
-            {isInstagramProfile ? "Copiar e abrir DM" : "Copiar e abrir perfil"}
+            Preparar mensagem
           </Button>
           {openedStep === currentStep + 1 && (
             <Button size="sm" variant="outline" onClick={handleConfirmSent} disabled={isSaving} className="gap-1">
@@ -495,6 +495,13 @@ export function ProspectingMessageDialog({
             </Button>
           )}
         </div>
+        {prepared && prepared.step === currentStep + 1 && (
+          <PreparedDmPanel
+            prepared={prepared}
+            onCopied={(ok) => setPrepared((p) => (p ? { ...p, copied: ok } : p))}
+            onOpened={handleOpened}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
