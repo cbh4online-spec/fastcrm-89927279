@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle, ExternalLink, Loader2, Send } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { OBJECTION_REPLIES, fillObjectionReply } from "@/lib/prospecting/objectionReplies";
 import {
   buildWhatsAppLinks,
@@ -46,9 +47,16 @@ interface Props {
   companyName?: string | null;
   /** Texto pré-preenchido ao abrir (ex.: follow-up de prospeção). */
   initialMessage?: string | null;
-  /** Chamado depois de um envio bem-sucedido. */
-  onSent?: () => void;
+  /**
+   * Chamado só depois de envio confirmado: resposta de sucesso do fornecedor ou
+   * clique explícito em «Já enviei» no envio assistido. É aguardado.
+   */
+  onSent?: (info: { message: string; channel: WhatsAppSendChannel }) => void | Promise<void>;
+  /** Aviso sobre conteúdo partilhado (ex.: vídeo enviado só como ligação). */
+  mediaNotice?: string | null;
 }
+
+type DeliveryPhase = "compose" | "opened" | "provider_sent";
 
 export function WhatsAppMessageDialog({
   open,
@@ -60,7 +68,11 @@ export function WhatsAppMessageDialog({
   companyName,
   initialMessage,
   onSent,
+  mediaNotice,
 }: Props) {
+  const [phase, setPhase] = useState<DeliveryPhase>("compose");
+  const [sentText, setSentText] = useState<string>("");
+  const [recording, setRecording] = useState(false);
   const normalized = normalizeWhatsAppNumber(phone);
   const [message, setMessage] = useState("");
   const [templateId, setTemplateId] = useState<string>("none");
@@ -84,6 +96,8 @@ export function WhatsAppMessageDialog({
     if (!open) {
       setMessage("");
       setTemplateId("none");
+      setPhase("compose");
+      setSentText("");
     } else if (initialMessage) {
       setMessage(initialMessage);
     }
@@ -101,31 +115,74 @@ export function WhatsAppMessageDialog({
   };
 
   const tooLong = message.length > WHATSAPP_MESSAGE_MAX_LENGTH;
-  const canSend = !!normalized && message.trim().length > 0 && !tooLong && !send.isPending;
+  const canSend = !!normalized && message.trim().length > 0 && !tooLong && !send.isPending && phase === "compose" && !recording;
+
+  /** Regista o envio local (queue, etc.). Nunca repete o envio real. */
+  const recordSent = async (text: string, via: WhatsAppSendChannel) => {
+    setRecording(true);
+    try {
+      await onSent?.({ message: text, channel: via });
+      onOpenChange(false);
+    } catch (e) {
+      toast.error("Envio feito, mas não foi possível registá-lo", {
+        description: e instanceof Error ? e.message : "Tente registar novamente",
+      });
+    } finally {
+      setRecording(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!normalized || !canSend) return;
+    const text = message.trim();
+    if (channel === "link") {
+      // Abrir o WhatsApp não é envio: nada é registado até «Já enviei».
+      const links = buildWhatsAppLinks(normalized);
+      const base = isMobileDevice() ? links.universal : links.web;
+      window.open(`${base}${base.includes("?") ? "&" : "?"}text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      setSentText(text);
+      setPhase("opened");
+      return;
+    }
     try {
       await send.mutateAsync({
         channel,
-        message,
+        message: text,
         phone: normalized,
         entityType,
         entityId,
         entityName,
-        conversationId: channel === "ghl" ? conversation?.id ?? null : conversation?.id ?? null,
+        conversationId: conversation?.id ?? null,
         templateName: selectedTemplate?.name ?? null,
       });
-      if (channel === "link") {
-        const links = buildWhatsAppLinks(normalized);
-        const base = isMobileDevice() ? links.universal : links.web;
-        window.open(`${base}${base.includes("?") ? "&" : "?"}text=${encodeURIComponent(message.trim())}`, "_blank", "noopener,noreferrer");
-      }
-      onSent?.();
-      onOpenChange(false);
     } catch {
-      /* erro já reportado no hook */
+      return; /* erro já reportado no hook; nada foi enviado */
     }
+    setSentText(text);
+    setPhase("provider_sent");
+    await recordSent(text, channel);
+  };
+
+  const handleConfirmAssisted = async () => {
+    if (phase !== "opened" || !normalized || recording) return;
+    setRecording(true);
+    try {
+      await send.mutateAsync({
+        channel: "link",
+        message: sentText,
+        phone: normalized,
+        entityType,
+        entityId,
+        entityName,
+        conversationId: conversation?.id ?? null,
+        templateName: selectedTemplate?.name ?? null,
+      });
+    } catch {
+      setRecording(false);
+      return;
+    }
+    setRecording(false);
+    await recordSent(sentText, "link");
   };
 
   return (
@@ -188,6 +245,7 @@ export function WhatsAppMessageDialog({
                 id="wa-message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                readOnly={phase !== "compose"}
                 rows={6}
                 maxLength={WHATSAPP_MESSAGE_MAX_LENGTH + 200}
                 placeholder="Escreva a mensagem…"
@@ -243,14 +301,43 @@ export function WhatsAppMessageDialog({
           </div>
         )}
 
+        {mediaNotice && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">{mediaNotice}</AlertDescription>
+          </Alert>
+        )}
+        {phase === "opened" && (
+          <Alert role="status">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              WhatsApp aberto com a mensagem preparada. Ainda não foi registado nenhum envio: envie no WhatsApp e confirme com «Já enviei».
+            </AlertDescription>
+          </Alert>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSend} disabled={!canSend} className="gap-2">
-            {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {channel === "link" ? "Abrir e registar" : "Enviar"}
-          </Button>
+          {phase === "compose" && (
+            <Button onClick={handleSend} disabled={!canSend} className="gap-2">
+              {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {channel === "link" ? "Abrir no WhatsApp" : "Enviar"}
+            </Button>
+          )}
+          {phase === "opened" && (
+            <Button onClick={handleConfirmAssisted} disabled={recording} className="gap-2">
+              {recording && <Loader2 className="h-4 w-4 animate-spin" />}
+              Já enviei
+            </Button>
+          )}
+          {phase === "provider_sent" && (
+            <Button onClick={() => recordSent(sentText, channel)} disabled={recording} className="gap-2">
+              {recording && <Loader2 className="h-4 w-4 animate-spin" />}
+              Registar novamente (sem reenviar)
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

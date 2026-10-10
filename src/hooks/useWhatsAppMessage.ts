@@ -197,18 +197,21 @@ export function useSendWhatsAppMessage() {
         related_id: input.conversationId ?? null,
         created_by: user?.id ?? null,
       } as never);
-      if (actError) throw actError;
+      // A provider send already happened: never surface this as a send failure
+      // (the user would retry and send twice). Only the assisted log is fatal.
+      if (actError && input.channel === "link") throw actError;
 
-      return { providerMessageId };
+      return { providerMessageId, activityLogged: !actError };
     },
-    onSuccess: (_data, vars) => {
+    onSuccess: (data, vars) => {
+      if (!data.activityLogged) toast.warning("Mensagem enviada, mas não foi possível registá-la na atividade.");
       qc.invalidateQueries({ queryKey: ["entity-activities"] });
       qc.invalidateQueries({ queryKey: ["entity-timeline"] });
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["messages"] });
       toast.success(
         vars.channel === "link"
-          ? "WhatsApp aberto e registo criado na atividade"
+          ? "Envio confirmado e registado na atividade"
           : "Mensagem enviada e registada na atividade",
       );
     },

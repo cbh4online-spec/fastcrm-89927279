@@ -25,6 +25,9 @@ import {
 import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { PowerHourFocusView } from "./PowerHourFocusView";
+import { useOutreachMedia } from "@/hooks/useOutreachMedia";
+import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicker";
+import { composeMessageWithLink } from "@/lib/prospecting/outreachMedia";
 import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/cadence";
 import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 
@@ -89,6 +92,10 @@ export function BulkOutreachDialog({
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   const [editedMessages, setEditedMessages] = useState<Record<string, string>>({});
   const [sessionStartedAt, setSessionStartedAt] = useState(() => Date.now());
+  // Conteúdo guardado por perfil/etapa 1; o «comum» grava a mesma ligação em cada perfil.
+  const media = useOutreachMedia(profiles.map((p) => p.id));
+  const mediaBusy = media.setUrl.isPending || media.uploadVideo.isPending || media.remove.isPending;
+  const [openedSnapshots, setOpenedSnapshots] = useState<Record<string, { text: string; url: string | null }>>({});
 
   const totalProfiles = profiles.length;
   const rejectedCount = rejectedIds.size;
@@ -121,6 +128,7 @@ export function BulkOutreachDialog({
       setRejectedIds(new Set());
       setSkippedIds(new Set());
       setEditedMessages({});
+      setOpenedSnapshots({});
     } else {
       setSessionStartedAt(Date.now());
     }
@@ -166,7 +174,10 @@ export function BulkOutreachDialog({
     try {
       if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
       if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
-      await navigator.clipboard.writeText(msg.message_plain || msg.message);
+      const url = media.get(profile.id, 1)?.url ?? null;
+      const text = composeMessageWithLink(msg.message_plain || msg.message, url);
+      await navigator.clipboard.writeText(text);
+      setOpenedSnapshots((prev) => ({ ...prev, [profile.id]: { text, url } }));
       setCopiedId(profile.id);
       setTimeout(() => setCopiedId(null), 2000);
 
@@ -210,7 +221,9 @@ export function BulkOutreachDialog({
 
   const handleConfirmSent = async (profile: BulkProfile) => {
     const wsId = workspaceId || currentWorkspace?.id;
-    if (!wsId || !openedIds.has(profile.id) || confirmingIds.has(profile.id)) return;
+    const snapshot = openedSnapshots[profile.id];
+    if (!wsId || !openedIds.has(profile.id) || !snapshot || confirmingIds.has(profile.id)) return;
+    const sentFields = { sent_message: snapshot.text, sent_media_url: snapshot.url, sent_at: new Date().toISOString() };
     setConfirmingIds(prev => new Set(prev).add(profile.id));
     try {
       if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
@@ -229,13 +242,13 @@ export function BulkOutreachDialog({
       if (initial) {
         if (initial.status !== "sent") {
           const { error } = await supabase.from("prospecting_outreach_queue")
-            .update({ status: "sent", message: msg?.message || null, message_plain: msg?.message_plain || msg?.message || null })
+            .update({ status: "sent", message: msg?.message || null, message_plain: msg?.message_plain || msg?.message || null, ...sentFields })
             .eq("id", initial.id);
           if (error) throw error;
         }
       } else {
         const { error } = await supabase.from("prospecting_outreach_queue")
-          .insert({ ...buildInitialOutreachRow({ workspaceId: wsId, profileId: profile.id, now }), message: msg?.message || null, message_plain: msg?.message_plain || msg?.message || null });
+          .insert({ ...buildInitialOutreachRow({ workspaceId: wsId, profileId: profile.id, now }), message: msg?.message || null, message_plain: msg?.message_plain || msg?.message || null, ...sentFields });
         if (error) throw error;
       }
       const followUps = buildFollowUpRows({ workspaceId: wsId, profileId: profile.id, now })
@@ -393,11 +406,42 @@ export function BulkOutreachDialog({
             </div>
           )}
 
+          {phase === "sending" && profiles.length > 0 && (
+            <div className="mt-3">
+              <OutreachMediaPicker
+                key={`common:${currentWorkspace?.id}:${profiles.map((p) => p.id).join(",")}`}
+                title={`Conteúdo comum (aplica-se aos ${profiles.length} perfis, 1.ª mensagem)`}
+                media={(() => {
+                  const first = profiles[0] ? media.get(profiles[0].id, 1) : null;
+                  return first && profiles.every((p) => media.get(p.id, 1)?.url === first.url) ? first : null;
+                })()}
+                busy={mediaBusy}
+                onSetUrl={(url) => media.setUrl.mutateAsync({ profileIds: profiles.map((p) => p.id), steps: [1], url })}
+                onUpload={(file) => media.uploadVideo.mutateAsync({ profileIds: profiles.map((p) => p.id), steps: [1], file })}
+                onRemove={() => media.remove.mutateAsync({ profileIds: profiles.map((p) => p.id), steps: [1] })}
+              />
+            </div>
+          )}
+
+          {phase === "sending" && focusMode && focusProfile && (
+            <div className="mt-3">
+              <OutreachMediaPicker
+                key={`${currentWorkspace?.id}:${focusProfile.id}:1`}
+                title={`Conteúdo para ${focusProfile.profile_name || "este perfil"}`}
+                media={media.get(focusProfile.id, 1)}
+                busy={mediaBusy}
+                onSetUrl={(url) => { setOpenedIds(prev => { const n = new Set(prev); n.delete(focusProfile.id); return n; }); return media.setUrl.mutateAsync({ profileIds: [focusProfile.id], steps: [1], url }); }}
+                onUpload={(file) => { setOpenedIds(prev => { const n = new Set(prev); n.delete(focusProfile.id); return n; }); return media.uploadVideo.mutateAsync({ profileIds: [focusProfile.id], steps: [1], file }); }}
+                onRemove={() => { setOpenedIds(prev => { const n = new Set(prev); n.delete(focusProfile.id); return n; }); return media.remove.mutateAsync({ profileIds: [focusProfile.id], steps: [1] }); }}
+              />
+            </div>
+          )}
+
           {/* Phase: Sending — modo foco (Power Hour) */}
           {phase === "sending" && focusMode && focusProfile && (
             <PowerHourFocusView
               profile={focusProfile}
-              message={getMessageForProfile(focusProfile.id)?.message_plain || getMessageForProfile(focusProfile.id)?.message || ""}
+              message={composeMessageWithLink(getMessageForProfile(focusProfile.id)?.message_plain || getMessageForProfile(focusProfile.id)?.message || "", media.get(focusProfile.id, 1)?.url)}
               opened={openedIds.has(focusProfile.id)}
               sentCount={sentCount}
               processedCount={sentCount + rejectedCount}

@@ -17,6 +17,9 @@ import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/ca
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 import { useQueryClient } from "@tanstack/react-query";
+import { useOutreachMedia } from "@/hooks/useOutreachMedia";
+import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicker";
+import { composeMessageWithLink } from "@/lib/prospecting/outreachMedia";
 
 const extractInstagramUsername = (url: string): string | null => {
   const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
@@ -85,9 +88,19 @@ export function ProspectingMessageDialog({
   const [copied, setCopied] = useState(false);
   const [openedStep, setOpenedStep] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const { currentWorkspace } = useWorkspace();
   const { settings } = useLeadEnricherSettings();
   const { workspaceClient, instanceData, isLoading: isInstanceLoading, error: instanceError } = useWorkspaceInstance();
   const queryClient = useQueryClient();
+  const media = useOutreachMedia([profile.id]);
+  const stepMediaUrl = (stepNum: number) => media.get(profile.id, stepNum)?.url ?? null;
+  const composedFor = (stepIdx: number) => composeMessageWithLink(steps[stepIdx].message, stepMediaUrl(stepIdx + 1));
+  // Texto exato aberto (mensagem + ligação), gravado ao confirmar «Já enviei».
+  const [openedSnapshot, setOpenedSnapshot] = useState<{ step: number; text: string; url: string | null } | null>(null);
+  useEffect(() => {
+    setOpenedStep(null);
+    setOpenedSnapshot(null);
+  }, [profile.id, currentWorkspace?.id]);
 
   const [steps, setSteps] = useState<StepMessage[]>([
     { message: "", message_plain: "", isLoading: false, generated: false },
@@ -173,8 +186,6 @@ export function ProspectingMessageDialog({
     ]);
   };
 
-  const { currentWorkspace } = useWorkspace();
-
   const canContactProfile = async (): Promise<boolean> => {
     if (!currentWorkspace?.id) throw new Error("Espaço de trabalho indisponível");
     if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
@@ -199,7 +210,7 @@ export function ProspectingMessageDialog({
   const handleCopy = async () => {
     try {
       if (!await canContactProfile()) return;
-      await navigator.clipboard.writeText(steps[currentStep].message);
+      await navigator.clipboard.writeText(composedFor(currentStep));
       setCopied(true);
       toast.success("Mensagem copiada!");
       setTimeout(() => setCopied(false), 2000);
@@ -212,7 +223,9 @@ export function ProspectingMessageDialog({
     const stepNum = currentStep + 1;
     try {
       if (!await canContactProfile()) return;
-      await navigator.clipboard.writeText(steps[currentStep].message);
+      const text = composedFor(currentStep);
+      await navigator.clipboard.writeText(text);
+      setOpenedSnapshot({ step: stepNum, text, url: stepMediaUrl(stepNum) });
       const username = extractInstagramUsername(profile.profile_url);
       const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
       window.open(dmUrl, "_blank");
@@ -230,7 +243,8 @@ export function ProspectingMessageDialog({
       return;
     }
     const stepNum = currentStep + 1;
-    if (openedStep !== stepNum || isSaving) return;
+    if (openedStep !== stepNum || isSaving || openedSnapshot?.step !== stepNum) return;
+    const sentFields = { sent_message: openedSnapshot.text, sent_media_url: openedSnapshot.url, sent_at: new Date().toISOString() };
     setIsSaving(true);
     const now = new Date();
     try {
@@ -263,7 +277,7 @@ export function ProspectingMessageDialog({
       if (row) {
         if (row.status !== "sent") {
           const { error } = await supabase.from("prospecting_outreach_queue")
-            .update({ status: "sent", message: steps[currentStep].message, message_plain: steps[currentStep].message_plain || steps[currentStep].message })
+            .update({ status: "sent", message: steps[currentStep].message, message_plain: steps[currentStep].message_plain || steps[currentStep].message, ...sentFields })
             .eq("id", row.id);
           if (error) throw error;
         }
@@ -276,6 +290,7 @@ export function ProspectingMessageDialog({
           message: steps[currentStep].message,
           message_plain: steps[currentStep].message_plain || steps[currentStep].message,
           tone,
+          ...sentFields,
         });
         if (error) throw error;
       }
@@ -455,6 +470,14 @@ export function ProspectingMessageDialog({
                       </Badge>
                     )}
                   </div>
+                  <OutreachMediaPicker
+                    key={`${currentWorkspace?.id}:${profile.id}:${i + 1}`}
+                    media={media.get(profile.id, i + 1)}
+                    busy={media.setUrl.isPending || media.uploadVideo.isPending || media.remove.isPending}
+                    onSetUrl={(url) => { setOpenedStep(null); return media.setUrl.mutateAsync({ profileIds: [profile.id], steps: [i + 1], url }); }}
+                    onUpload={(file) => { setOpenedStep(null); return media.uploadVideo.mutateAsync({ profileIds: [profile.id], steps: [i + 1], file }); }}
+                    onRemove={() => { setOpenedStep(null); return media.remove.mutateAsync({ profileIds: [profile.id], steps: [i + 1] }); }}
+                  />
                 </>
               )}
             </TabsContent>
