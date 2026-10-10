@@ -109980,6 +109980,23 @@ export type Database = {
         }
         Returns: number
       }
+      prospecting_confirm_outreach: {
+        Args: {
+          p_allow_review?: boolean
+          p_followup_messages?: Json
+          p_media_url?: string
+          p_message?: string
+          p_message_plain?: string
+          p_profile_id: string
+          p_queue_id?: string
+          p_schedule_followups?: boolean
+          p_sent_message: string
+          p_step_index: number
+          p_tone?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       prospecting_identity_check: {
         Args: {
           p_candidate: Json

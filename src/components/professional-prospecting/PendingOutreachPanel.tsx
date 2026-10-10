@@ -26,6 +26,7 @@ import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { resolveCadenceChannel } from "@/lib/prospecting/cadence";
+import { confirmOutreachWithReview, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 import { WhatsAppMessageDialog } from "@/components/whatsapp/WhatsAppMessageDialog";
 import { useOutreachMedia } from "@/hooks/useOutreachMedia";
@@ -199,16 +200,17 @@ export function PendingOutreachPanel() {
     }
   }, [queryClient]);
 
-  // Mark as sent: one atomic RPC (queue ready->sent with exact text, then profile step).
+  // Mark as sent: transactional RPC re-checks identity, locks profile+step and
+  // writes queue ready->sent (exact text) and outreach_step together.
   const markSent = useCallback(async (item: OutreachItem, sentText: string, sentUrl: string | null) => {
-    const { error } = await (supabase as unknown as {
-      rpc: (n: string, a: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }>;
-    }).rpc("prospecting_mark_outreach_sent", {
-      p_queue_id: item.id,
-      p_sent_message: sentText,
-      p_media_url: sentUrl,
-    });
-    if (error) throw new Error(error.message);
+    await confirmOutreachWithReview(supabase, {
+      workspaceId: item.workspace_id,
+      profileId: item.profile_id,
+      stepIndex: item.step_index,
+      sentMessage: sentText,
+      mediaUrl: sentUrl,
+      queueId: item.id,
+    }, () => window.confirm(REVIEW_CONFIRM_TEXT));
     setBulkSent((prev) => new Set(prev).add(item.id));
     queryClient.invalidateQueries({ queryKey: ["prospecting-effectiveness", item.workspace_id] });
     console.log(`[PROSPECTING] Outreach sent: profile=${item.profile_id}, step=${item.step_index}`);

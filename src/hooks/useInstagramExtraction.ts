@@ -1,3 +1,4 @@
+import { PROSPECTING_IDENTITY_QUERY_KEY } from "@/hooks/useProspectingIdentityBatch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -264,6 +265,8 @@ export function useInstagramExtractionImport() {
       });
       queryClient.invalidateQueries({ queryKey: ["instagram-extraction-results"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      // Badges must stop showing «Novo» right away for this workspace.
+      void queryClient.invalidateQueries({ queryKey: [PROSPECTING_IDENTITY_QUERY_KEY, workspaceId], refetchType: "active" });
     },
     onError: (error: Error) => toast.error("Falha na importação", { description: error.message }),
   });

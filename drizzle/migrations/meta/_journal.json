@@ -442,6 +442,13 @@
       "when": 1791633543292,
       "tag": "0062_prospecting_outreach_media",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1791634490337,
+      "tag": "0063_prospecting_confirm_outreach",
+      "breakpoints": true
     }
   ]
 }

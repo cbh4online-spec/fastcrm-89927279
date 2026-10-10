@@ -29,6 +29,7 @@ import { useOutreachMedia } from "@/hooks/useOutreachMedia";
 import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicker";
 import { composeMessageWithLink } from "@/lib/prospecting/outreachMedia";
 import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/cadence";
+import { confirmOutreachWithReview, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 
 const extractInstagramUsername = (url: string): string | null => {
@@ -87,6 +88,7 @@ export function BulkOutreachDialog({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [reviewProfile, setReviewProfile] = useState<{ profile: BulkProfile; reason: string } | null>(null);
+  const [reviewConfirmedIds, setReviewConfirmedIds] = useState<Set<string>>(new Set());
   const activeProfileRef = useRef<HTMLDivElement>(null);
   const [focusMode, setFocusMode] = useState(true);
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
@@ -228,39 +230,20 @@ export function BulkOutreachDialog({
     try {
       if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
       if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
-      const now = new Date();
-      const { data: existing, error: readError } = await supabase
-        .from("prospecting_outreach_queue")
-        .select("id, step_index, status")
-        .eq("workspace_id", wsId)
-        .eq("profile_id", profile.id)
-        .in("step_index", [1, 2, 3]);
-      if (readError) throw readError;
-      const rows = existing ?? [];
-      const initial = rows.find((row) => row.step_index === 1);
       const msg = getMessageForProfile(profile.id);
-      if (initial) {
-        if (initial.status !== "sent") {
-          const { error } = await supabase.from("prospecting_outreach_queue")
-            .update({ status: "sent", message: msg?.message || null, message_plain: msg?.message_plain || msg?.message || null, ...sentFields })
-            .eq("id", initial.id);
-          if (error) throw error;
-        }
-      } else {
-        const { error } = await supabase.from("prospecting_outreach_queue")
-          .insert({ ...buildInitialOutreachRow({ workspaceId: wsId, profileId: profile.id, now }), message: msg?.message || null, message_plain: msg?.message_plain || msg?.message || null, ...sentFields });
-        if (error) throw error;
-      }
-      const followUps = buildFollowUpRows({ workspaceId: wsId, profileId: profile.id, now })
-        .filter((followUp) => !rows.some((row) => row.step_index === followUp.step_index));
-      if (followUps.length) {
-        const { error } = await supabase.from("prospecting_outreach_queue").insert(followUps);
-        if (error) throw error;
-      }
-      const { error: profileError } = await supabase.from("professional_prospecting_profiles")
-        .update({ outreach_step: 1 }).eq("id", profile.id).eq("workspace_id", wsId)
-        .or("outreach_step.is.null,outreach_step.lt.1");
-      if (profileError) throw profileError;
+      // Fresh identity re-check + lock + queue/outreach_step in one transaction.
+      await confirmOutreachWithReview(supabase, {
+        workspaceId: wsId,
+        profileId: profile.id,
+        stepIndex: 1,
+        sentMessage: snapshot.text,
+        mediaUrl: snapshot.url,
+        message: msg?.message || null,
+        messagePlain: msg?.message_plain || msg?.message || null,
+        scheduleFollowUps: true,
+        allowReview: reviewConfirmedIds.has(profile.id),
+      }, () => window.confirm(REVIEW_CONFIRM_TEXT));
+      void sentFields;
       setSentIds(prev => new Set(prev).add(profile.id));
 
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
@@ -687,7 +670,7 @@ export function BulkOutreachDialog({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setReviewProfile(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (reviewProfile) void copyAndOpen(reviewProfile.profile); setReviewProfile(null); }}>
+            <AlertDialogAction onClick={() => { if (reviewProfile) { const id = reviewProfile.profile.id; setReviewConfirmedIds(prev => new Set(prev).add(id)); void copyAndOpen(reviewProfile.profile); } setReviewProfile(null); }}>
               É outro contacto, continuar
             </AlertDialogAction>
           </AlertDialogFooter>

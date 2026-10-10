@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import type { ExtractedProfile } from "@/hooks/useInstagramExtraction";
+import type { ProspectingIdentityCheck } from "@/lib/prospecting/identity";
+import { partitionByIdentity, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 
 export interface CadenceProfile {
   id: string;
@@ -35,11 +37,26 @@ export function useProspectingCadenceLauncher() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
 
-  const start = useCallback(async (selected: ExtractedProfile[]) => {
-    const eligible = selected.filter((p) => !p.converted_lead_id);
-    const skipped = selected.length - eligible.length;
-    if (skipped > 0) toast.info(`${skipped} perfil(is) já são leads e ficaram de fora`);
-    if (eligible.length === 0) return;
+  const start = useCallback(async (
+    selected: ExtractedProfile[],
+    identity: Record<string, ProspectingIdentityCheck> | undefined,
+    identityReady: boolean,
+    confirmReview: (count: number) => boolean = (count) => window.confirm(`${count} perfil(is): ${REVIEW_CONFIRM_TEXT}`),
+  ) => {
+    // Identity must be complete: blocked/exists/opportunity/unavailable never start a cadence.
+    const gate = partitionByIdentity(selected, new Set(selected.map((p) => p.id)), identity, identityReady);
+    if (gate.ignored > 0) {
+      toast.error("A verificação de registo existente ainda não está completa. Aguarde e tente novamente.");
+      return false;
+    }
+    if (gate.stopped.length > 0) toast.info(`${gate.stopped.length} perfil(is) já existem, têm oportunidade ou não podem ser contactados e ficaram de fora`);
+    let approved = gate.allowed;
+    if (gate.review.length > 0) {
+      if (confirmReview(gate.review.length)) approved = [...approved, ...gate.review];
+      else toast.info(`${gate.review.length} possível(is) duplicado(s) ficaram de fora`);
+    }
+    const eligible = approved.filter((p) => !p.converted_lead_id);
+    if (eligible.length === 0) return false;
     const batch = eligible.slice(0, MAX_PROFILES);
     if (eligible.length > MAX_PROFILES) toast.info(`Máximo de ${MAX_PROFILES} perfis por sessão`);
 
@@ -96,6 +113,7 @@ export function useProspectingCadenceLauncher() {
     } finally {
       setIsGenerating(false);
     }
+    return true;
   }, [currentWorkspace]);
 
   return { open, setOpen, profiles, messages, isGenerating, progress, start };
