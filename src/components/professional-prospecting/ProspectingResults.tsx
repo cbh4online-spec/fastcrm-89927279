@@ -840,7 +840,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
         <div className="flex items-center gap-2 ml-auto">
           <Button variant="outline" size="sm" onClick={selectAll} className="gap-1">
             <CheckSquare className="w-3 h-3" />
-            Todos
+            Todos desta página
           </Button>
           <Button variant="outline" size="sm" onClick={selectNone} className="gap-1">
             <Square className="w-3 h-3" />
