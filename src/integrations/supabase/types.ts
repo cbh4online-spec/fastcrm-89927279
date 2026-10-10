@@ -109892,6 +109892,10 @@ export type Database = {
         }
         Returns: Json
       }
+      prospecting_identity_check_batch: {
+        Args: { p_candidates: Json; p_workspace_id: string }
+        Returns: Json
+      }
       prospecting_identity_key: {
         Args: { p_kind: string; p_value: string }
         Returns: string

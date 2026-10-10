@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.prospecting_identity_check_batch(uuid,jsonb) FROM anon;

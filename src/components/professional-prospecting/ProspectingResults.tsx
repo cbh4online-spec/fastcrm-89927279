@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
 import { ProspectingMessageDialog } from "./ProspectingMessageDialog";
+import { useProspectingIdentityBatch, PROSPECTING_IDENTITY_QUERY_KEY } from "@/hooks/useProspectingIdentityBatch";
+import { ProspectingIdentityBadge } from "@/components/prospecting/ProspectingIdentityBadge";
 import { checkProspectingIdentity, describeProspectingIdentity, importProspectingLead, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 // BulkOutreachDialog is now rendered at page level (ProfessionalProspecting.tsx)
 
@@ -310,6 +312,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     onSuccess: (lead, { profile }) => {
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: [PROSPECTING_IDENTITY_QUERY_KEY] });
       setConvertDialogOpen(false);
       setProfileToConvert(null);
       toast.success("Lead criado com sucesso com dados enriquecidos!");
@@ -659,6 +662,24 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     return result;
   }, [profiles, searchFilter, typeFilter, platformFilter, minScore, sortBy]);
 
+  // Visible CRM identity for the first page of results: one batched RPC, workspace-scoped.
+  const identityItems = useMemo(
+    () =>
+      filteredProfiles.slice(0, 100).map((p) => ({
+        key: p.id,
+        profile_id: p.id,
+        name: p.profile_name || "",
+        profile_url: p.profile_url,
+        instagram_url: p.platform === "instagram" ? p.profile_url : null,
+        website: p.instagram_external_url,
+      })),
+    [filteredProfiles],
+  );
+  const identityReady =
+    !isInstanceLoading && !instanceError &&
+    !isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL);
+  const identity = useProspectingIdentityBatch(identityItems, { client: workspaceClient, enabled: identityReady });
+
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
     if (newSelected.has(id)) {
@@ -883,6 +904,12 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
                             <h3 className="font-medium truncate">
                               {profile.profile_name || "Sem nome"}
                             </h3>
+                            {identityReady && (identity.data?.[profile.id] || identity.isFetching || identity.isError) && (
+                              <ProspectingIdentityBadge
+                                check={identity.data?.[profile.id] ?? (identity.isError ? { status: "unavailable", matches: [] } : undefined)}
+                                loading={identity.isFetching}
+                              />
+                            )}
                             {(profile.outreach_step || 0) > 0 && (
                               <Badge
                                 variant="outline"
