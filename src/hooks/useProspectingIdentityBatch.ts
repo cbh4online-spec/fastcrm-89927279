@@ -15,7 +15,7 @@ export const PROSPECTING_IDENTITY_QUERY_KEY = "prospecting-identity-batch";
 export function useProspectingIdentityBatch(items: ProspectingIdentityBatchItem[]) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
-  const signature = items.map((i) => i.key).join("|");
+  const signature = JSON.stringify(items);
   return useQuery({
     queryKey: [PROSPECTING_IDENTITY_QUERY_KEY, workspaceId, signature],
     queryFn: () => checkProspectingIdentityBatch(supabase, workspaceId!, items),
