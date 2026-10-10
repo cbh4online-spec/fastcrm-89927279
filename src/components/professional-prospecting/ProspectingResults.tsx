@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { partitionByIdentity, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -445,9 +446,24 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
   };
 
   // Bulk actions
+  // Every bulk action only touches selected profiles on the visible page with a
+  // verified identity; hidden pages or unverified rows are never processed.
+  const gateSelection = (mode: "contact" | "any"): Profile[] | null => {
+    const gate = partitionByIdentity(pageProfiles, selectedIds, identity.data, identityReady && !identity.isFetching && !identity.isError);
+    if (gate.ignored > 0) {
+      toast.error("Há perfis selecionados sem verificação de registo existente nesta página. Aguarde a verificação ou limpe a seleção.");
+      return null;
+    }
+    if (mode === "any") return [...gate.allowed, ...gate.review, ...gate.stopped];
+    if (gate.stopped.length > 0) toast.info(`${gate.stopped.length} perfil(is) já existem, têm oportunidade ou não podem ser contactados e ficaram de fora`);
+    if (gate.review.length > 0 && !window.confirm(`${gate.review.length} perfil(is): ${REVIEW_CONFIRM_TEXT}`)) return gate.allowed;
+    return [...gate.allowed, ...gate.review];
+  };
+
   const handleBulkConvert = async () => {
     if (!currentWorkspace?.id || !user?.id) return;
-    const selectedProfiles = profiles.filter(p => selectedIds.has(p.id));
+    const selectedProfiles = gateSelection("contact");
+    if (!selectedProfiles) return;
     if (selectedProfiles.length === 0) return;
 
     setBulkProcessing("convert");
@@ -476,7 +492,9 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
   };
 
   const handleBulkReject = async () => {
-    const ids = Array.from(selectedIds);
+    const gated = gateSelection("any");
+    if (!gated) return;
+    const ids = gated.map((p) => p.id);
     if (ids.length === 0) return;
 
     setBulkProcessing("reject");
@@ -499,7 +517,9 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
   };
 
   const handleBulkEnrich = async () => {
-    const selectedProfiles = profiles.filter(p => selectedIds.has(p.id) && p.platform === "instagram" && !p.instagram_enriched_at);
+    const gated = gateSelection("any");
+    if (!gated) return;
+    const selectedProfiles = gated.filter(p => p.platform === "instagram" && !p.instagram_enriched_at);
     if (selectedProfiles.length === 0) {
       toast.info("Nenhum perfil Instagram selecionado para enriquecer");
       return;
@@ -524,7 +544,8 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
 
   // Bulk outreach - generate messages for all selected profiles
   const handleBulkOutreach = async () => {
-    const selectedProfiles = profiles.filter(p => selectedIds.has(p.id));
+    const selectedProfiles = gateSelection("contact");
+    if (!selectedProfiles) return;
     
     if (selectedProfiles.length === 0) {
       toast.info("Nenhum perfil selecionado");
@@ -693,6 +714,11 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     clientKey: instanceData?.supabase_url ?? null,
     enabled: identityReady,
   });
+
+  // A selection never survives a page or filter change.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [safeResultsPage, searchFilter, typeFilter, platformFilter, minScore, sortBy, currentWorkspace?.id]);
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);

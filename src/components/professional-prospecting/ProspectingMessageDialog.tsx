@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/cadence";
+import { confirmOutreachWithReview, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
 import { useQueryClient } from "@tanstack/react-query";
@@ -273,50 +274,24 @@ export function ProspectingMessageDialog({
         if (oldSecond) oldSecond.step_index = 3;
       }
 
-      const row = rows.find((item) => item.step_index === stepNum);
-      if (row) {
-        if (row.status !== "sent") {
-          const { error } = await supabase.from("prospecting_outreach_queue")
-            .update({ status: "sent", message: steps[currentStep].message, message_plain: steps[currentStep].message_plain || steps[currentStep].message, ...sentFields })
-            .eq("id", row.id);
-          if (error) throw error;
-        }
-      } else {
-        const base = stepNum === 1
-          ? buildInitialOutreachRow({ workspaceId, profileId: profile.id, now })
-          : { workspace_id: workspaceId, profile_id: profile.id, step_index: stepNum, scheduled_for: now.toISOString(), status: "sent" };
-        const { error } = await supabase.from("prospecting_outreach_queue").insert({
-          ...base,
-          message: steps[currentStep].message,
-          message_plain: steps[currentStep].message_plain || steps[currentStep].message,
-          tone,
-          ...sentFields,
-        });
-        if (error) throw error;
-      }
-
-      if (stepNum === 1) {
-        const followUps = buildFollowUpRows({ workspaceId, profileId: profile.id, now })
-          .filter((followUp) => !rows.some((item) => item.step_index === followUp.step_index))
-          .map((followUp) => ({
-            ...followUp,
-            message: steps[followUp.step_index - 1]?.message || null,
-            message_plain: steps[followUp.step_index - 1]?.message_plain || null,
-            tone,
-          }));
-        if (followUps.length) {
-          const { error } = await supabase.from("prospecting_outreach_queue").insert(followUps);
-          if (error) throw error;
-        }
-      }
-
-      if (stepNum > currentOutreachStep) {
-        const { error } = await supabase.from("professional_prospecting_profiles")
-          .update({ outreach_step: stepNum })
-          .eq("id", profile.id)
-          .eq("workspace_id", workspaceId);
-        if (error) throw error;
-      }
+      // Fresh identity re-check + lock + queue/outreach_step in one transaction.
+      await confirmOutreachWithReview(supabase, {
+        workspaceId,
+        profileId: profile.id,
+        stepIndex: stepNum,
+        sentMessage: openedSnapshot.text,
+        mediaUrl: openedSnapshot.url,
+        message: steps[currentStep].message,
+        messagePlain: steps[currentStep].message_plain || steps[currentStep].message,
+        tone,
+        scheduleFollowUps: stepNum === 1,
+        followUpMessages: [2, 3].map((s) => ({
+          step_index: s,
+          message: steps[s - 1]?.message || null,
+          message_plain: steps[s - 1]?.message_plain || null,
+        })),
+      }, () => window.confirm(REVIEW_CONFIRM_TEXT));
+      void sentFields; void now;
       onOutreachUpdate?.(profile.id, stepNum);
       queryClient.invalidateQueries({ queryKey: ["pending-outreach", workspaceId] });
       queryClient.invalidateQueries({ queryKey: ["scheduled-outreach-count", workspaceId] });

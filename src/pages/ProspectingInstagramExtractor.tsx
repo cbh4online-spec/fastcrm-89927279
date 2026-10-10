@@ -479,7 +479,7 @@ export default function ProspectingInstagramExtractor() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => cadence.start(selectedProfiles)}
+                onClick={() => cadence.start(selectedProfiles, identity.data, identityReady && !identity.isFetching && !identity.isError)}
                 disabled={selectedProfiles.length === 0 || cadence.isGenerating || identityBlocksActions}
                 title="Mensagem no Instagram hoje, WhatsApp ao dia 3 (se houver telefone) e Instagram ao dia 7"
               >
