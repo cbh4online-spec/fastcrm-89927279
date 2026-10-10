@@ -31,7 +31,7 @@ import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspe
 import { WhatsAppMessageDialog } from "@/components/whatsapp/WhatsAppMessageDialog";
 import { useOutreachMedia } from "@/hooks/useOutreachMedia";
 import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicker";
-import { composeMessageWithLink } from "@/lib/prospecting/outreachMedia";
+import { composeMessageWithLink, sentMediaUrlFor } from "@/lib/prospecting/outreachMedia";
 
 const WHATSAPP_VIDEO_NOTICE =
   "O vídeo/ligação vai como ligação no texto. O FastCRM não envia ficheiros MP4 pelo WhatsApp nesta versão.";
@@ -121,10 +121,11 @@ export function PendingOutreachPanel() {
   });
 
   const media = useOutreachMedia(pendingItems.map((i) => i.profile_id));
-  const mediaUrl = (item: OutreachItem) => media.get(item.profile_id, item.step_index)?.url ?? null;
-  const composeFor = (item: OutreachItem, text: string) => composeMessageWithLink(text, mediaUrl(item));
-  const rememberOpened = (item: OutreachItem, text: string) => {
-    setOpenedTexts((prev) => ({ ...prev, [item.id]: { text, url: mediaUrl(item) } }));
+  // Renova a ligação do MP4 se estiver a expirar, antes de preparar a mensagem.
+  const freshUrl = async (item: OutreachItem) => (await media.ensureFresh(item.profile_id, item.step_index))?.url ?? null;
+  const [waUrl, setWaUrl] = useState<string | null>(null);
+  const rememberOpened = (item: OutreachItem, text: string, url: string | null) => {
+    setOpenedTexts((prev) => ({ ...prev, [item.id]: { text, url: sentMediaUrlFor(text, url) } }));
     setOpenedIds((previous) => new Set(previous).add(item.id));
   };
   const renderMediaPicker = (item: OutreachItem) => {
@@ -256,7 +257,8 @@ export function PendingOutreachPanel() {
       msg = result.message;
     }
 
-    msg = composeFor(item, msg);
+    const url = await freshUrl(item);
+    msg = composeMessageWithLink(msg, url);
     await navigator.clipboard.writeText(msg);
 
     // Open Instagram DM via ig.me link
@@ -267,7 +269,7 @@ export function PendingOutreachPanel() {
       window.open(item.profile_url, "_blank");
     }
 
-    rememberOpened(item, msg);
+    rememberOpened(item, msg, url);
     toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
     } catch (error) {
       toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
@@ -297,7 +299,15 @@ export function PendingOutreachPanel() {
       if (!result?.message) return;
       msg = result.message_plain || result.message;
     }
-    setWaItem({ ...item, message_plain: composeFor(item, msg) });
+    let url: string | null;
+    try {
+      url = await freshUrl(item);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ligação do vídeo indisponível");
+      return;
+    }
+    setWaUrl(url);
+    setWaItem({ ...item, message_plain: composeMessageWithLink(msg, url) });
   }, [canContinue, generateMessage, media.data]);
 
   // Contact replied: stop the remaining cadence for this profile
@@ -347,7 +357,8 @@ export function PendingOutreachPanel() {
     if (!await canContinue(item)) return;
     try {
     if (!item.message) return;
-    const text = composeFor(item, item.message);
+    const url = await freshUrl(item);
+    const text = composeMessageWithLink(item.message, url);
     await navigator.clipboard.writeText(text);
     const username = item.profile_url?.match(/instagram\.com\/([^/?]+)/)?.[1];
     if (username) {
@@ -355,7 +366,7 @@ export function PendingOutreachPanel() {
     } else if (item.profile_url) {
       window.open(item.profile_url, "_blank");
     }
-    rememberOpened(item, text);
+    rememberOpened(item, text, url);
     toast.success("Mensagem copiada. Envie-a na DM e confirme aqui.");
     } catch (error) {
       toast.error("Não foi possível abrir a DM", { description: error instanceof Error ? error.message : "Tente novamente" });
@@ -408,9 +419,10 @@ export function PendingOutreachPanel() {
           entityId={waItem.lead_id}
           entityName={waItem.profile_name}
           initialMessage={waItem.message_plain || waItem.message}
-          mediaNotice={mediaUrl(waItem) ? WHATSAPP_VIDEO_NOTICE : null}
-          onSent={async ({ message }) => {
-            await markSent(waItem, message, mediaUrl(waItem));
+          requiredLink={waUrl}
+          mediaNotice={waUrl ? WHATSAPP_VIDEO_NOTICE : null}
+          onSent={async ({ message, linkIncluded }) => {
+            await markSent(waItem, message, linkIncluded ? waUrl : null);
             queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
           }}
         />

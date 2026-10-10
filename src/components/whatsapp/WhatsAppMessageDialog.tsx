@@ -21,6 +21,7 @@ import { AlertCircle, ExternalLink, Loader2, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { OBJECTION_REPLIES, fillObjectionReply } from "@/lib/prospecting/objectionReplies";
+import { composeMessageWithLink } from "@/lib/prospecting/outreachMedia";
 import {
   buildWhatsAppLinks,
   isMobileDevice,
@@ -51,7 +52,13 @@ interface Props {
    * Chamado só depois de envio confirmado: resposta de sucesso do fornecedor ou
    * clique explícito em «Já enviei» no envio assistido. É aguardado.
    */
-  onSent?: (info: { message: string; channel: WhatsAppSendChannel }) => void | Promise<void>;
+  onSent?: (info: { message: string; channel: WhatsAppSendChannel; linkIncluded: boolean }) => void | Promise<void>;
+  /**
+   * Ligação congelada (ex.: vídeo partilhado) que tem de constar no texto final.
+   * É recomposta exatamente uma vez antes de abrir/enviar e antes de confirmar,
+   * mesmo que um template ou resposta rápida tenha substituído o texto.
+   */
+  requiredLink?: string | null;
   /** Aviso sobre conteúdo partilhado (ex.: vídeo enviado só como ligação). */
   mediaNotice?: string | null;
 }
@@ -69,6 +76,7 @@ export function WhatsAppMessageDialog({
   initialMessage,
   onSent,
   mediaNotice,
+  requiredLink,
 }: Props) {
   const [phase, setPhase] = useState<DeliveryPhase>("compose");
   const [sentText, setSentText] = useState<string>("");
@@ -106,22 +114,39 @@ export function WhatsAppMessageDialog({
   const activeTemplates = useMemo(() => templates.filter((t) => t.active), [templates]);
   const selectedTemplate = activeTemplates.find((t) => t.id === templateId) ?? null;
 
-  const applyTemplate = (id: string) => {
-    setTemplateId(id);
-    const tpl = activeTemplates.find((t) => t.id === id);
-    if (tpl) {
-      setMessage(applyTemplateVariables(tpl.content ?? "", { name: entityName, company: companyName }));
+  /** Qualquer alteração depois de abrir o WhatsApp invalida o estado «aberto». */
+  const updateMessage = (value: string) => {
+    if (phase === "provider_sent") return;
+    setMessage(value);
+    if (phase === "opened") {
+      setPhase("compose");
+      setSentText("");
     }
   };
 
-  const tooLong = message.length > WHATSAPP_MESSAGE_MAX_LENGTH;
-  const canSend = !!normalized && message.trim().length > 0 && !tooLong && !send.isPending && phase === "compose" && !recording;
+  const applyTemplate = (id: string) => {
+    if (phase === "provider_sent") return;
+    setTemplateId(id);
+    const tpl = activeTemplates.find((t) => t.id === id);
+    if (tpl) {
+      updateMessage(applyTemplateVariables(tpl.content ?? "", { name: entityName, company: companyName }));
+    } else if (phase === "opened") {
+      setPhase("compose");
+      setSentText("");
+    }
+  };
+
+  const finalText = composeMessageWithLink(message, requiredLink ?? null);
+  const linkIncludedIn = (text: string) => !!requiredLink && text.includes(requiredLink);
+
+  const tooLong = finalText.length > WHATSAPP_MESSAGE_MAX_LENGTH;
+  const canSend = !!normalized && finalText.trim().length > 0 && !tooLong && !send.isPending && phase === "compose" && !recording;
 
   /** Regista o envio local (queue, etc.). Nunca repete o envio real. */
   const recordSent = async (text: string, via: WhatsAppSendChannel) => {
     setRecording(true);
     try {
-      await onSent?.({ message: text, channel: via });
+      await onSent?.({ message: text, channel: via, linkIncluded: linkIncludedIn(text) });
       onOpenChange(false);
     } catch (e) {
       toast.error("Envio feito, mas não foi possível registá-lo", {
@@ -134,7 +159,7 @@ export function WhatsAppMessageDialog({
 
   const handleSend = async () => {
     if (!normalized || !canSend) return;
-    const text = message.trim();
+    const text = finalText.trim();
     if (channel === "link") {
       // Abrir o WhatsApp não é envio: nada é registado até «Já enviei».
       const links = buildWhatsAppLinks(normalized);
@@ -163,13 +188,27 @@ export function WhatsAppMessageDialog({
     await recordSent(text, channel);
   };
 
+  /**
+   * Envio assistido: primeiro o registo da fila (onSent), depois a atividade
+   * `message_sent`. Se só a atividade falhar, nada é repetido nem duplicado.
+   */
   const handleConfirmAssisted = async () => {
     if (phase !== "opened" || !normalized || recording) return;
+    const text = composeMessageWithLink(sentText, requiredLink ?? null);
     setRecording(true);
+    try {
+      await onSent?.({ message: text, channel: "link", linkIncluded: linkIncludedIn(text) });
+    } catch (e) {
+      setRecording(false);
+      toast.error("Não foi possível registar o envio", {
+        description: e instanceof Error ? e.message : "Tente novamente",
+      });
+      return;
+    }
     try {
       await send.mutateAsync({
         channel: "link",
-        message: sentText,
+        message: text,
         phone: normalized,
         entityType,
         entityId,
@@ -178,11 +217,11 @@ export function WhatsAppMessageDialog({
         templateName: selectedTemplate?.name ?? null,
       });
     } catch {
+      toast.warning("Envio registado; a nota na cronologia não foi gravada.");
+    } finally {
       setRecording(false);
-      return;
     }
-    setRecording(false);
-    await recordSent(sentText, "link");
+    onOpenChange(false);
   };
 
   return (
@@ -235,7 +274,8 @@ export function WhatsAppMessageDialog({
                     size="sm"
                     variant="outline"
                     className="h-7 text-xs"
-                    onClick={() => setMessage(fillObjectionReply(o.template, entityName))}
+                    disabled={phase === "provider_sent"}
+                    onClick={() => updateMessage(fillObjectionReply(o.template, entityName))}
                   >
                     {o.label}
                   </Button>
@@ -244,15 +284,20 @@ export function WhatsAppMessageDialog({
               <Textarea
                 id="wa-message"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                readOnly={phase !== "compose"}
+                onChange={(e) => updateMessage(e.target.value)}
+                readOnly={phase === "provider_sent"}
                 rows={6}
                 maxLength={WHATSAPP_MESSAGE_MAX_LENGTH + 200}
                 placeholder="Escreva a mensagem…"
               />
               <div className={`text-xs ${tooLong ? "text-destructive" : "text-muted-foreground"}`}>
-                {message.length}/{WHATSAPP_MESSAGE_MAX_LENGTH} caracteres
+                {finalText.length}/{WHATSAPP_MESSAGE_MAX_LENGTH} caracteres
               </div>
+              {requiredLink && (
+                <p className="text-xs text-muted-foreground break-all">
+                  A ligação partilhada é incluída automaticamente uma vez no texto final: {requiredLink}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

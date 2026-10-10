@@ -27,7 +27,7 @@ import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { PowerHourFocusView } from "./PowerHourFocusView";
 import { useOutreachMedia } from "@/hooks/useOutreachMedia";
 import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicker";
-import { composeMessageWithLink } from "@/lib/prospecting/outreachMedia";
+import { composeMessageWithLink, sentMediaUrlFor } from "@/lib/prospecting/outreachMedia";
 import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/cadence";
 import { confirmOutreachWithReview, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
 import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
@@ -176,10 +176,10 @@ export function BulkOutreachDialog({
     try {
       if (isInstanceLoading || instanceError) throw new Error(PROSPECTING_INSTANCE_NOT_READY_MESSAGE);
       if (isSeparateProspectingInstance(instanceData?.supabase_url, import.meta.env.VITE_SUPABASE_URL)) throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
-      const url = media.get(profile.id, 1)?.url ?? null;
+      const url = (await media.ensureFresh(profile.id, 1))?.url ?? null;
       const text = composeMessageWithLink(msg.message_plain || msg.message, url);
       await navigator.clipboard.writeText(text);
-      setOpenedSnapshots((prev) => ({ ...prev, [profile.id]: { text, url } }));
+      setOpenedSnapshots((prev) => ({ ...prev, [profile.id]: { text, url: sentMediaUrlFor(text, url) } }));
       setCopiedId(profile.id);
       setTimeout(() => setCopiedId(null), 2000);
 

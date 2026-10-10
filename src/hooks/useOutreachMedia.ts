@@ -10,6 +10,8 @@ import {
   PROSPECTING_VIDEO_MIME,
   validateShareUrl,
   validateVideoFile,
+  needsVideoLinkRenewal,
+  VIDEO_LINK_EXPIRED_MESSAGE,
   type OutreachMedia,
 } from "@/lib/prospecting/outreachMedia";
 
@@ -59,17 +61,11 @@ export function useOutreachMedia(profileIds: string[]) {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: [OUTREACH_MEDIA_QUERY_KEY, workspaceId] });
 
-  /** Apaga ficheiros já sem referências (só o dono consegue, pela política do Storage). */
-  const cleanupPaths = async (paths: string[]) => {
-    for (const path of Array.from(new Set(paths))) {
-      const { count } = await mediaTable()
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId)
-        .eq("storage_path", path);
-      if ((count ?? 0) === 0) await supabase.storage.from(PROSPECTING_VIDEO_BUCKET).remove([path]);
-    }
-  };
-
+  /**
+   * Nunca apaga automaticamente um MP4 partilhado: um link assinado já copiado
+   * ou gravado em `sent_media_url` continua válido até expirar (90 dias) e
+   * remover a associação não o revoga. A limpeza após a validade fica pendente.
+   */
   const previousPaths = (target: MediaTarget) =>
     target.profileIds.flatMap((p) =>
       target.steps.map((s) => query.data?.[mediaKey(p, s)]?.storage_path).filter((x): x is string => !!x),
@@ -99,9 +95,7 @@ export function useOutreachMedia(profileIds: string[]) {
     mutationFn: async ({ url, ...target }: MediaTarget & { url: string }) => {
       const valid = validateShareUrl(url);
       if (!valid.ok) throw new Error(valid.error ?? "Inválido");
-      const old = previousPaths(target);
       await upsertRows(target, { kind: "url", url: valid.url! });
-      await cleanupPaths(old);
     },
     onSuccess: invalidate,
   });
@@ -124,7 +118,6 @@ export function useOutreachMedia(profileIds: string[]) {
         await bucket.remove([path]);
         throw signErr ?? new Error("Não foi possível criar a ligação do vídeo");
       }
-      const old = previousPaths(target);
       try {
         await upsertRows(target, {
           kind: "video",
@@ -139,7 +132,6 @@ export function useOutreachMedia(profileIds: string[]) {
         await bucket.remove([path]);
         throw e;
       }
-      await cleanupPaths(old);
     },
     onSuccess: invalidate,
   });
@@ -147,14 +139,12 @@ export function useOutreachMedia(profileIds: string[]) {
   const remove = useMutation({
     mutationFn: async (target: MediaTarget) => {
       if (!workspaceId) throw new Error("Espaço de trabalho indisponível");
-      const old = previousPaths(target);
       const { error } = await mediaTable()
         .delete()
         .eq("workspace_id", workspaceId)
         .in("profile_id", target.profileIds)
         .in("step_index", target.steps);
       if (error) throw error;
-      await cleanupPaths(old);
     },
     onSuccess: invalidate,
   });
@@ -162,5 +152,28 @@ export function useOutreachMedia(profileIds: string[]) {
   const get = (profileId: string, stepIndex: number): OutreachMedia | null =>
     query.data?.[mediaKey(profileId, stepIndex)] ?? null;
 
-  return { ...query, get, setUrl, uploadVideo, remove };
+  /**
+   * Antes de preparar uma abordagem: devolve o conteúdo com uma ligação ainda
+   * válida. Um MP4 cuja ligação expira em menos de 24 h é reassinado (90 dias)
+   * e gravado; se não for possível, falha em vez de partilhar um link expirado.
+   */
+  const ensureFresh = async (profileId: string, stepIndex: number): Promise<OutreachMedia | null> => {
+    const row = get(profileId, stepIndex);
+    if (!row || row.kind !== "video" || !needsVideoLinkRenewal(row)) return row;
+    if (!workspaceId || !user?.id || !row.storage_path) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
+    const { data: signed, error: signErr } = await supabase.storage
+      .from(PROSPECTING_VIDEO_BUCKET)
+      .createSignedUrl(row.storage_path, PROSPECTING_VIDEO_LINK_TTL_SECONDS);
+    if (signErr || !signed?.signedUrl) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
+    const url_expires_at = new Date(Date.now() + PROSPECTING_VIDEO_LINK_TTL_SECONDS * 1000).toISOString();
+    const { error } = await mediaTable()
+      .update({ url: signed.signedUrl, url_expires_at, created_by: user.id })
+      .eq("id", row.id)
+      .eq("workspace_id", workspaceId);
+    if (error) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
+    void invalidate();
+    return { ...row, url: signed.signedUrl, url_expires_at, created_by: user.id };
+  };
+
+  return { ...query, get, ensureFresh, setUrl, uploadVideo, remove };
 }
