@@ -89,12 +89,18 @@ export function validateVideoFile(file: { name: string; type: string; size: numb
   return { ok: true };
 }
 
-function randomId(): string {
-  const c = globalThis.crypto;
-  if (c?.randomUUID) return c.randomUUID();
-  const bytes = new Uint8Array(16);
-  c.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+export const SECURE_RANDOM_UNAVAILABLE_MESSAGE =
+  "Este navegador não disponibiliza geração aleatória segura. Atualize o navegador para carregar vídeos.";
+
+/** Só crypto forte; sem Math.random. Falha com mensagem clara se indisponível. */
+export function randomId(cryptoImpl: Crypto | undefined = globalThis.crypto): string {
+  if (cryptoImpl && typeof cryptoImpl.randomUUID === "function") return cryptoImpl.randomUUID();
+  if (cryptoImpl && typeof cryptoImpl.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    cryptoImpl.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  throw new Error(SECURE_RANDOM_UNAVAILABLE_MESSAGE);
 }
 
 /** Caminho no bucket: workspaceId/userId/<aleatório>.mp4 (nunca o nome original). */
@@ -109,4 +115,26 @@ export function formatBytes(bytes: number | null | undefined): string {
 
 export function mediaKey(profileId: string, stepIndex: number): string {
   return `${profileId}:${stepIndex}`;
+}
+
+/** Renova se faltar menos de 24 h (ou se já expirou / sem data). */
+export const VIDEO_LINK_RENEW_MARGIN_MS = 24 * 60 * 60 * 1000;
+export const VIDEO_LINK_EXPIRED_MESSAGE =
+  "A ligação do vídeo expirou e não foi possível renová-la. Substitua o vídeo antes de preparar a abordagem.";
+
+export function needsVideoLinkRenewal(media: Pick<OutreachMedia, "kind" | "url_expires_at">, now = Date.now()): boolean {
+  if (media.kind !== "video") return false;
+  const exp = media.url_expires_at ? Date.parse(media.url_expires_at) : NaN;
+  return !Number.isFinite(exp) || exp - now < VIDEO_LINK_RENEW_MARGIN_MS;
+}
+
+export function isVideoLinkExpired(media: Pick<OutreachMedia, "kind" | "url_expires_at">, now = Date.now()): boolean {
+  if (media.kind !== "video") return false;
+  const exp = media.url_expires_at ? Date.parse(media.url_expires_at) : NaN;
+  return !Number.isFinite(exp) || exp <= now;
+}
+
+/** O URL só é registado como enviado se estiver realmente no texto final. */
+export function sentMediaUrlFor(text: string, url: string | null | undefined): string | null {
+  return url && text.includes(url) ? url : null;
 }

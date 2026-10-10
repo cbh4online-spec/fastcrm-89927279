@@ -9,6 +9,7 @@ import {
   PROSPECTING_VIDEO_MIME,
   validateShareUrl,
   validateVideoFile,
+  isVideoLinkExpired,
   type OutreachMedia,
 } from "@/lib/prospecting/outreachMedia";
 
@@ -66,9 +67,16 @@ export function OutreachMediaPicker({ media, busy, disabled, title = "Vídeo ou 
           <span className="font-medium">
             {media.kind === "video" ? `${media.label ?? "Vídeo MP4"} ${formatBytes(media.size_bytes)}` : describeShareUrl(media.url)}
           </span>
-          <a href={media.url} target="_blank" rel="noopener noreferrer nofollow" className="text-primary underline inline-flex items-center gap-1">
+          {media.kind === "video" && media.url_expires_at && (
+            <span className={isVideoLinkExpired(media) ? "text-destructive" : "text-muted-foreground"}>
+              {isVideoLinkExpired(media)
+                ? "Ligação expirada — é renovada ao preparar a abordagem"
+                : `Ligação válida até ${new Date(media.url_expires_at).toLocaleDateString("pt-PT")}`}
+            </span>
+          )}
+          {!(media.kind === "video" && isVideoLinkExpired(media)) && <a href={media.url} target="_blank" rel="noopener noreferrer nofollow" className="text-primary underline inline-flex items-center gap-1">
             {media.kind === "video" ? <><Download className="h-3 w-3" aria-hidden /> Abrir/descarregar</> : "Abrir ligação"}
-          </a>
+          </a>}
           <Button type="button" size="sm" variant="outline" className="h-7" disabled={disabled || busy} onClick={() => setEditing(true)}>
             Substituir
           </Button>
@@ -121,7 +129,8 @@ export function OutreachMediaPicker({ media, busy, disabled, title = "Vídeo ou 
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
       <p className="flex items-start gap-1 text-[11px] text-muted-foreground">
         <Info className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
-        A ligação é acrescentada uma vez à mensagem. Qualquer pessoa com a ligação pode ver o vídeo carregado (válida 90 dias).
+        A ligação é acrescentada uma vez à mensagem. Qualquer pessoa com a ligação pode ver o vídeo carregado; cada ligação expira 90 dias depois de criada e é renovada ao preparar nova abordagem.
+        Remover ou substituir só tira o conteúdo desta etapa: ligações já copiadas ou enviadas continuam válidas até expirarem e o ficheiro é mantido.
         O FastCRM não anexa nem envia o vídeo pelo Instagram ou WhatsApp: abra/descarregue o MP4 e anexe-o manualmente, se quiser.
       </p>
     </div>
