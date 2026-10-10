@@ -186,7 +186,7 @@ const App = () => (
                 <Route path="/marketplace/:workspaceSlug/create" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
                 <Route path="/marketplace/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
                 <Route path="/marketplace/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
-                <Route path="/marketplace/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
+                <Route path="/marketplace/:workspaceSlug/seller/:sellerId" element={<AuthProvider><C2CPublicSellerProfile /></AuthProvider>} />
                 <Route path="/marketplace/:workspaceSlug/lives" element={<C2CPublicLivesGallery />} />
                 <Route path="/marketplace/:workspaceSlug/go-live" element={<AuthProvider><C2CPublicGoLiveSetup /></AuthProvider>} />
                 <Route path="/marketplace/:workspaceSlug/live/:id" element={<StoreCartProvider><C2CPublicLivestreamViewer /></StoreCartProvider>} />
