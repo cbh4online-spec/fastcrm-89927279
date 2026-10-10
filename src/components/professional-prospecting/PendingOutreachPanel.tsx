@@ -1,3 +1,4 @@
+import { bulkProgress, selectBulkEligible } from "@/lib/prospecting/bulkEligibility";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildDmUrl, tryCopyText, type PreparedDm } from "@/lib/prospecting/dmWindow";
 import { PreparedDmPanel } from "./PreparedDmPanel";
@@ -344,18 +345,18 @@ export function PendingOutreachPanel() {
   });
 
   // Bulk send flow (Instagram only; WhatsApp steps são enviados um a um)
-  const activeItems = pendingItems.filter(
-    (i) => !bulkSent.has(i.id) && !bulkRejected.has(i.id) && !isWhatsAppStep(i)
-  );
+  const bulkEligible = selectBulkEligible(pendingItems, isWhatsAppStep);
+  const activeItems = bulkEligible.filter((i) => !bulkSent.has(i.id) && !bulkRejected.has(i.id));
 
   const startBulkSend = useCallback(async () => {
+    if (bulkEligible.length === 0) return;
     setBulkPhase("generating");
     setBulkSent(new Set());
     setBulkRejected(new Set());
     setCurrentBulkIndex(0);
 
     // Generate messages for items that don't have one
-    const needsGeneration = pendingItems.filter((i) => !i.message);
+    const needsGeneration = bulkEligible.filter((i) => !i.message);
     if (needsGeneration.length > 0) {
       for (const item of needsGeneration) {
         await generateMessage(item);
@@ -365,7 +366,7 @@ export function PendingOutreachPanel() {
     }
 
     setBulkPhase("sending");
-  }, [pendingItems, generateMessage, queryClient]);
+  }, [bulkEligible, generateMessage, queryClient]);
 
   const handleBulkCopyAndOpen = useCallback(async (item: OutreachItem) => {
     forgetPrepared(item.id);
@@ -411,9 +412,8 @@ export function PendingOutreachPanel() {
 
   if (pendingItems.length === 0 && scheduledCount === 0) return null;
 
-  const totalBulk = pendingItems.length;
-  const processedBulk = bulkSent.size + bulkRejected.size;
-  const progressPct = totalBulk > 0 ? (processedBulk / totalBulk) * 100 : 0;
+  const { total: totalBulk, processed: processedBulk, pct: progressPct } =
+    bulkProgress(bulkEligible.map((i) => i.id), bulkSent, bulkRejected);
 
   // A fila guarda os passos 2 (dia 3) e 3 (dia 7)
   const stepLabel = (idx: number) => idx === 1 ? "Abertura" : idx === 2 ? "Follow-up" : "Fecho";
@@ -460,7 +460,7 @@ export function PendingOutreachPanel() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {pendingItems.length > 1 && bulkPhase === "idle" && (
+          {bulkEligible.length > 1 && bulkPhase === "idle" && (
             <Button
               size="sm"
               variant="default"
@@ -471,7 +471,7 @@ export function PendingOutreachPanel() {
               }}
             >
               <Play className="w-3.5 h-3.5" />
-              Enviar Todos ({pendingItems.length})
+              Enviar Todos ({bulkEligible.length})
             </Button>
           )}
           {pendingItems.length > 0 && bulkPhase === "idle" && (
