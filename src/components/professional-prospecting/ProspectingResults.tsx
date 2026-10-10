@@ -705,7 +705,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
   };
 
   const selectAll = () => {
-    setSelectedIds(new Set(filteredProfiles.map(p => p.id)));
+    setSelectedIds(new Set(pageProfiles.map(p => p.id)));
   };
 
   const selectNone = () => {
