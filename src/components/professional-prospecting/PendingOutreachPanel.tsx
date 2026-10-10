@@ -282,9 +282,8 @@ export function PendingOutreachPanel() {
     }
     const url = await freshUrl(item);
     const text = composeMessageWithLink(msg, url);
-    const username = item.profile_url?.match(/instagram\.com\/([^/?]+)/)?.[1];
     const copied = await tryCopyText(text);
-    setPreparedDms((prev) => ({ ...prev, [item.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(username, item.profile_url), copied } }));
+    setPreparedDms((prev) => ({ ...prev, [item.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(item.profile_url), copied } }));
     if (copied) toast.success("Mensagem copiada. Clique em «Abrir conversa».");
     } catch (error) {
       toast.error("Não foi possível preparar a mensagem", { description: error instanceof Error ? error.message : "Tente novamente" });
@@ -376,9 +375,8 @@ export function PendingOutreachPanel() {
     const msg = item.message;
     const url = await freshUrl(item);
     const text = composeMessageWithLink(msg, url);
-    const username = item.profile_url?.match(/instagram\.com\/([^/?]+)/)?.[1];
     const copied = await tryCopyText(text);
-    setPreparedDms((prev) => ({ ...prev, [item.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(username, item.profile_url), copied } }));
+    setPreparedDms((prev) => ({ ...prev, [item.id]: { text, mediaUrl: sentMediaUrlFor(text, url), dmUrl: buildDmUrl(item.profile_url), copied } }));
     if (copied) toast.success("Mensagem copiada. Clique em «Abrir conversa».");
     } catch (error) {
       toast.error("Não foi possível preparar a mensagem", { description: error instanceof Error ? error.message : "Tente novamente" });

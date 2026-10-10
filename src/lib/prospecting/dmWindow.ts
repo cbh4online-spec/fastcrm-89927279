@@ -21,10 +21,40 @@ export function safeDmUrl(raw: unknown): string | null {
   return u.toString();
 }
 
-/** Ligação de DM a partir do perfil (ig.me se houver username), já validada. */
-export function buildDmUrl(username: string | null | undefined, profileUrl: string | null | undefined): string | null {
-  const clean = username && /^[A-Za-z0-9._]{1,30}$/.test(username) ? username : null;
-  return safeDmUrl(clean ? `https://ig.me/m/${clean}` : profileUrl);
+const PROFILE_HOSTS = new Set(["instagram.com", "www.instagram.com", "m.instagram.com"]);
+/** Segmentos de conteúdo/sistema do Instagram que nunca são um @perfil. */
+const RESERVED_SEGMENTS = new Set([
+  "p", "reel", "reels", "tv", "stories", "story", "explore", "direct", "accounts", "account",
+  "about", "legal", "developer", "developers", "help", "privacy", "terms", "web", "challenge",
+  "emails", "session", "sitemap.xml", "directory", "s", "share", "ar", "lite", "topics",
+  "locations", "tags", "graphql", "api", "oauth", "login", "logout", "signup", "press",
+  "creators", "blog", "download", "nametag", "invites", "your_activity", "m",
+]);
+const USERNAME_RE = /^(?!.*\.\.)(?!\.)(?!.*\.$)[A-Za-z0-9._]{1,30}$/;
+
+/**
+ * Extrai o @perfil apenas de um URL de perfil raiz: https, host exato do Instagram,
+ * sem credenciais/porta, caminho «/username» ou «/username/». Tudo o resto → null.
+ */
+export function parseInstagramProfileUsername(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const value = raw.trim();
+  if (!value || value.length > 2048 || !/^https:\/\//i.test(value)) return null;
+  let u: URL;
+  try { u = new URL(value); } catch { return null; }
+  if (u.protocol !== "https:" || u.username || u.password || u.port) return null;
+  if (!PROFILE_HOSTS.has(u.hostname.toLowerCase())) return null;
+  const m = u.pathname.match(/^\/([^/]+)\/?$/);
+  if (!m) return null;
+  const segment = m[1];
+  if (!USERNAME_RE.test(segment) || RESERVED_SEGMENTS.has(segment.toLowerCase())) return null;
+  return segment.toLowerCase();
+}
+
+/** Ligação de DM (ig.me) só a partir de um URL de perfil válido; falha fechada. */
+export function buildDmUrl(profileUrl: string | null | undefined): string | null {
+  const username = parseInstagramProfileUsername(profileUrl);
+  return username ? safeDmUrl(`https://ig.me/m/${username}`) : null;
 }
 
 /** Tenta copiar; devolve false (sem lançar) se o browser recusar. */
