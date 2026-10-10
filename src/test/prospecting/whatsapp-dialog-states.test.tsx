@@ -112,4 +112,37 @@ describe("WhatsAppMessageDialog: aberto vs enviado", () => {
     await waitFor(() => expect(onSent).toHaveBeenCalled());
     expect(mutateAsync).not.toHaveBeenCalled();
   });
+
+  it("modo prospeção (assistedOnly): nunca oferece envio direto, mesmo com canal ligado", async () => {
+    proActive = true;
+    const onSent = vi.fn();
+    render(
+      <MemoryRouter>
+        <WhatsAppMessageDialog open onOpenChange={() => {}} phone="+351912345678" entityType="lead" entityId="l1"
+          initialMessage="Olá" onSent={onSent} assistedOnly />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("button", { name: "Abrir no WhatsApp" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Enviar" })).toBeNull();
+    expect(screen.queryByText("FastCRM WhatsApp")).toBeNull();
+    expect(screen.queryByText("WhatsApp (GHL)")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir no WhatsApp" }));
+    expect(mutateAsync).not.toHaveBeenCalled();
+    expect(onSent).not.toHaveBeenCalled();
+  });
+});
+
+describe("Painel de prospeção", () => {
+  it("abre sempre o diálogo WhatsApp em modo assistido (sem provider)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/components/professional-prospecting/PendingOutreachPanel.tsx", "utf8");
+    const uses = src.match(/<WhatsAppMessageDialog[\s\S]*?\/>/g) ?? [];
+    expect(uses.length).toBeGreaterThan(0);
+    for (const u of uses) expect(u).toMatch(/\bassistedOnly\b(?!=\{false\})/);
+    const all = (await import("node:child_process")).execSync("rg -l WhatsAppMessageDialog src/components/professional-prospecting src/pages/Prospecting* src/components/prospecting || true").toString().trim().split("\n").filter(Boolean);
+    for (const f of all) {
+      const code = readFileSync(f, "utf8");
+      for (const u of code.match(/<WhatsAppMessageDialog[\s\S]*?\/>/g) ?? []) expect(u).toMatch(/\bassistedOnly\b/);
+    }
+  });
 });
