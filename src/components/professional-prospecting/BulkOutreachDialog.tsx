@@ -411,7 +411,10 @@ export function BulkOutreachDialog({
               <OutreachMediaPicker
                 key={`common:${currentWorkspace?.id}:${profiles.map((p) => p.id).join(",")}`}
                 title={`Conteúdo comum (aplica-se aos ${profiles.length} perfis, 1.ª mensagem)`}
-                media={null}
+                media={(() => {
+                  const first = profiles[0] ? media.get(profiles[0].id, 1) : null;
+                  return first && profiles.every((p) => media.get(p.id, 1)?.url === first.url) ? first : null;
+                })()}
                 busy={mediaBusy}
                 onSetUrl={(url) => media.setUrl.mutateAsync({ profileIds: profiles.map((p) => p.id), steps: [1], url })}
                 onUpload={(file) => media.uploadVideo.mutateAsync({ profileIds: profiles.map((p) => p.id), steps: [1], file })}
