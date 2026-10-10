@@ -20,7 +20,7 @@ import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspe
 import { useQueryClient } from "@tanstack/react-query";
 import { useOutreachMedia } from "@/hooks/useOutreachMedia";
 import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicker";
-import { composeMessageWithLink } from "@/lib/prospecting/outreachMedia";
+import { composeMessageWithLink, sentMediaUrlFor } from "@/lib/prospecting/outreachMedia";
 
 const extractInstagramUsername = (url: string): string | null => {
   const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
@@ -211,7 +211,8 @@ export function ProspectingMessageDialog({
   const handleCopy = async () => {
     try {
       if (!await canContactProfile()) return;
-      await navigator.clipboard.writeText(composedFor(currentStep));
+      const url = (await media.ensureFresh(profile.id, currentStep + 1))?.url ?? null;
+      await navigator.clipboard.writeText(composeMessageWithLink(steps[currentStep].message, url));
       setCopied(true);
       toast.success("Mensagem copiada!");
       setTimeout(() => setCopied(false), 2000);
@@ -224,9 +225,10 @@ export function ProspectingMessageDialog({
     const stepNum = currentStep + 1;
     try {
       if (!await canContactProfile()) return;
-      const text = composedFor(currentStep);
+      const url = (await media.ensureFresh(profile.id, stepNum))?.url ?? null;
+      const text = composeMessageWithLink(steps[currentStep].message, url);
       await navigator.clipboard.writeText(text);
-      setOpenedSnapshot({ step: stepNum, text, url: stepMediaUrl(stepNum) });
+      setOpenedSnapshot({ step: stepNum, text, url: sentMediaUrlFor(text, url) });
       const username = extractInstagramUsername(profile.profile_url);
       const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
       window.open(dmUrl, "_blank");
