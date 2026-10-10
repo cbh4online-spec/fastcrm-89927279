@@ -407,6 +407,13 @@
       "when": 1791619067332,
       "tag": "0057_forum_selective_read_and_live_chat_live_only",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1791625904300,
+      "tag": "0058_forum_read_null_category_and_reaction_parent_fix",
+      "breakpoints": true
     }
   ]
 }
