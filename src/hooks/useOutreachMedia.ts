@@ -98,9 +98,9 @@ export function useOutreachMedia(profileIds: string[]) {
   const setUrl = useMutation({
     mutationFn: async ({ url, ...target }: MediaTarget & { url: string }) => {
       const valid = validateShareUrl(url);
-      if (!valid.ok) throw new Error(valid.error);
+      if (!valid.ok) throw new Error(valid.error ?? "Inválido");
       const old = previousPaths(target);
-      await upsertRows(target, { kind: "url", url: valid.url });
+      await upsertRows(target, { kind: "url", url: valid.url! });
       await cleanupPaths(old);
     },
     onSuccess: invalidate,
@@ -110,7 +110,7 @@ export function useOutreachMedia(profileIds: string[]) {
     mutationFn: async ({ file, ...target }: MediaTarget & { file: File }) => {
       if (!workspaceId || !user?.id) throw new Error("Sessão ou espaço de trabalho indisponível");
       const valid = validateVideoFile(file);
-      if (!valid.ok) throw new Error(valid.error);
+      if (!valid.ok) throw new Error(valid.error ?? "Inválido");
       const path = buildVideoPath(workspaceId, user.id);
       const bucket = supabase.storage.from(PROSPECTING_VIDEO_BUCKET);
       const { error: upErr } = await bucket.upload(path, file, {

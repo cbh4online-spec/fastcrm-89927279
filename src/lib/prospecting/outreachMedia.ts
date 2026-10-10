@@ -26,7 +26,7 @@ export interface OutreachMedia {
   created_by: string;
 }
 
-export type ShareUrlResult = { ok: true; url: string } | { ok: false; error: string };
+export type ShareUrlResult = { ok: boolean; url?: string; error?: string };
 
 /** Só https; rejeita javascript:, data:, file:, http:, credenciais e espaços. Sem fetch. */
 export function validateShareUrl(raw: string | null | undefined): ShareUrlResult {
@@ -78,7 +78,7 @@ export function composeMessageWithLink(message: string, url: string | null | und
   return text ? `${text}\n\n${url}` : url;
 }
 
-export type VideoFileResult = { ok: true } | { ok: false; error: string };
+export type VideoFileResult = { ok: boolean; error?: string };
 
 export function validateVideoFile(file: { name: string; type: string; size: number }): VideoFileResult {
   if (file.type !== PROSPECTING_VIDEO_MIME || !/\.mp4$/i.test(file.name)) {

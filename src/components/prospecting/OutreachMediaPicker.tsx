@@ -44,15 +44,15 @@ export function OutreachMediaPicker({ media, busy, disabled, title = "Vídeo ou 
 
   const submitUrl = () => {
     const valid = validateShareUrl(url);
-    if (!valid.ok) return setError(valid.error);
-    void run(() => onSetUrl(valid.url));
+    if (!valid.ok) return setError(valid.error ?? "Inválido");
+    void run(() => onSetUrl(valid.url!));
   };
 
   const pickFile = (file: File | undefined) => {
     if (fileRef.current) fileRef.current.value = "";
     if (!file) return;
     const valid = validateVideoFile(file);
-    if (!valid.ok) return setError(valid.error);
+    if (!valid.ok) return setError(valid.error ?? "Inválido");
     void run(() => onUpload(file));
   };
 
