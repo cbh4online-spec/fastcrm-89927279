@@ -448,6 +448,7 @@ export function ProspectingMessageDialog({
                     )}
                   </div>
                   <OutreachMediaPicker
+        loadState={media.isLoading ? "loading" : media.isError ? "error" : "ready"}
                     key={`${currentWorkspace?.id}:${profile.id}:${i + 1}`}
                     media={media.get(profile.id, i + 1)}
                     busy={media.setUrl.isPending || media.uploadVideo.isPending || media.remove.isPending}

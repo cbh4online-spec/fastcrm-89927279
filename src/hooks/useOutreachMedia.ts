@@ -16,6 +16,9 @@ import {
 } from "@/lib/prospecting/outreachMedia";
 
 export const OUTREACH_MEDIA_QUERY_KEY = "prospecting-outreach-media";
+export const MEDIA_SAVING_MESSAGE = "Aguarde: o vídeo/link ainda está a ser guardado.";
+export const MEDIA_READ_FAILED_MESSAGE =
+  "Não foi possível confirmar o vídeo/link associado. A abordagem não foi preparada; tente novamente.";
 
 // Tabela nova: o tipo gerado pode ainda não estar no cliente tipado.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -158,7 +161,18 @@ export function useOutreachMedia(profileIds: string[]) {
    * e gravado; se não for possível, falha em vez de partilhar um link expirado.
    */
   const ensureFresh = async (profileId: string, stepIndex: number): Promise<OutreachMedia | null> => {
-    const row = get(profileId, stepIndex);
+    // Leitura garantida na base de dados: nunca depende da cache ainda a carregar
+    // nem trata um erro de leitura como «sem conteúdo».
+    if (!workspaceId) throw new Error(MEDIA_READ_FAILED_MESSAGE);
+    if (setUrl.isPending || uploadVideo.isPending || remove.isPending) throw new Error(MEDIA_SAVING_MESSAGE);
+    const { data, error: readError } = await mediaTable()
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("profile_id", profileId)
+      .eq("step_index", stepIndex)
+      .maybeSingle();
+    if (readError) throw new Error(MEDIA_READ_FAILED_MESSAGE);
+    const row = (data as OutreachMedia | null) ?? null;
     if (!row || row.kind !== "video" || !needsVideoLinkRenewal(row)) return row;
     if (!workspaceId || !user?.id || !row.storage_path) throw new Error(VIDEO_LINK_EXPIRED_MESSAGE);
     const { data: signed, error: signErr } = await supabase.storage
