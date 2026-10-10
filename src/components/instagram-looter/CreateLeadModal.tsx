@@ -1,5 +1,16 @@
-import { useState } from "react";
-import { Loader2, UserPlus, Instagram, MapPin, Briefcase, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, UserPlus, Instagram, MapPin, Briefcase, AlertCircle, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  checkProspectingIdentity,
+  describeProspectingIdentity,
+  importProspectingLead,
+  prospectingIdentityHref,
+  prospectingIdentityLabel,
+  type ProspectingIdentityCheck,
+} from "@/lib/prospecting/identity";
 import {
   Dialog,
   DialogContent,
@@ -58,28 +69,61 @@ export function CreateLeadModal({
   onSuccess,
 }: CreateLeadModalProps) {
   const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
-  
-  // Form state with pre-filled data from AI
+  const [confirmPossible, setConfirmPossible] = useState(false);
   const [formData, setFormData] = useState({
     name: profile?.full_name || profile?.username || "",
-    source: "instagram_looter",
     notes: "",
   });
 
+  const username = (profile?.username || "").replace(/^@/, "").trim().toLowerCase();
+  const validUsername = /^[a-z0-9._]{1,30}$/.test(username);
+  const instagramUrl = validUsername ? `https://www.instagram.com/${username}` : null;
+  const trimmedName = formData.name.trim();
+  const workspaceId = currentWorkspace?.id;
+
+  // Server-side check across leads, contacts, companies and profiles of this workspace only.
+  const identityQuery = useQuery({
+    queryKey: ["prospecting-identity-single", workspaceId, username, trimmedName, profile?.external_url ?? null],
+    queryFn: () =>
+      checkProspectingIdentity(supabase, workspaceId!, {
+        name: trimmedName,
+        instagram_url: instagramUrl,
+        website: profile?.external_url || null,
+      }),
+    enabled: open && !!workspaceId && validUsername && trimmedName.length >= 2,
+    staleTime: 30_000,
+    retry: 1,
+  });
+
+  useEffect(() => {
+    setConfirmPossible(false);
+  }, [identityQuery.data?.status, trimmedName]);
+
+  const identity: ProspectingIdentityCheck | undefined = identityQuery.isError
+    ? { status: "unavailable", matches: [] }
+    : identityQuery.data;
+  const identityHref = identity && identity.status !== "new" ? prospectingIdentityHref(identity) : null;
+  const isBlockingStatus = !identity || ["exists", "opportunity", "blocked", "unavailable"].includes(identity.status);
+  const canCreate =
+    !isCreating &&
+    !identityQuery.isFetching &&
+    validUsername &&
+    trimmedName.length >= 2 &&
+    !!identity &&
+    !isBlockingStatus &&
+    (identity.status === "new" || (identity.status === "review" && confirmPossible));
+
   const handleCreate = async () => {
-    if (!currentWorkspace?.id) {
+    if (!workspaceId) {
       toast.error("Workspace não selecionado");
       return;
     }
+    if (!canCreate || !instagramUrl || !identity) return;
 
     setIsCreating(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-
-      // Build lead notes with AI insights
       const insightNotes = insight ? `
 ## Análise IA Instagram
 - **Categoria:** ${insight.category_guess}
@@ -98,60 +142,88 @@ ${insight.red_flags.length > 0 ? `### Alertas\n${insight.red_flags.map(f => `- $
 
       const fullNotes = `
 ## Perfil Instagram
-- **Username:** @${profile.username}
-- **Link:** https://instagram.com/${profile.username}
+- **Username:** @${username}
+- **Link:** ${instagramUrl}
 ${profile.biography ? `- **Bio:** ${profile.biography}` : ""}
 ${profile.external_url ? `- **Website:** ${profile.external_url}` : ""}
-${profile.follower_count ? `- **Seguidores:** ${profile.follower_count.toLocaleString()}` : ""}
+${profile.follower_count ? `- **Seguidores:** ${profile.follower_count.toLocaleString("pt-PT")}` : ""}
 
 ${insightNotes}
 
-${formData.notes ? `## Notas Adicionais\n${formData.notes}` : ""}
+${formData.notes.trim() ? `## Notas Adicionais\n${formData.notes.trim()}` : ""}
 `.trim();
 
-      // Create lead in CRM
-      const { data: lead, error } = await supabase
-        .from("leads")
-        .insert({
-          workspace_id: currentWorkspace.id,
-          name: formData.name,
+      // ig_profiles.id is not a professional_prospecting_profiles.id, so p_profile_id stays NULL.
+      // The server rechecks identity and creates the lead in the same transaction.
+      const result = await importProspectingLead(
+        supabase,
+        workspaceId,
+        {
+          name: trimmedName,
           source: "instagram_looter",
+          lead_type: insight && !insight.is_individual ? "company" : "person",
           notes: fullNotes,
-          lead_score: insight?.lead_score || null,
+          lead_score: insight?.lead_score ?? null,
           ai_insight: insight ? `${insight.category_guess} | ${insight.specialty_guess} | Score: ${insight.lead_score}/100` : null,
-          instagram_url: `https://instagram.com/${profile.username}`,
+          instagram_url: instagramUrl,
           website: profile.external_url || null,
-          created_by: user.id,
-        })
-        .select()
-        .single();
+          avatar_url: profile.profile_pic_url || null,
+          instagram_bio: profile.biography || null,
+          instagram_followers_count: profile.follower_count ?? null,
+        },
+        undefined,
+        identity.status === "review" && confirmPossible,
+      );
 
-      if (error) throw error;
-
-      // Record the generated lead if we have a profile ID
-      if (profileId) {
-        await supabase
-          .from("ig_generated_leads")
-          .insert({
-            workspace_id: currentWorkspace.id,
-            profile_id: profileId,
-            crm_lead_id: lead.id,
-            status: "created",
-            sync_data: {
-              lead_score: insight?.lead_score,
-              category: insight?.category_guess,
-              specialty: insight?.specialty_guess,
-              city: insight?.city_guess,
-            },
-            created_by: user.id,
-          });
+      if (!result.lead_id) {
+        // The server found a match created meanwhile: show it instead of creating.
+        queryClient.setQueryData(
+          ["prospecting-identity-single", workspaceId, username, trimmedName, profile?.external_url ?? null],
+          result,
+        );
+        toast.error("Lead não criado", { description: describeProspectingIdentity(result) });
+        return;
       }
 
+      // Preserve the ig_profiles association only after the lead is confirmed,
+      // and only for a profile that exists in this workspace.
+      if (profileId) {
+        const { data: igProfile } = await supabase
+          .from("ig_profiles")
+          .select("id")
+          .eq("id", profileId)
+          .eq("workspace_id", workspaceId)
+          .maybeSingle();
+        if (igProfile?.id) {
+          const { data: { user } } = await supabase.auth.getUser();
+          const { error: linkError } = user
+            ? await supabase.from("ig_generated_leads").insert({
+                workspace_id: workspaceId,
+                profile_id: igProfile.id,
+                crm_lead_id: result.lead_id,
+                status: "created",
+                sync_data: {
+                  lead_score: insight?.lead_score,
+                  category: insight?.category_guess,
+                  specialty: insight?.specialty_guess,
+                  city: insight?.city_guess,
+                },
+                created_by: user.id,
+              })
+            : { error: new Error("Sessão expirada") };
+          if (linkError) {
+            toast.warning("Lead criado, mas não foi possível associá-lo ao perfil guardado.");
+          }
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["prospecting-identity-single"] });
+      queryClient.invalidateQueries({ queryKey: ["prospecting-identity-batch"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
       toast.success("Lead criado com sucesso!");
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error("Error creating lead:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao criar lead");
     } finally {
       setIsCreating(false);
@@ -182,11 +254,11 @@ ${formData.notes ? `## Notas Adicionais\n${formData.notes}` : ""}
               />
             )}
             <div className="flex-1">
-              <p className="font-semibold">@{profile.username}</p>
+              <p className="font-semibold">@{username}</p>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Instagram className="h-3 w-3" />
                 <a 
-                  href={`https://instagram.com/${profile.username}`}
+                  href={`https://www.instagram.com/${username}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:underline"
@@ -250,6 +322,50 @@ ${formData.notes ? `## Notas Adicionais\n${formData.notes}` : ""}
             </div>
           </div>
 
+          {/* CRM identity check */}
+          <div aria-live="polite">
+            {!validUsername ? (
+              <Alert variant="destructive">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertDescription>O utilizador do Instagram não é válido; não é possível criar o lead.</AlertDescription>
+              </Alert>
+            ) : trimmedName.length < 2 ? null : identityQuery.isFetching && !identity ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> A verificar duplicados no CRM…
+              </div>
+            ) : identity ? (
+              <Alert variant={identity.status === "new" ? "default" : identity.status === "review" ? "default" : "destructive"}>
+                {identity.status === "new" ? <CheckCircle2 className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+                <AlertDescription className="space-y-2">
+                  <p>
+                    <span className="font-medium">{prospectingIdentityLabel(identity).label}.</span>{" "}
+                    {describeProspectingIdentity(identity)}
+                  </p>
+                  {identityHref && (
+                    <Link to={identityHref} className="text-primary underline" onClick={() => onOpenChange(false)}>
+                      Abrir registo existente
+                    </Link>
+                  )}
+                  {identity.status === "review" && (
+                    <label className="flex items-start gap-2 text-sm">
+                      <Checkbox
+                        checked={confirmPossible}
+                        onCheckedChange={(v) => setConfirmPossible(v === true)}
+                        aria-label="Confirmo que é uma entidade diferente"
+                      />
+                      <span>Revi a correspondência e confirmo que é uma entidade diferente.</span>
+                    </label>
+                  )}
+                  {identity.status === "unavailable" && (
+                    <Button type="button" size="sm" variant="outline" onClick={() => identityQuery.refetch()}>
+                      Tentar novamente
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+          </div>
+
           {/* What will be saved */}
           <div className="text-xs text-muted-foreground">
             <p className="font-medium mb-1">Será guardado automaticamente:</p>
@@ -265,7 +381,7 @@ ${formData.notes ? `## Notas Adicionais\n${formData.notes}` : ""}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleCreate} disabled={isCreating || !(formData.name || "").trim()}>
+          <Button onClick={handleCreate} disabled={!canCreate}>
             {isCreating ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (

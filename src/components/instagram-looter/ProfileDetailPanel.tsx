@@ -420,6 +420,7 @@ export function ProfileDetailPanel({ username, onClose }: ProfileDetailPanelProp
             onOpenChange={setShowCreateLead}
             profile={profile}
             insight={aiInsight}
+            profileId={savedProfileId ?? undefined}
             onSuccess={() => {
               toast.success("Lead criado - pode vê-lo na secção de Leads do CRM");
             }}
