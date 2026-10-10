@@ -109012,6 +109012,13 @@ export type Database = {
         Args: { p_channel: string; p_response: string; p_workspace_id: string }
         Returns: Json
       }
+      forum_can_read_category: {
+        Args: { _category_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      forum_can_read_post: { Args: { _post_id: string }; Returns: boolean }
+      forum_can_read_topic: { Args: { _topic_id: string }; Returns: boolean }
+      forum_is_moderator: { Args: { _workspace_id: string }; Returns: boolean }
       generate_document_number: {
         Args: { p_document_type?: string; p_workspace_id: string }
         Returns: string
