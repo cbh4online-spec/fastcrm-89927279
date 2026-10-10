@@ -10,6 +10,21 @@ import { toast } from "sonner";
 export const DM_POPUP_BLOCKED_MESSAGE =
   "O browser bloqueou a nova janela. Use o botão «Abrir conversa» ou permita pop-ups para este site.";
 
+const ALLOWED_DM_HOSTS = new Set(["ig.me", "instagram.com", "www.instagram.com", "m.instagram.com"]);
+export const DM_INVALID_URL_MESSAGE = "Ligação de conversa inválida: só são aceites ligações https do Instagram.";
+
+/** Aceita apenas https:// para hosts Instagram/ig.me, sem credenciais nem porta. */
+export function safeDmUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const value = raw.trim();
+  if (!value || value.length > 2048 || !/^https:\/\//i.test(value)) return null;
+  let u: URL;
+  try { u = new URL(value); } catch { return null; }
+  if (u.protocol !== "https:" || u.username || u.password || u.port) return null;
+  if (!ALLOWED_DM_HOSTS.has(u.hostname.toLowerCase())) return null;
+  return u.toString();
+}
+
 export function reserveDmWindow(): Window | null {
   try {
     const win = window.open("about:blank", "_blank");
@@ -38,6 +53,9 @@ function navigate(win: Window | null | undefined, url: string): boolean {
 
 /** Abre diretamente (deve ser chamado num clique do utilizador). */
 export function openDmDirect(url: string): boolean {
+  const safe = safeDmUrl(url);
+  if (!safe) return false;
+  url = safe;
   try {
     const win = window.open(url, "_blank");
     if (!win) return false;
@@ -52,7 +70,13 @@ export function openDmDirect(url: string): boolean {
  * Encaminha a janela reservada para a DM. Devolve true se abriu; caso contrário
  * mostra instrução com botão manual e chama `onOpened` só se esse clique abrir.
  */
-export function finishDmOpen(win: Window | null | undefined, url: string, onOpened: () => void): boolean {
+export function finishDmOpen(win: Window | null | undefined, rawUrl: string | null | undefined, onOpened: () => void): boolean {
+  const url = safeDmUrl(rawUrl);
+  if (!url) {
+    closeDmWindow(win);
+    toast.error("A conversa não abriu", { description: DM_INVALID_URL_MESSAGE });
+    return false;
+  }
   if (navigate(win, url)) {
     onOpened();
     return true;
