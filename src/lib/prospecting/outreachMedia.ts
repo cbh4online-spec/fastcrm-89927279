@@ -92,7 +92,7 @@ export function validateVideoFile(file: { name: string; type: string; size: numb
 export const SECURE_RANDOM_UNAVAILABLE_MESSAGE =
   "Este navegador não disponibiliza geração aleatória segura. Atualize o navegador para carregar vídeos.";
 
-/** Só crypto forte; sem Math.random. Falha com mensagem clara se indisponível. */
+/** Só crypto forte (nunca aleatoriedade fraca). Falha com mensagem clara se indisponível. */
 export function randomId(cryptoImpl: Crypto | undefined = globalThis.crypto): string {
   if (cryptoImpl && typeof cryptoImpl.randomUUID === "function") return cryptoImpl.randomUUID();
   if (cryptoImpl && typeof cryptoImpl.getRandomValues === "function") {
