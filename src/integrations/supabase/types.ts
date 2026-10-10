@@ -77628,6 +77628,93 @@ export type Database = {
           },
         ]
       }
+      prospecting_outreach_media: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          label: string | null
+          mime_type: string | null
+          profile_id: string
+          size_bytes: number | null
+          step_index: number
+          storage_path: string | null
+          updated_at: string
+          url: string
+          url_expires_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind: string
+          label?: string | null
+          mime_type?: string | null
+          profile_id: string
+          size_bytes?: number | null
+          step_index: number
+          storage_path?: string | null
+          updated_at?: string
+          url: string
+          url_expires_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          mime_type?: string | null
+          profile_id?: string
+          size_bytes?: number | null
+          step_index?: number
+          storage_path?: string | null
+          updated_at?: string
+          url?: string
+          url_expires_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospecting_outreach_media_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "professional_prospecting_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospecting_outreach_media_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospecting_outreach_media_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "prospecting_outreach_media_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospecting_outreach_media_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospecting_outreach_queue: {
         Row: {
           created_at: string
@@ -77636,6 +77723,9 @@ export type Database = {
           message_plain: string | null
           profile_id: string
           scheduled_for: string
+          sent_at: string | null
+          sent_media_url: string | null
+          sent_message: string | null
           status: string
           step_index: number
           tone: string | null
@@ -77649,6 +77739,9 @@ export type Database = {
           message_plain?: string | null
           profile_id: string
           scheduled_for: string
+          sent_at?: string | null
+          sent_media_url?: string | null
+          sent_message?: string | null
           status?: string
           step_index: number
           tone?: string | null
@@ -77662,6 +77755,9 @@ export type Database = {
           message_plain?: string | null
           profile_id?: string
           scheduled_for?: string
+          sent_at?: string | null
+          sent_media_url?: string | null
+          sent_message?: string | null
           status?: string
           step_index?: number
           tone?: string | null
@@ -109907,6 +110003,14 @@ export type Database = {
           p_lead: Json
           p_profile_id?: string
           p_workspace_id: string
+        }
+        Returns: Json
+      }
+      prospecting_mark_outreach_sent: {
+        Args: {
+          p_media_url?: string
+          p_queue_id: string
+          p_sent_message: string
         }
         Returns: Json
       }
