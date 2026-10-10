@@ -162,10 +162,16 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (membershipError) throw membershipError;
     if (!membership) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 403,
-      });
+      // Super admins bypass workspace membership (platform-wide access).
+      const { data: isSuper } = await supabaseClient.rpc("is_super_admin", { _user_id: user.id });
+      if (!isSuper) {
+        // Non-member: return a neutral, non-crashing payload instead of 403.
+        logStep("Caller is not a member of workspace", { workspaceId });
+        return new Response(
+          JSON.stringify({ subscribed: false, plan: null, forbidden: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+        );
+      }
     }
 
     // Check existing subscription in database
