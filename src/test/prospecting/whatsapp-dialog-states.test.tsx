@@ -130,6 +130,20 @@ describe("WhatsAppMessageDialog: aberto vs enviado", () => {
     expect(mutateAsync).not.toHaveBeenCalled();
     expect(onSent).not.toHaveBeenCalled();
   });
+  it("depois de abrir, o canal fica bloqueado e «Já enviei» só existe para o link", async () => {
+    proActive = true;
+    const onSent = vi.fn();
+    renderDialog(onSent);
+    fireEvent.click(await screen.findByLabelText(/Abrir no WhatsApp/, { selector: "button[role=radio]" }));
+    fireEvent.click(screen.getByRole("button", { name: "Abrir no WhatsApp" }));
+    await screen.findByRole("button", { name: "Já enviei" });
+    const pro = document.getElementById("wa-channel-pro") as HTMLButtonElement;
+    expect(pro.disabled).toBe(true);
+    fireEvent.click(pro);
+    expect(screen.getByRole("button", { name: "Já enviei" })).toBeTruthy();
+    expect(mutateAsync).not.toHaveBeenCalled();
+    expect(onSent).not.toHaveBeenCalled();
+  });
 });
 
 describe("Painel de prospeção", () => {
