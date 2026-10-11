@@ -34,13 +34,28 @@ export async function syncStripeRenewals(workspaceId: string, contractIds?: stri
   });
   if (error) throw error;
   if (!data?.success) throw new Error(data?.error || "Falha na sincronização");
-  return data as { synced: number; failed: number; auto_linked: number; results: any[] };
+  return data as { synced: number; failed: number; auto_linked: number; not_linked?: { reason: string }[]; results: any[] };
 }
 
-export function summarizeSync(d: { synced: number; failed: number; auto_linked: number; results: any[] }) {
+const NOT_LINKED_LABEL: Record<string, string> = {
+  sem_email: "sem email",
+  sem_cliente_stripe: "sem cliente no Stripe",
+  varias_subscricoes: "várias subscrições possíveis",
+  sem_subscricao_ativa: "sem subscrição ativa",
+};
+
+export function summarizeSync(d: { synced: number; failed: number; auto_linked: number; not_linked?: { reason: string }[]; results: any[] }) {
   const payments = d.results.reduce((s, r) => s + (r.payments_added || 0), 0);
   const invoices = d.results.reduce((s, r) => s + (r.invoices_added || 0), 0);
-  return `${d.synced} sincronizados · ${d.auto_linked} ligados ao Stripe · ${payments} movimentos e ${invoices} faturas novas${d.failed ? ` · ${d.failed} com erro` : ""}`;
+  return `${d.synced} sincronizados · ${d.auto_linked} ligados ao Stripe · ${payments} movimentos e ${invoices} faturas novas${d.failed ? ` · ${d.failed} com erro` : ""}${notLinkedText(d.not_linked)}`;
+}
+
+function notLinkedText(list?: { reason: string }[]) {
+  if (!list?.length) return "";
+  const counts: Record<string, number> = {};
+  for (const n of list) counts[n.reason] = (counts[n.reason] || 0) + 1;
+  const parts = Object.entries(counts).map(([r, c]) => `${c} ${NOT_LINKED_LABEL[r] ?? r}`);
+  return ` · ${list.length} por ligar (${parts.join(", ")})`;
 }
 
 interface Props {
