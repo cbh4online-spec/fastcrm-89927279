@@ -32,7 +32,11 @@ export async function syncStripeRenewals(workspaceId: string, contractIds?: stri
   const { data, error } = await supabase.functions.invoke("sync-stripe-renewals", {
     body: { workspace_id: workspaceId, ...(contractIds?.length ? { contract_ids: contractIds } : {}) },
   });
-  if (error) throw error;
+  if (error) {
+    let msg = error.message;
+    try { const b = await (error as any).context?.json?.(); if (b?.error) msg = typeof b.error === "string" ? b.error : JSON.stringify(b.error); } catch { /* corpo ilegível */ }
+    throw new Error(msg);
+  }
   if (!data?.success) throw new Error(data?.error || "Falha na sincronização");
   return data as { synced: number; failed: number; auto_linked: number; not_linked?: { reason: string }[]; results: any[] };
 }
