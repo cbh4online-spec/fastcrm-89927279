@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
 
     // Auto-descoberta: contratos sem subscrição → procurar no Stripe por email dos contactos / nome
     const linked: string[] = [];
+    const notLinked: { contract_id: string; reason: string }[] = [];
     {
       let uq = db.from("renewal_contracts")
         .select("id, company_id, contact_id, company:companies(name)")
@@ -113,6 +114,8 @@ Deno.serve(async (req) => {
               .eq("id", c.id).eq("workspace_id", workspace_id);
             usedSubs.add(s.id);
             linked.push(c.id);
+          } else {
+            notLinked.push({ contract_id: c.id, reason: !emails.size && !candidates.length ? "sem_email" : !candidates.length ? "sem_cliente_stripe" : subs.length ? "varias_subscricoes" : "sem_subscricao_ativa" });
           }
         } catch (e: any) {
           console.error("[SYNC-STRIPE-RENEWALS] auto-link", c.id, e?.message);
@@ -272,7 +275,7 @@ Deno.serve(async (req) => {
     }
 
     for (const r of results) r.auto_linked = linked.includes(r.contract_id);
-    return json({ success: true, synced: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, auto_linked: linked.length, results });
+    return json({ success: true, synced: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, auto_linked: linked.length, not_linked: notLinked, results });
   } catch (e: any) {
     console.error("[SYNC-STRIPE-RENEWALS] fatal", e?.message);
     return json({ success: false, error: "internal_error" });
