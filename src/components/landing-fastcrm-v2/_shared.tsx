@@ -126,10 +126,18 @@ export function AnimatedNumber({
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const motionVal = useMotionValue(0);
   const spring = useSpring(motionVal, { duration: duration * 1000, bounce: 0 });
-  const formatter = new Intl.NumberFormat(locale, {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
+  const formatter = (() => {
+    const opts = { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
+    try {
+      return new Intl.NumberFormat(locale, opts);
+    } catch {
+      try {
+        return new Intl.NumberFormat(undefined, opts);
+      } catch {
+        return { format: (n: number) => n.toFixed(decimals) };
+      }
+    }
+  })();
   const display = useTransform(spring, (latest) =>
     `${prefix}${formatter.format(Number(latest.toFixed(decimals)))}${suffix}`,
   );
