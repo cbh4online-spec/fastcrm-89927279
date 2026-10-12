@@ -668,8 +668,31 @@ export function BulkOutreachDialog({
                 <Button variant="ghost" size="sm" onClick={handleTryClose}>
                   Fechar
                 </Button>
-                <div className="flex items-center gap-2">
-                  {nextProfile && (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {focusMode && focusProfile ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSkippedIds(prev => new Set(prev).add(focusProfile.id));
+                          setOpenedIds(prev => { const n = new Set(prev); n.delete(focusProfile.id); return n; });
+                        }}
+                      >
+                        Pular
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-2"
+                        disabled={!openedIds.has(focusProfile.id)}
+                        title={openedIds.has(focusProfile.id) ? undefined : "Clique primeiro em «Abrir conversa»"}
+                        onClick={() => handleConfirmSent(focusProfile)}
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Já enviei (próximo)
+                      </Button>
+                    </>
+                  ) : nextProfile && (
                     <Button onClick={handleNextProfile} size="lg" className="gap-2">
                       <Send className="w-4 h-4" />
                       Abrir perfil de {nextProfile.profile_name || "próximo perfil"}
