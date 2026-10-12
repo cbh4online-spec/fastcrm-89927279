@@ -56,6 +56,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { isSeparateProspectingInstance } from "@/lib/prospecting/identity";
 import { useProspectingIdentityBatch, PROSPECTING_IDENTITY_QUERY_KEY } from "@/hooks/useProspectingIdentityBatch";
 import { ProspectingIdentityBadge } from "@/components/prospecting/ProspectingIdentityBadge";
+import { useOutreachSentStatus } from "@/hooks/useOutreachSentStatus";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import {
@@ -86,6 +87,7 @@ const SOURCE_HINT: Partial<Record<ExtractionSource, string>> = {
 };
 
 type ContactFilter = "all" | "email" | "phone" | "any";
+type OutreachFilter = "all" | "pending" | "sent";
 
 export default function ProspectingInstagramExtractor() {
   const navigate = useNavigate();
@@ -126,6 +128,9 @@ export default function ProspectingInstagramExtractor() {
   const cadence = useProspectingCadenceLauncher();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [outreachFilter, setOutreachFilter] = useState<OutreachFilter>("all");
+  const profileIds = useMemo(() => profiles.map((p) => p.id), [profiles]);
+  const sentStatus = useOutreachSentStatus(profileIds);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -142,13 +147,17 @@ export default function ProspectingInstagramExtractor() {
       if (contactFilter === "email" && !p.extracted_email) return false;
       if (contactFilter === "phone" && !p.extracted_phone) return false;
       if (contactFilter === "any" && !p.extracted_email && !p.extracted_phone) return false;
+      if (outreachFilter !== "all") {
+        const isSent = !!sentStatus.data?.has(p.id);
+        if (outreachFilter === "sent" ? !isSent : isSent) return false;
+      }
       return true;
     });
-  }, [profiles, search, minFollowers, contactFilter]);
+  }, [profiles, search, minFollowers, contactFilter, outreachFilter, sentStatus.data]);
 
   const IDENTITY_PAGE_SIZE = 50;
   const [resultsPage, setResultsPage] = useState(0);
-  useEffect(() => setResultsPage(0), [search, minFollowers, contactFilter, jobIdForResults]);
+  useEffect(() => setResultsPage(0), [search, minFollowers, contactFilter, outreachFilter, jobIdForResults]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / IDENTITY_PAGE_SIZE));
   const safePage = Math.min(resultsPage, pageCount - 1);
   const visibleProfiles = useMemo(
@@ -541,6 +550,19 @@ export default function ProspectingInstagramExtractor() {
               </Select>
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="ig-outreach-filter" className="text-xs">Abordagem</Label>
+              <Select value={outreachFilter} onValueChange={(v) => setOutreachFilter(v as OutreachFilter)}>
+                <SelectTrigger id="ig-outreach-filter" className="w-[170px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending">Por contactar</SelectItem>
+                  <SelectItem value="sent">Mensagem enviada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="ig-min-followers" className="text-xs">Seguidores mínimos</Label>
               <Input
                 id="ig-min-followers"
@@ -598,6 +620,7 @@ export default function ProspectingInstagramExtractor() {
                     <TableHead>Telefone</TableHead>
                     <TableHead>Cidade</TableHead>
                     <TableHead>Categoria</TableHead>
+                    <TableHead>Abordagem</TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
@@ -649,6 +672,22 @@ export default function ProspectingInstagramExtractor() {
                       <TableCell className="text-sm">{p.extracted_phone ?? "—"}</TableCell>
                       <TableCell className="text-sm">{p.inferred_location ?? "—"}</TableCell>
                       <TableCell className="text-sm">{p.instagram_category ?? "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        {(() => {
+                          const info = sentStatus.data?.get(p.id);
+                          if (sentStatus.isLoading) return <span className="text-xs text-muted-foreground">…</span>;
+                          if (!info) return <Badge variant="outline" className="font-normal">Por contactar</Badge>;
+                          const when = new Date(info.sentAt);
+                          return (
+                            <div title={`${when.toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })}${info.message ? `\n\n${info.message.slice(0, 160)}` : ""}`}>
+                              <Badge className="font-normal">Enviado · Etapa {info.stepIndex}</Badge>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {formatDistanceToNow(when, { addSuffix: true, locale: pt })}
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
                       <TableCell>
                         {(() => {
                           const href = safeProfileLink("instagram", p.profile_url);
