@@ -13,7 +13,9 @@ import {
   Search,
   StopCircle,
   UserPlus,
+  Upload,
 } from "lucide-react";
+import { GrowmanImportDialog } from "@/components/prospecting/GrowmanImportDialog";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,6 +100,7 @@ export default function ProspectingInstagramExtractor() {
   const [target, setTarget] = useState("");
   const [limit, setLimit] = useState("200");
   const [scope, setScope] = useState<"current" | "all">("current");
+  const [growmanOpen, setGrowmanOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [contactFilter, setContactFilter] = useState<ContactFilter>("all");
   const [minFollowers, setMinFollowers] = useState("");
@@ -263,7 +266,11 @@ export default function ProspectingInstagramExtractor() {
           <Instagram className="h-5 w-5 text-pink-600" aria-hidden />
           <h1 className="text-xl font-semibold">Extrator de perfis de Instagram</h1>
         </div>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setGrowmanOpen(true)}>
+          <Upload className="mr-1.5 h-4 w-4" /> Importar do Growman
+        </Button>
       </div>
+      <GrowmanImportDialog open={growmanOpen} onOpenChange={setGrowmanOpen} onImported={() => setScope("all")} />
 
       <ProspectingEffectivenessCard />
 
