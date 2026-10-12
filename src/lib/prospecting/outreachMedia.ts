@@ -67,7 +67,20 @@ export function describeShareUrl(url: string): string {
 }
 
 /** A mensagem final contém a ligação exatamente uma vez. */
-export function composeMessageWithLink(message: string, url: string | null | undefined): string {
+/** Remove parâmetros de tracking de links públicos do Instagram (links assinados ficam intactos). */
+export function cleanShareUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.protocol === "https:" && /^(www\.|m\.)?instagram\.com$/i.test(u.hostname)) {
+      return `https://www.instagram.com${u.pathname}`;
+    }
+  } catch { /* mantém original */ }
+  return url;
+}
+
+export function composeMessageWithLink(message: string, rawUrl: string | null | undefined): string {
+  const url = cleanShareUrl(rawUrl);
   const text = (message ?? "").trim();
   if (!url) return text;
   const parts = text.split(url);
@@ -136,6 +149,7 @@ export function isVideoLinkExpired(media: Pick<OutreachMedia, "kind" | "url_expi
 }
 
 /** O URL só é registado como enviado se estiver realmente no texto final. */
-export function sentMediaUrlFor(text: string, url: string | null | undefined): string | null {
+export function sentMediaUrlFor(text: string, rawUrl: string | null | undefined): string | null {
+  const url = cleanShareUrl(rawUrl);
   return url && text.includes(url) ? url : null;
 }
