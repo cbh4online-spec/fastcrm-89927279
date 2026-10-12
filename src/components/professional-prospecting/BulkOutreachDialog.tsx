@@ -335,7 +335,7 @@ export function BulkOutreachDialog({
         <div className="fixed inset-0 bg-black/80 animate-in fade-in-0" />
 
         {/* Panel */}
-        <div className="relative z-10 bg-background border rounded-lg shadow-lg max-w-2xl w-full max-h-[85vh] flex flex-col p-6 mx-4 animate-in fade-in-0 zoom-in-95">
+        <div className="relative z-10 bg-background border rounded-lg shadow-lg max-w-2xl w-full max-h-[90dvh] flex flex-col p-4 sm:p-6 mx-2 sm:mx-4 animate-in fade-in-0 zoom-in-95">
           {/* Close button */}
           {phase !== "generating" && (
             <button
@@ -393,6 +393,7 @@ export function BulkOutreachDialog({
             </p>
           </div>
 
+          <div className="flex-1 min-h-0 overflow-y-auto -mx-2 px-2">
           {/* Phase: Generating */}
           {phase === "generating" && (
             <div className="flex flex-col items-center justify-center py-10 gap-4">
@@ -647,9 +648,10 @@ export function BulkOutreachDialog({
               </div>
             </div>
           )}
+          </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-2 border-t mt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t mt-4 shrink-0">
             {phase === "completed" ? (
               <div className="w-full flex justify-center">
                 <Button onClick={handleClose} size="lg" className="gap-2 px-8">
