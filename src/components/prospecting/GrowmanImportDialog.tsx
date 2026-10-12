@@ -88,7 +88,7 @@ export function GrowmanImportDialog({ open, onOpenChange, onImported }: { open: 
       const skipped = result.profiles.length - saved;
       toast.success(`${saved} perfis importados`, { description: skipped ? `${skipped} já existiam e não foram alterados.` : undefined });
       queryClient.invalidateQueries({ queryKey: ["instagram-extraction-results", workspaceId] });
-      queryClient.invalidateQueries({ queryKey: PROSPECTING_IDENTITY_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [PROSPECTING_IDENTITY_QUERY_KEY] });
       onImported?.();
       reset();
       onOpenChange(false);
