@@ -261,6 +261,7 @@ export default function ProspectingInstagramExtractor() {
 
   // Only profiles on the visible page whose CRM check completed can be acted on.
   const selectedProfiles = visibleProfiles.filter((p) => selected.has(p.id));
+  const newForImport = selectedProfiles.filter((p) => !p.converted_lead_id && p.instagram_username).length;
   const identityBlocksActions = !identityReady || identity.isFetching || identity.isError ||
     selectedProfiles.some((p) => !identity.data?.[p.id] || identity.data[p.id].status === "unavailable");
 
