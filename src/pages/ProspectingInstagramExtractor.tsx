@@ -506,14 +506,15 @@ export default function ProspectingInstagramExtractor() {
               <Button
                 size="sm"
                 onClick={() => importLeads.mutate(selectedProfiles, { onSuccess: () => setSelected(new Set()) })}
-                disabled={selectedProfiles.length === 0 || importLeads.isPending || identityBlocksActions}
+                disabled={newForImport === 0 || importLeads.isPending || identityBlocksActions}
+                title={selectedProfiles.length > 0 && newForImport === 0 ? "Todos os selecionados já estão no CRM" : undefined}
               >
                 {importLeads.isPending ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <UserPlus className="mr-1.5 h-3.5 w-3.5" />
                 )}
-                Importar {selectedProfiles.length > 0 ? `(${selectedProfiles.length})` : ""} como Leads
+                Importar {selectedProfiles.length > 0 ? `(${newForImport} ${newForImport === 1 ? "novo" : "novos"})` : ""} como Leads
               </Button>
             </div>
           </div>
@@ -676,7 +677,15 @@ export default function ProspectingInstagramExtractor() {
                         {(() => {
                           const info = sentStatus.data?.get(p.id);
                           if (sentStatus.isLoading) return <span className="text-xs text-muted-foreground">…</span>;
-                          if (!info) return <Badge variant="outline" className="font-normal">Por contactar</Badge>;
+                          const inCrm = p.converted_lead_id ? (
+                            <Badge variant="secondary" className="mt-1 font-normal">Já no CRM</Badge>
+                          ) : null;
+                          if (!info) return (
+                            <div className="flex flex-col items-start">
+                              <Badge variant="outline" className="font-normal">Por contactar</Badge>
+                              {inCrm}
+                            </div>
+                          );
                           const when = new Date(info.sentAt);
                           return (
                             <div title={`${when.toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })}${info.message ? `\n\n${info.message.slice(0, 160)}` : ""}`}>
