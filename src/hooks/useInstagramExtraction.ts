@@ -229,7 +229,9 @@ export function useInstagramExtractionImport() {
         throw new Error(SEPARATE_PROSPECTING_INSTANCE_MESSAGE);
       }
       const usable = profiles.filter((p) => !p.converted_lead_id && p.instagram_username);
-      if (usable.length === 0) throw new Error("Nada para importar");
+      if (usable.length === 0) {
+        throw new Error("Todos os perfis selecionados já estão no CRM como Leads. Nada novo para importar.");
+      }
 
       let created = 0;
       let skipped = 0;
