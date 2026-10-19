@@ -498,13 +498,6 @@
       "when": 1791643549449,
       "tag": "0070_prospecting_identity_check_indexed_prefilter",
       "breakpoints": true
-    },
-    {
-      "idx": 71,
-      "version": "7",
-      "when": 1792418486333,
-      "tag": "0071_tighten_public_rls_predicates",
-      "breakpoints": true
     }
   ]
 }
