@@ -49,25 +49,11 @@ function formatDate(dateString: string | null | undefined): string {
 }
 
 export function CommercialHistorySection({ contact, onFieldChange }: CommercialHistorySectionProps) {
-  // Fetch invoices for this contact
+  // Valores pertencem à empresa; o contacto mostra só o que ele próprio encomendou
   const { data: contactInvoices = [] as any[]} = useInvoices(
     contact.id ? { contact_id: contact.id } : { contact_id: "__none__" }
   );
-  // Only fetch company invoices if the contact actually has a company
-  const { data: companyInvoices = [] as any[]} = useInvoices(
-    contact.company_id ? { company_id: contact.company_id } : { company_id: "__none__" }
-  );
-
-  // Combine and deduplicate invoices
-  const allInvoices = useMemo(() => {
-    const invoiceMap = new Map();
-    [...contactInvoices, ...companyInvoices].forEach(inv => {
-      if (!invoiceMap.has(inv.id)) {
-        invoiceMap.set(inv.id, inv);
-      }
-    });
-    return Array.from(invoiceMap.values());
-  }, [contactInvoices, companyInvoices]);
+  const allInvoices = contactInvoices;
 
   // Filter to only count sent, paid, overdue invoices
   const countableInvoices = useMemo(() => {
