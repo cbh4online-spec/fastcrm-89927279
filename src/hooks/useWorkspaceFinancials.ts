@@ -89,6 +89,11 @@ export interface WorkspaceFinancials {
 }
 
 /** "FT V100.02/4630" → "V100/4630"; "V100/4630" → "V100/4630". */
+export function debtorKeyOf(inv: { client_name: string | null; company_id: string | null; contact_id: string | null; id: string }): string {
+  const n = (inv.client_name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return n ? `name:${n}` : inv.company_id || inv.contact_id || inv.id;
+}
+
 export function shortDocKey(no: string | null | undefined): string | null {
   if (!no) return null;
   const m = String(no).trim().match(/(?:^|\s)([A-Za-z0-9]+)(?:\.[^/\s]*)?\/(\d+)$/);
@@ -232,7 +237,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
           if (isOverdue) overdue += remaining;
           else notDue += remaining;
 
-          const debtorKey = inv.company_id || inv.contact_id || inv.client_name || inv.id;
+          const debtorKey = debtorKeyOf(inv);
           const debtorName = inv.client_name || "—";
           const row = debtorMap.get(debtorKey) || {
             key: debtorKey,
@@ -269,7 +274,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
       // --- Clientes
       const clientTotals = new Map<string, { name: string; total: number; firstSeen: string }>();
       for (const inv of invoices) {
-        const key = inv.company_id || inv.contact_id || inv.client_name || inv.id;
+        const key = debtorKeyOf(inv);
         const name = inv.client_name || "—";
         const cur = clientTotals.get(key) || { name, total: 0, firstSeen: inv.issue_date || "" };
         cur.total += Number(inv.subtotal || 0);
@@ -310,7 +315,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
       );
       for (const inv of sortedAsc) {
         if (!inv.issue_date) continue;
-        const key = inv.company_id || inv.contact_id || inv.client_name || inv.id;
+        const key = debtorKeyOf(inv);
         if (!seenBeforeMap.has(key)) seenBeforeMap.set(key, inv.issue_date);
       }
       for (const inv of sortedAsc) {
@@ -318,7 +323,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
         const d = new Date(inv.issue_date);
         const bucket = monthlyClientsMap.get(monthKey(d));
         if (!bucket) continue;
-        const key = inv.company_id || inv.contact_id || inv.client_name || inv.id;
+        const key = debtorKeyOf(inv);
         const firstSeen = seenBeforeMap.get(key);
         const isNew =
           firstSeen &&
