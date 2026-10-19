@@ -24,6 +24,7 @@ interface ProductFinancialSectionProps {
 
 export function ProductFinancialSection({ product }: ProductFinancialSectionProps) {
   const canViewCostMargin = useCanViewCostMargin();
+  if (!canViewCostMargin) return null;
   const margins = calculateProductMargins(product);
   const { canSeeField } = useFieldPermissions();
   const showDirectCost = canSeeField("products", "direct_cost");

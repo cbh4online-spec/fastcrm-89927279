@@ -110,7 +110,7 @@ export function ProductsAnalyticsDashboard({ products, formatCurrency }: Props) 
           {canViewCostMargin && <Card className="p-3">
             <p className="text-xs text-muted-foreground">Com Custo</p>
             <p className="text-xl font-bold">{Math.round((analytics.withCost / analytics.total) * 100)}%</p>
-          </Card>
+          </Card>}
         </div>
 
         {/* Charts */}
@@ -175,7 +175,7 @@ export function ProductsAnalyticsDashboard({ products, formatCurrency }: Props) 
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
-          </Card>
+          </Card>}
         </div>
       </CollapsibleContent>
     </Collapsible>
