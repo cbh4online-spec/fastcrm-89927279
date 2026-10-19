@@ -37,7 +37,7 @@ export function ProductComparisonSheet({
       return ((p.base_price - p.direct_cost) / p.base_price) * 100;
     };
 
-    return [
+    return ([
       { label: "SKU", values: products.map(p => p.sku || "—"), format: "text" },
       { label: "Tipo", values: products.map(p => getProductTypeLabel(p.product_type)), format: "text" },
       { label: "Categoria", values: products.map(p => p.category || "—"), format: "text" },
@@ -49,7 +49,7 @@ export function ProductComparisonSheet({
       { label: "Estado", values: products.map(p => p.status), format: "text" },
       { label: "Loja Online", values: products.map(p => (p as any).store_published ? "Sim" : "Não"), format: "text" },
       { label: "Imagens", values: products.map(p => p.images?.length ?? 0), format: "text" },
-    ].filter((r) => canViewCostMargin || !["Custo Direto", "Custo Operacional", "Margem"].includes(r.label));
+    ] as ComparisonRow[]).filter((r) => canViewCostMargin || !["Custo Direto", "Custo Operacional", "Margem"].includes(r.label));
   }, [products, formatCurrency, getProductTypeLabel, getBillingTypeLabel]);
 
   const formatValue = (val: string | number | null, format?: string) => {
