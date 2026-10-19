@@ -10,6 +10,7 @@ const FINANCIALS_INVOICE_SELECT =
 export interface FinancialsInvoice {
   id: string;
   status: string | null;
+  document_type?: string | null;
   subtotal: number | null;
   tax_amount: number | null;
   total: number | null;
