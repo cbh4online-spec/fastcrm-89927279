@@ -553,86 +553,67 @@ Deno.serve(async (req) => {
       last_step_at: new Date().toISOString(),
     }).eq("id", import_id);
 
-    // Todo o trabalho pesado (download + decode + parse + inserts) corre em background.
-    // Fazê-lo no handler do pedido esgotava a memória do worker (WORKER_RESOURCE_LIMIT / 546).
-    // Frontend faz polling a saft_imports.status + saft_import_items para o progresso.
-    // @ts-ignore EdgeRuntime is a Deno deploy global
-    EdgeRuntime.waitUntil((async () => {
-      try {
-        const t0 = Date.now();
-        await admin.from("saft_imports")
-          .update({ last_step: "download_start", last_step_at: new Date().toISOString() })
-          .eq("id", import_id);
-        const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
-        if (dlErr || !file) throw new Error("download failed");
-        await admin.from("saft_imports")
-          .update({ last_step: "download_done", last_step_at: new Date().toISOString() })
-          .eq("id", import_id);
-
-        // Leitura incremental (streaming): evita carregar o XML inteiro e a árvore
-        // em memória, que era a causa do WORKER_RESOURCE_LIMIT em ficheiros grandes.
-        const headBytes = new Uint8Array(await file.slice(0, 200).arrayBuffer());
-        const useEnc = detectEncoding(headBytes);
-
-        const parsed = await collectSaftStream(
-          decodeStream(file.stream(), useEnc),
-          async (c) => {
-            if (Date.now() - t0 > 110_000) {
-              throw new Error("Tempo limite excedido durante a importação do SAF-T. Tente novamente ou divida o ficheiro por períodos mais curtos.");
-            }
-            await admin.from("saft_imports")
-              .update({ last_step: "parse_xml_progress", last_step_at: new Date().toISOString() })
-              .eq("id", import_id);
-            console.log("[saft-import] parse progress", JSON.stringify(c));
-          },
-        );
-
-        await admin.from("saft_imports")
-          .update({ last_step: "persist_start", last_step_at: new Date().toISOString() })
-          .eq("id", import_id);
-
-        await processImport(admin, imp, options, parsed, user.id);
-
-
-
-        // Paginar para contornar o limite de 1000 linhas por defeito do PostgREST
-        const summary: Record<string, Record<string, number>> = {};
-        const PAGE = 1000;
-        let from = 0;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { data: page, error: pageErr } = await admin
-            .from("saft_import_items")
-            .select("entity_type, action")
-            .eq("import_id", import_id)
-            .range(from, from + PAGE - 1);
-          if (pageErr) { console.warn("[saft-import] summary page error", pageErr.message); break; }
-          if (!page || page.length === 0) break;
-          for (const r of page) {
-            summary[r.entity_type] ??= {};
-            summary[r.entity_type][r.action] = (summary[r.entity_type][r.action] ?? 0) + 1;
-          }
-          if (page.length < PAGE) break;
-          from += PAGE;
-        }
-
-        await admin.from("saft_imports").update({
-          status: "completed",
-          completed_at: new Date().toISOString(),
-          stats: { ...(imp.stats ?? {}), summary },
-        }).eq("id", import_id);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "import error";
-        console.error("[saft-import] background error", msg);
-        await admin.from("saft_imports").update({
-          status: "failed",
-          error_message: msg,
-          completed_at: new Date().toISOString(),
-        }).eq("id", import_id);
+    // Execução síncrona: o trabalho em background (EdgeRuntime.waitUntil + stream)
+    // ficava congelado após a resposta HTTP, deixando imports presos em parse_xml_progress.
+    const step = (s: string) => admin.from("saft_imports")
+      .update({ last_step: s, last_step_at: new Date().toISOString() })
+      .eq("id", import_id);
+    try {
+      await step("download_start");
+      const { data: file, error: dlErr } = await admin.storage.from("saft-imports").download(imp.storage_path);
+      if (dlErr || !file) throw new Error("Falha ao descarregar o ficheiro SAF-T");
+      if (file.size > 25 * 1024 * 1024) {
+        throw new Error("Ficheiro demasiado grande (máx. 25 MB). Divida o SAF-T por períodos mais curtos.");
       }
-    })());
+      await step("download_done");
 
-    return ok({ ok: true, status: "running", message: "Importação iniciada em background" });
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const useEnc = detectEncoding(bytes.slice(0, 200));
+      const xml = new TextDecoder(useEnc).decode(bytes);
+      async function* single() { yield xml; }
+      const parsed = await collectSaftStream(single());
+      await step("persist_start");
+
+      await processImport(admin, imp, options, parsed, user.id);
+
+      const summary: Record<string, Record<string, number>> = {};
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data: page, error: pageErr } = await admin
+          .from("saft_import_items")
+          .select("entity_type, action")
+          .eq("import_id", import_id)
+          .range(from, from + PAGE - 1);
+        if (pageErr) { console.warn("[saft-import] summary page error", pageErr.message); break; }
+        if (!page || page.length === 0) break;
+        for (const r of page) {
+          summary[r.entity_type] ??= {};
+          summary[r.entity_type][r.action] = (summary[r.entity_type][r.action] ?? 0) + 1;
+        }
+        if (page.length < PAGE) break;
+        from += PAGE;
+      }
+
+      await admin.from("saft_imports").update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        last_step: "completed",
+        last_step_at: new Date().toISOString(),
+        stats: { ...(imp.stats ?? {}), summary },
+      }).eq("id", import_id);
+      return ok({ ok: true, status: "completed", summary });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "import error";
+      console.error("[saft-import] error", msg);
+      await admin.from("saft_imports").update({
+        status: "failed",
+        error_message: msg,
+        last_error_step: "import",
+        completed_at: new Date().toISOString(),
+      }).eq("id", import_id);
+      return ok({ ok: false, error: msg }, 200);
+    }
   } catch (e) {
     console.error("[saft-import] error", e);
     const msg = e instanceof Error ? e.message : "internal error";
