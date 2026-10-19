@@ -67,6 +67,7 @@ export function ProductBulkActions({
   filteredCount = 0,
   onSelectAllFiltered,
 }: ProductBulkActionsProps) {
+  const canViewCostMargin = useCanViewCostMargin();
   if (selectedIds.length === 0) return null;
 
   const canSelectAllFiltered = !!onSelectAllFiltered && filteredCount > selectedIds.length;
