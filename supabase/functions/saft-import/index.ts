@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import type { SaftParsed } from "../_shared/saft-parser.ts";
+import { parseSaftXml, type SaftParsed } from "../_shared/saft-parser.ts";
 import { collectSaftStream, decodeStream, detectEncoding } from "../_shared/saft-stream-parser.ts";
 
 
@@ -570,8 +570,14 @@ Deno.serve(async (req) => {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const useEnc = detectEncoding(bytes.slice(0, 200));
       const xml = new TextDecoder(useEnc).decode(bytes);
-      async function* single() { yield xml; }
-      const parsed = await collectSaftStream(single());
+      // Parser em árvore (rápido, ~30ms para 2MB). O leitor incremental esgotava o
+      // limite de CPU em ficheiros com ~200 faturas. Mantém-se como fallback para
+      // documentos WorkingDocuments, que o parser em árvore não mapeia.
+      let parsed: SaftParsed = parseSaftXml(xml);
+      if (parsed.invoices.length === 0 && xml.includes("<WorkDocument")) {
+        async function* single() { yield xml; }
+        parsed = await collectSaftStream(single());
+      }
       await step("persist_start");
 
       await processImport(admin, imp, options, parsed, user.id);
