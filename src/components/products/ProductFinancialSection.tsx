@@ -1,3 +1,4 @@
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -22,6 +23,7 @@ interface ProductFinancialSectionProps {
 }
 
 export function ProductFinancialSection({ product }: ProductFinancialSectionProps) {
+  const canViewCostMargin = useCanViewCostMargin();
   const margins = calculateProductMargins(product);
   const { canSeeField } = useFieldPermissions();
   const showDirectCost = canSeeField("products", "direct_cost");

@@ -1,3 +1,4 @@
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +75,8 @@ export function ProductKPICards({ productId, currency = "EUR" }: ProductKPICards
     "1y": "12 meses",
   };
 
-  const tiles = [
+  const canViewCostMargin = useCanViewCostMargin();
+  const allTiles = [
     { label: "Receita", icon: DollarSign, value: formatCurrency(getRevenueByPeriod()), hint: periodLabels[period] },
     { label: "Vendas", icon: ShoppingCart, value: String(getSalesByPeriod()), hint: periodLabels[period] },
     { label: "Ticket Médio", icon: Target, value: stats?.avg_ticket ? formatCurrency(stats.avg_ticket) : "—" },
@@ -87,6 +89,7 @@ export function ProductKPICards({ productId, currency = "EUR" }: ProductKPICards
       hint: `${stats?.accepted_proposals || 0} de ${stats?.total_proposals || 0}`,
     },
   ];
+  const tiles = canViewCostMargin ? allTiles : allTiles.filter((t) => t.label !== "Margem Média");
 
   return (
     <div className="space-y-4">

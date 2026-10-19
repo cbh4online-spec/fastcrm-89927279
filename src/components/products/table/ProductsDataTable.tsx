@@ -1,3 +1,4 @@
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 import { RefObject, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
@@ -76,12 +77,13 @@ function RenderProductCell({
   helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished" | "onInlinePriceUpdate" | "pricingRules" | "productTypesConfig">;
 }) {
   const { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate, productTypesConfig } = helpers;
+  const canViewCostMargin = useCanViewCostMargin();
 
   switch (columnId) {
     case "name": {
       const hasNoPrice = !product.base_price || product.base_price === 0;
-      const hasNegativeMargin = product.direct_cost && product.direct_cost > product.base_price;
-      const hasLowMargin = product.base_price && product.direct_cost && product.base_price > 0 &&
+      const hasNegativeMargin = canViewCostMargin && product.direct_cost && product.direct_cost > product.base_price;
+      const hasLowMargin = canViewCostMargin && product.base_price && product.direct_cost && product.base_price > 0 &&
         (() => { const m = ((product.base_price - product.direct_cost!) / product.base_price) * 100; return m > 0 && m < 15; })();
       return (
         <button

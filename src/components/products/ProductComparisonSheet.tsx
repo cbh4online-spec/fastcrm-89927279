@@ -1,3 +1,4 @@
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 import { useMemo } from "react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -27,6 +28,7 @@ export function ProductComparisonSheet({
   open, onOpenChange, products, formatCurrency,
   getProductTypeLabel, getBillingTypeLabel,
 }: ProductComparisonSheetProps) {
+  const canViewCostMargin = useCanViewCostMargin();
   const rows = useMemo<ComparisonRow[]>(() => {
     if (products.length < 2) return [];
 
@@ -47,7 +49,7 @@ export function ProductComparisonSheet({
       { label: "Estado", values: products.map(p => p.status), format: "text" },
       { label: "Loja Online", values: products.map(p => (p as any).store_published ? "Sim" : "Não"), format: "text" },
       { label: "Imagens", values: products.map(p => p.images?.length ?? 0), format: "text" },
-    ];
+    ].filter((r) => canViewCostMargin || !["Custo Direto", "Custo Operacional", "Margem"].includes(r.label));
   }, [products, formatCurrency, getProductTypeLabel, getBillingTypeLabel]);
 
   const formatValue = (val: string | number | null, format?: string) => {
