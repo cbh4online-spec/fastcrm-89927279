@@ -63,7 +63,12 @@ export interface SaftPayment {
   payment_ref: string;
   payment_date: string;
   payment_method: string | null;
+  /** Valor recebido COM IVA (quando o ficheiro traz Line.Tax). */
   amount: number;
+  /** CreditAmount − DebitAmount (sem IVA). */
+  net_amount?: number;
+  /** false → o ficheiro não trouxe IVA na linha; o importador converte pela proporção da fatura. */
+  has_tax?: boolean;
   invoice_no: string | null;
   customer_id: string | null;
 }
