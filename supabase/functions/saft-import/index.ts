@@ -53,12 +53,14 @@ function mapInvoiceType(t: string): string {
   return "invoice";
 }
 
-function mapStatus(s: string): string {
+function mapStatus(s: string, t?: string): string {
   // SAF-T PT InvoiceStatus → invoices.status (check constraint:
   // draft | sent | paid | partially_paid | overdue | cancelled)
   // N=Normal, S=Self-billing, A=Anulado, R=Resumo doc, F=Faturado
   if (s === "A") return "cancelled";
   if (s === "F") return "paid";
+  // Fatura-recibo: liquidada no momento da emissão.
+  if (t === "FR") return "paid";
   return "sent";
 }
 
@@ -287,12 +289,18 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   const invoiceIdByNo = new Map<string, string>();
   const allInvNos = [...new Set(parsed.invoices.map((i) => i.invoice_no).filter(Boolean))];
   const existingInv = new Map<string, string>();
+  const existingInvStatus = new Map<string, string>();
   for (const cnk of chunk(allInvNos, 500)) {
     const { data } = await admin
-      .from("invoices").select("id, saft_invoice_no")
+      .from("invoices").select("id, saft_invoice_no, status")
       .eq("workspace_id", ws).in("saft_invoice_no", cnk);
-    for (const r of data ?? []) if (r.saft_invoice_no) existingInv.set(r.saft_invoice_no, r.id);
+    for (const r of data ?? []) if (r.saft_invoice_no) {
+      existingInv.set(r.saft_invoice_no, r.id);
+      existingInvStatus.set(r.id, r.status);
+    }
   }
+  // O ficheiro mais recente manda no estado: faturas entretanto anuladas deixam de contar como dívida.
+  const toCancel: string[] = [];
 
   const customerNameById = new Map<string, string>();
   for (const c of parsed.customers) if (c.customer_id) customerNameById.set(c.customer_id, c.name ?? "");
@@ -306,6 +314,11 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     const existId = existingInv.get(inv.invoice_no);
     if (existId) {
       invoiceIdByNo.set(inv.invoice_no, existId);
+      if (inv.invoice_status === "A" && existingInvStatus.get(existId) !== "cancelled") {
+        toCancel.push(existId);
+        pushLog({ entity_type: "invoice", source_key: inv.invoice_no, action: "updated", target_id: existId, error_message: "Anulada no ficheiro mais recente" });
+        continue;
+      }
       pushLog({ entity_type: "invoice", source_key: inv.invoice_no, source_hash: inv.hash, action: "skipped_duplicate", target_id: existId });
       continue;
     }
@@ -335,7 +348,8 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       workspace_id: ws, created_by: userId,
       invoice_number: inv.invoice_no,
       document_type: mapInvoiceType(inv.invoice_type),
-      status: mapStatus(inv.invoice_status),
+      status: mapStatus(inv.invoice_status, inv.invoice_type),
+      amount_paid: mapStatus(inv.invoice_status, inv.invoice_type) === "paid" ? total : 0,
       issue_date: inv.invoice_date,
       due_date: inv.due_date ?? inv.invoice_date,
       client_name: custName,
@@ -350,6 +364,11 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     linesByKey.set(inv.invoice_no, inv.lines);
   }
 
+  for (const cnk of chunk(toCancel, 500)) {
+    const { error } = await admin.from("invoices").update({ status: "cancelled" }).eq("workspace_id", ws).in("id", cnk);
+    if (error) console.warn("[saft-import] cancel update failed", error.message);
+  }
+
   const allInvoiceLines: any[] = [];
   const collectLines = (invId: string, key: string) => {
     const lines = linesByKey.get(key) ?? [];
@@ -362,7 +381,8 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
         quantity: l.quantity, unit_price: l.unit_price,
         tax_rate: l.tax_percentage, tax_amount: l.tax_amount,
         net_total: l.line_total - l.tax_amount,
-        gross_total: l.line_total, total: l.line_total,
+        // `total` é SEM IVA: recalculate_invoice_totals soma total + total*tax_rate.
+        gross_total: l.line_total, total: l.line_total - l.tax_amount,
         position: l.line_number ?? j + 1,
       });
     }
