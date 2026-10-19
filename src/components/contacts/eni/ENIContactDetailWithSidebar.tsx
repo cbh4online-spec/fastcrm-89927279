@@ -760,7 +760,7 @@ export function ENIContactDetailWithSidebar() {
         />
 
         {/* Resumo financeiro sempre visível no cabeçalho */}
-        <FinancialKPIStrip entityType="contact" entityId={id!} variant="header" className="mt-4" />
+        <FinancialKPIStrip entityType="contact" entityId={id!} belongsToCompany={!!(contact as any).company_id} variant="header" className="mt-4" />
       </div>
 
       {/* Horizontal Tabs — fixas no topo ao fazer scroll no telemóvel */}

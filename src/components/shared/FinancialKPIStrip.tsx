@@ -11,6 +11,8 @@ interface FinancialKPIStripProps {
   /** 'cards' = grelha completa; 'header' = faixa compacta para o cabeçalho da ficha */
   variant?: 'cards' | 'header';
   className?: string;
+  /** Contacto ligado a empresa: valores financeiros pertencem à empresa */
+  belongsToCompany?: boolean;
 }
 
 const HEADER_ITEMS = [
@@ -20,12 +22,20 @@ const HEADER_ITEMS = [
   { key: 'overdue', label: 'Vencido', icon: AlertTriangle, tone: 'text-destructive' },
 ] as const;
 
-export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', className }: FinancialKPIStripProps) {
+export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', className, belongsToCompany = false }: FinancialKPIStripProps) {
   const { data, isLoading } = useFinancialKPIs(entityType, entityId);
   const kpis = data ?? { totalInvoiced: 0, paid: 0, pending: 0, overdue: 0 };
 
+  const orderView = entityType === 'contact' && belongsToCompany;
+  const items = orderView
+    ? [
+        { key: 'totalInvoiced', label: 'Total Encomendado', icon: Euro, tone: 'text-foreground' },
+        HEADER_ITEMS[1],
+      ] as const
+    : HEADER_ITEMS;
+
   if (variant === 'header') {
-    const allZero = !isLoading && HEADER_ITEMS.every(({ key }) => !kpis[key]);
+    const allZero = !isLoading && items.every(({ key }) => !kpis[key]);
     if (allZero) {
       return (
         <div
@@ -45,7 +55,7 @@ export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', cla
         )}
         aria-label="Resumo financeiro"
       >
-        {HEADER_ITEMS.map(({ key, label, icon: Icon, tone }) => (
+        {items.map(({ key, label, icon: Icon, tone }) => (
           <div
             key={key}
             className="flex min-w-0 flex-col justify-center rounded-md bg-background px-3 py-2 shadow-sm"
@@ -63,6 +73,11 @@ export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', cla
             )}
           </div>
         ))}
+        {orderView && (
+          <p className="col-span-2 px-2 py-1 text-xs text-muted-foreground lg:col-span-2 lg:self-center">
+            Dívida e cobrança são geridas na ficha da empresa.
+          </p>
+        )}
       </div>
     );
   }
