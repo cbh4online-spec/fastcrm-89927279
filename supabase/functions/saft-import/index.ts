@@ -453,6 +453,18 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     }
     const invoiceIds = [...new Set(parsed.payments.map((p) => invoiceIdByNo.get(p.invoice_no ?? "")).filter(Boolean) as string[])];
 
+    // Recibos sem IVA na linha: converter o valor s/ IVA pela proporção total/subtotal da fatura.
+    const grossRatio = new Map<string, number>();
+    if (parsed.payments.some((p) => p.has_tax === false)) {
+      for (const cnk of chunk(invoiceIds, 500)) {
+        const { data } = await admin.from("invoices").select("id, subtotal, total").in("id", cnk);
+        for (const r of data ?? []) {
+          const sub = Number(r.subtotal || 0), tot = Number(r.total || 0);
+          grossRatio.set(r.id, sub > 0 && tot > 0 ? tot / sub : 1);
+        }
+      }
+    }
+
     const existingPay = new Set<string>();
     for (const cnk of chunk(invoiceIds, 500)) {
       const { data } = await admin
@@ -485,7 +497,9 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       existingPay.add(key);
       newPays.push({
         invoice_id: invId, workspace_id: ws, created_by: userId,
-        amount: p.amount,
+        amount: p.has_tax === false
+          ? Math.round((p.net_amount ?? p.amount) * (grossRatio.get(invId) ?? 1) * 100) / 100
+          : p.amount,
         payment_date: p.payment_date || new Date().toISOString().slice(0, 10),
         payment_method: p.payment_method, reference: p.payment_ref,
         saft_import_id: importId, saft_payment_ref: p.payment_ref,
