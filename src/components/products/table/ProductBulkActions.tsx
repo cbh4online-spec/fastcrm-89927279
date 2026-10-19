@@ -1,3 +1,4 @@
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -66,6 +67,7 @@ export function ProductBulkActions({
   filteredCount = 0,
   onSelectAllFiltered,
 }: ProductBulkActionsProps) {
+  const canViewCostMargin = useCanViewCostMargin();
   if (selectedIds.length === 0) return null;
 
   const canSelectAllFiltered = !!onSelectAllFiltered && filteredCount > selectedIds.length;
@@ -125,9 +127,11 @@ export function ProductBulkActions({
 
 
 
+      {canViewCostMargin && (
       <Button variant="outline" size="sm" onClick={() => setBulkCostOpen(true)} className="gap-2">
         <DollarSign className="h-4 w-4" /> Definir Custo
       </Button>
+      )}
 
       {/* Bulk publish/unpublish */}
       {onBulkPublish && (

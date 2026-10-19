@@ -1,3 +1,4 @@
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const CHART_COLORS = [
 
 export function ProductsAnalyticsDashboard({ products, formatCurrency }: Props) {
   const [open, setOpen] = useState(false);
+  const canViewCostMargin = useCanViewCostMargin();
 
   const analytics = useMemo(() => {
     if (!products.length) return null;
@@ -97,18 +99,18 @@ export function ProductsAnalyticsDashboard({ products, formatCurrency }: Props) 
             <p className="text-xs text-muted-foreground">Preço Médio</p>
             <p className="text-xl font-bold">{formatCurrency(analytics.avgPrice)}</p>
           </Card>
-          <Card className="p-3">
+          {canViewCostMargin && (<Card className="p-3">
             <p className="text-xs text-muted-foreground">Margem Média</p>
             <p className="text-xl font-bold">{analytics.avgMargin.toFixed(1)}%</p>
-          </Card>
+          </Card>)}
           <Card className="p-3">
             <p className="text-xs text-muted-foreground">Com Imagem</p>
             <p className="text-xl font-bold">{Math.round((analytics.withImage / analytics.total) * 100)}%</p>
           </Card>
-          <Card className="p-3">
+          {canViewCostMargin && <Card className="p-3">
             <p className="text-xs text-muted-foreground">Com Custo</p>
             <p className="text-xl font-bold">{Math.round((analytics.withCost / analytics.total) * 100)}%</p>
-          </Card>
+          </Card>}
         </div>
 
         {/* Charts */}
@@ -158,7 +160,7 @@ export function ProductsAnalyticsDashboard({ products, formatCurrency }: Props) 
           </Card>
 
           {/* Top Margin */}
-          <Card>
+          {canViewCostMargin && <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Top 10 Margem</CardTitle>
             </CardHeader>
@@ -173,7 +175,7 @@ export function ProductsAnalyticsDashboard({ products, formatCurrency }: Props) 
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
-          </Card>
+          </Card>}
         </div>
       </CollapsibleContent>
     </Collapsible>

@@ -1,3 +1,4 @@
+import { useCanViewCostMargin } from "@/hooks/useCanViewCostMargin";
 import { useEffect, useState } from "react";
 import { SendProductByWhatsAppButton } from "@/components/whatsapp-pro/SendProductByWhatsAppButton";
 import { WhatsAppProductSharesSection } from "@/components/whatsapp-pro/WhatsAppProductSharesSection";
@@ -139,7 +140,9 @@ export function ProductDetailDialog({
   const { canSeeField } = useFieldPermissions();
   const { salesFunction } = useAdaptiveDashboard();
   // Apenas Diretor e CEO têm acesso a custo e margem do produto
-  const isLeadership = salesFunction === "diretor" || salesFunction === "ceo";
+  const canViewCostMargin = useCanViewCostMargin();
+  void salesFunction;
+  const isLeadership = canViewCostMargin;
   const showCost = isLeadership && canSeeField("products", "direct_cost");
   const showMargin = isLeadership && canSeeField("products", "gross_margin");
 
