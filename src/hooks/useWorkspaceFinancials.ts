@@ -5,11 +5,14 @@ const ACTIVE_STATUSES = ["sent", "partially_paid", "paid"];
 const INVOICES_PAGE_SIZE = 1000;
 const INVOICES_MAX_PAGES = 50;
 const FINANCIALS_INVOICE_SELECT =
-  "id,status,subtotal,tax_amount,total,amount_paid,issue_date,due_date,paid_at,company_id,contact_id,client_name";
+  "id,status,document_type,invoice_number,saft_invoice_no,subtotal,tax_amount,total,amount_paid,issue_date,due_date,paid_at,company_id,contact_id,client_name";
 
 export interface FinancialsInvoice {
   id: string;
   status: string | null;
+  document_type?: string | null;
+  invoice_number?: string | null;
+  saft_invoice_no?: string | null;
   subtotal: number | null;
   tax_amount: number | null;
   total: number | null;
@@ -83,6 +86,13 @@ export interface WorkspaceFinancials {
   vat: {
     monthly: Array<{ label: string; total: number; month: number; year: number }>; // últimos 12 meses
   };
+}
+
+/** "FT V100.02/4630" → "V100/4630"; "V100/4630" → "V100/4630". */
+export function shortDocKey(no: string | null | undefined): string | null {
+  if (!no) return null;
+  const m = String(no).trim().match(/(?:^|\s)([A-Za-z0-9]+)(?:\.[^/\s]*)?\/(\d+)$/);
+  return m ? `${m[1].toUpperCase()}/${m[2]}` : null;
 }
 
 function startOfDay(d: Date) {
@@ -199,11 +209,22 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
         });
       }
 
+      // A mesma fatura pode existir via SAF-T ("FT V100.02/4630") e via sincronização
+      // ("V100/4630"); o SAF-T é a fonte de verdade, a cópia não conta para a dívida.
+      const saftKeys = new Set<string>();
       for (const inv of invoices) {
+        const k = shortDocKey(inv.saft_invoice_no);
+        if (k) saftKeys.add(k);
+      }
+
+      for (const inv of invoices) {
+        if (!inv.saft_invoice_no && saftKeys.has(shortDocKey(inv.invoice_number) ?? "")) continue;
         const gross = Number(inv.total || 0);
         const paid = Number(inv.amount_paid || 0);
-        const remaining = Math.max(0, gross - paid);
-        received += paid;
+        // Notas de crédito e recibos não são dívida do cliente.
+        const isReceivable = !inv.document_type || inv.document_type === "invoice" || inv.document_type === "debit_note";
+        const remaining = isReceivable ? Math.max(0, gross - paid) : 0;
+        if (isReceivable) received += paid;
 
         if (remaining > 0.005) {
           totalOutstanding += remaining;

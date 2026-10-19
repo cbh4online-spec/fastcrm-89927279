@@ -63,7 +63,12 @@ export interface SaftPayment {
   payment_ref: string;
   payment_date: string;
   payment_method: string | null;
+  /** Valor recebido COM IVA (quando o ficheiro traz Line.Tax). */
   amount: number;
+  /** CreditAmount − DebitAmount (sem IVA). */
+  net_amount?: number;
+  /** false → o ficheiro não trouxe IVA na linha; o importador converte pela proporção da fatura. */
+  has_tax?: boolean;
   invoice_no: string | null;
   customer_id: string | null;
 }
@@ -206,15 +211,24 @@ export function parseSaftXml(xml: string): SaftParsed {
       const srcArr = Array.isArray(src) ? src : src ? [src] : [];
       const invoiceNo = srcArr[0]?.OriginatingON ?? null;
       // Valor da linha (CreditAmount = recebimento, DebitAmount = estorno).
+      // No SAF-T PT o CreditAmount das linhas de recibo é SEM IVA; o IVA vem em Line.Tax.
       const credit = toNum(ln.CreditAmount);
       const debit = toNum(ln.DebitAmount);
-      const amount = credit - debit;
-      if (!invoiceNo || amount === 0) continue;
+      const net = credit - debit;
+      if (!invoiceNo || net === 0) continue;
+      const lt = ln.Tax;
+      const hasTax = !!lt && (lt.TaxAmount !== undefined || lt.TaxPercentage !== undefined);
+      const taxAbs = lt?.TaxAmount !== undefined
+        ? toNum(lt.TaxAmount)
+        : (Math.abs(net) * toNum(lt?.TaxPercentage)) / 100;
+      const amount = Math.round((net + Math.sign(net) * taxAbs) * 100) / 100;
       payments.push({
         payment_ref: ref,
         payment_date: date,
         payment_method: method,
         amount,
+        net_amount: net,
+        has_tax: hasTax,
         invoice_no: String(invoiceNo),
         customer_id: custId,
       });
