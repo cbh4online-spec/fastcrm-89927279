@@ -505,6 +505,13 @@
       "when": 1792429026206,
       "tag": "0071_invoice_inherit_contact_company",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1792429600552,
+      "tag": "0072_restrict_public_reads_community_live",
+      "breakpoints": true
     }
   ]
 }
