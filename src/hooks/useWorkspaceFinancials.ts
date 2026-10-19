@@ -5,7 +5,7 @@ const ACTIVE_STATUSES = ["sent", "partially_paid", "paid"];
 const INVOICES_PAGE_SIZE = 1000;
 const INVOICES_MAX_PAGES = 50;
 const FINANCIALS_INVOICE_SELECT =
-  "id,status,subtotal,tax_amount,total,amount_paid,issue_date,due_date,paid_at,company_id,contact_id,client_name";
+  "id,status,document_type,subtotal,tax_amount,total,amount_paid,issue_date,due_date,paid_at,company_id,contact_id,client_name";
 
 export interface FinancialsInvoice {
   id: string;
@@ -202,8 +202,10 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
       for (const inv of invoices) {
         const gross = Number(inv.total || 0);
         const paid = Number(inv.amount_paid || 0);
-        const remaining = Math.max(0, gross - paid);
-        received += paid;
+        // Notas de crédito e recibos não são dívida do cliente.
+        const isReceivable = !inv.document_type || inv.document_type === "invoice" || inv.document_type === "debit_note";
+        const remaining = isReceivable ? Math.max(0, gross - paid) : 0;
+        if (isReceivable) received += paid;
 
         if (remaining > 0.005) {
           totalOutstanding += remaining;
