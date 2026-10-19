@@ -212,7 +212,8 @@ export function useRunSaftImport() {
       qc.invalidateQueries({ queryKey: ["saft-imports"] });
       qc.invalidateQueries({ queryKey: ["saft-import", vars.importId] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
-      toast.success("Importação SAF-T concluída.");
+      const inv = (_d as any)?.summary?.invoice ?? {};
+      toast.success(`Importação SAF-T concluída: ${inv.created ?? 0} faturas novas, ${inv.skipped_duplicate ?? 0} já existentes.`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
