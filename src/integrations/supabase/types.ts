@@ -24767,6 +24767,7 @@ export type Database = {
           sales_2024: number | null
           sales_2025: number | null
           sales_2026: number | null
+          sales_rep_id: string | null
           size: string | null
           source: string | null
           tags: string[] | null
@@ -24904,6 +24905,7 @@ export type Database = {
           sales_2024?: number | null
           sales_2025?: number | null
           sales_2026?: number | null
+          sales_rep_id?: string | null
           size?: string | null
           source?: string | null
           tags?: string[] | null
@@ -25041,6 +25043,7 @@ export type Database = {
           sales_2024?: number | null
           sales_2025?: number | null
           sales_2026?: number | null
+          sales_rep_id?: string | null
           size?: string | null
           source?: string | null
           tags?: string[] | null
@@ -25069,6 +25072,13 @@ export type Database = {
             columns: ["price_list_id"]
             isOneToOne: false
             referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_reps"
             referencedColumns: ["id"]
           },
           {
@@ -27303,6 +27313,7 @@ export type Database = {
           sales_2024: number | null
           sales_2025: number | null
           sales_2026: number | null
+          sales_rep_id: string | null
           segments: Json
           source: string | null
           tags: string[] | null
@@ -27430,6 +27441,7 @@ export type Database = {
           sales_2024?: number | null
           sales_2025?: number | null
           sales_2026?: number | null
+          sales_rep_id?: string | null
           segments?: Json
           source?: string | null
           tags?: string[] | null
@@ -27557,6 +27569,7 @@ export type Database = {
           sales_2024?: number | null
           sales_2025?: number | null
           sales_2026?: number | null
+          sales_rep_id?: string | null
           segments?: Json
           source?: string | null
           tags?: string[] | null
@@ -27600,6 +27613,13 @@ export type Database = {
             columns: ["price_tier_id"]
             isOneToOne: false
             referencedRelation: "client_price_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_reps"
             referencedColumns: ["id"]
           },
           {
@@ -82615,6 +82635,77 @@ export type Database = {
           workspace_id?: string | null
         }
         Relationships: []
+      }
+      sales_reps: {
+        Row: {
+          code: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string | null
+          workspace_id: string
+          zone: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id: string
+          zone?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_reps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_reps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sales_reps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_reps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_emails: {
         Row: {
