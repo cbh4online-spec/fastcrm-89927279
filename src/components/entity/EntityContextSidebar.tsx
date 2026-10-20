@@ -18,6 +18,7 @@ import {
 import { EntityType, Entity } from '@/types/entity';
 import { cn } from '@/lib/utils';
 import { EntityOwnerSelector } from './EntityOwnerSelector';
+import { SalesRepSelector } from './SalesRepSelector';
 import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 
@@ -198,6 +199,21 @@ export function EntityContextSidebar({
             />
           </CardContent>
         </Card>
+
+        {(entityType === 'company' || entityType === 'contact') && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Vendedor comercial</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SalesRepSelector
+                entityType={entityType}
+                entityId={entity.id}
+                currentSalesRepId={(entity as any).sales_rep_id}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Last Activity */}
         <Card>
