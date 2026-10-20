@@ -526,6 +526,13 @@
       "when": 1792497747680,
       "tag": "0074_tighten_public_read_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1792497838991,
+      "tag": "0075_tighten_reference_read_policies",
+      "breakpoints": true
     }
   ]
 }
