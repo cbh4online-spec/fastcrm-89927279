@@ -119,8 +119,14 @@ export function ProspectingMessageDialog({
   const currentOutreachStep = profile.outreach_step || 0;
   const isInstagramProfile = profile.platform === "instagram";
 
-  const generateMessage = async (stepIndex: number, selectedTone: Tone = tone) => {
+  const generateMessage = async (
+    stepIndex: number,
+    selectedTone: Tone = tone,
+    assist?: { draft?: string; instruction?: string },
+  ) => {
     setOpenedStep((opened) => opened === stepIndex + 1 ? null : opened);
+    setPrepared(null);
+    setOpenedSnapshot(null);
     setSteps(prev => {
       const next = [...prev];
       next[stepIndex] = { ...next[stepIndex], isLoading: true };
@@ -147,8 +153,11 @@ export function ProspectingMessageDialog({
           },
           tone: selectedTone,
           workspaceContext,
+          workspaceId: currentWorkspace?.id,
           serviceContext,
           sequenceStep: stepIndex + 1,
+          draft: assist?.draft?.slice(0, 1500),
+          instruction: assist?.instruction?.slice(0, 500),
         },
       });
 
