@@ -106,15 +106,16 @@ export function WorkspaceMembersPanel({
       const userIds = membersData.map(m => m.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, email")
-        .in("id", userIds);
+        .select("user_id, email, full_name")
+        .in("user_id", userIds);
 
-      const emailMap = new Map(profiles?.map(p => [p.id, p.email]) || []);
+      const profileMap = new Map((profiles as any[] | null)?.map(p => [p.user_id, p]) || []);
 
-      return membersData.map(m => ({
-        ...m,
-        email: emailMap.get(m.user_id) || "Email desconhecido"
-      })) as Member[];
+      return membersData.map(m => {
+        const p: any = profileMap.get(m.user_id);
+        const label = p?.full_name && p?.email ? `${p.full_name} (${p.email})` : p?.email || p?.full_name;
+        return { ...m, email: label || "Email desconhecido" };
+      }) as Member[];
     },
     enabled: !!workspaceId && open,
   });
@@ -127,7 +128,7 @@ export function WorkspaceMembersPanel({
       
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email")
+        .select("id:user_id, email")
         .ilike("email", `%${searchEmail}%`)
         .limit(5);
       
