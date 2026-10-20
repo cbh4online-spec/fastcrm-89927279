@@ -128,7 +128,7 @@ export function WorkspaceMembersPanel({
       
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email")
+        .select("id:user_id, email")
         .ilike("email", `%${searchEmail}%`)
         .limit(5);
       
