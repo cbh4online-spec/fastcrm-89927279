@@ -100,6 +100,8 @@ export default function BackofficePermissionsV2() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
+  const usersQuery = useWorkspaceUsers();
+  const usersCount = usersQuery.data?.length ?? 0;
 
   // Skeleton inicial
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function BackofficePermissionsV2() {
         <PageHeader
           badge={
             <>
-              <ShieldCheck className="h-3 w-3 text-brand" /> Governação · Mockup visual
+              <ShieldCheck className="h-3 w-3 text-brand" /> Governação
             </>
           }
           title="Utilizadores & Permissões"
@@ -218,7 +220,7 @@ export default function BackofficePermissionsV2() {
                     {tab === "Permissões" || tab === "Funções" ? (
                       <PermissionsMatrix />
                     ) : tab === "Utilizadores" ? (
-                      <UsersList query={search} />
+                      <UsersList query={search} users={usersQuery.data ?? []} loading={usersQuery.isLoading} />
                     ) : (
                       <GroupsEmpty />
                     )}
@@ -356,8 +358,10 @@ function PermissionsMatrix() {
 
 /* ───────────── Users list ───────────── */
 
-function UsersList({ query }: { query: string }) {
-  const filtered = USERS_MOCK.filter(
+function UsersList({ query, users, loading }: { query: string; users: RealUser[]; loading: boolean }) {
+  if (loading) return <TabSkeleton variant="users" />;
+  if (users.length === 0) return <div className="px-6 py-12 text-center text-sm text-navy-500">Ainda não há utilizadores neste espaço de trabalho.</div>;
+  const filtered = users.filter(
     (u) =>
       !query ||
       u.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -377,7 +381,7 @@ function UsersList({ query }: { query: string }) {
         <tbody>
           {filtered.map((u, i) => (
             <motion.tr
-              key={u.email}
+              key={u.email || u.name}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.04 + i * 0.025, duration: 0.26, ease: EASE }}
