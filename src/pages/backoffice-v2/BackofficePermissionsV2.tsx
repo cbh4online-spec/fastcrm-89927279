@@ -52,29 +52,43 @@ const MATRIX: Record<string, Record<RoleKey, boolean>> = {
   audit:         { admin: true, manager: true, sales: false, support: false, viewer: false },
 };
 
-const USERS_MOCK = [
-  { name: "João Ribeiro",   email: "joao@fastcrm.pt",   role: "Admin",     status: "active",  initials: "JR" },
-  { name: "Marta Lopes",    email: "marta@fastcrm.pt",  role: "Gestor",    status: "active",  initials: "ML" },
-  { name: "André Sousa",    email: "andre@fastcrm.pt",  role: "Comercial", status: "active",  initials: "AS" },
-  { name: "Sofia Carvalho", email: "sofia@fastcrm.pt", role: "Comercial", status: "trial",   initials: "SC" },
-  { name: "Rui Santos",     email: "rui@fastcrm.pt",    role: "Suporte",   status: "active",  initials: "RS" },
-  { name: "Inês Tavares",   email: "ines@fastcrm.pt",   role: "Visor",     status: "inactive",initials: "IT" },
-];
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner", admin: "Admin", agent: "Agente", viewer: "Visor", agency: "Agência",
+};
 
-const INTEGRATIONS = [
-  { name: "Google Workspace", desc: "Gmail · Calendar · Drive", icon: Mail,           connected: true },
-  { name: "Outlook 365",      desc: "Mail · Calendar · Teams",   icon: Calendar,       connected: true },
-  { name: "WhatsApp Business",desc: "Mensagens · Catálogo",      icon: MessageSquare,  connected: true },
-  { name: "Zapier",           desc: "5 000+ apps · automações",  icon: Zap,            connected: true },
-];
+type RealUser = { name: string; email: string; role: string; status: string };
 
-const AUDIT_EVENTS = [
-  { who: "João Ribeiro",   action: "Login de utilizador",        when: "há 4 min",  tone: "info"    as const },
-  { who: "Marta Lopes",    action: "Alteração de permissão",     when: "há 18 min", tone: "warning" as const },
-  { who: "André Sousa",    action: "Exportação de relatório",    when: "há 1 h",    tone: "info"    as const },
-  { who: "Sistema",        action: "Atualização de integração",  when: "há 2 h",    tone: "success" as const },
-  { who: "Sofia Carvalho", action: "Convite enviado",            when: "há 3 h",    tone: "info"    as const },
-];
+function useWorkspaceUsers() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+  return useQuery({
+    queryKey: ["backoffice-permissions-users", workspaceId],
+    enabled: !!workspaceId,
+    queryFn: async (): Promise<RealUser[]> => {
+      const { data: members, error } = await supabase
+        .from("workspace_members")
+        .select("user_id, role")
+        .eq("workspace_id", workspaceId!);
+      if (error) throw error;
+      const ids = (members ?? []).map((m) => m.user_id);
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name")
+        .in("user_id", ids);
+      const map = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+      return (members ?? []).map((m) => {
+        const p: any = map.get(m.user_id);
+        return {
+          name: p?.full_name || p?.email || "Sem nome",
+          email: p?.email || "",
+          role: ROLE_LABELS[m.role] ?? m.role,
+          status: "active",
+        };
+      });
+    },
+  });
+}
 
 const TABS = ["Utilizadores", "Funções", "Permissões", "Grupos"] as const;
 
