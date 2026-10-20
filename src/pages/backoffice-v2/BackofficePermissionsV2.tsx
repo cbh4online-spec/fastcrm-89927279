@@ -11,6 +11,9 @@ import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2"
 import { PageHeader, StatTile, StatTileGrid, StatusPill, InitialsAvatar } from "@/components/backoffice-v2/_shared";
 import { cn } from "@/lib/utils";
 import { EASE_PREMIUM as EASE, staggerContainer, staggerItem } from "@/lib/motion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 /* ─────────────────────────────────────────────────────────
    Mockup visual — sem ligação a roles/permissions reais.
