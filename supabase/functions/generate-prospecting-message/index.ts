@@ -118,7 +118,13 @@ Responde APENAS com um JSON no formato:
       ? `\nContexto da empresa que envia:\n- Nome: ${workspaceContext.name || "N/A"}\n- O que fazem: ${workspaceContext.description || "N/A"}`
       : "";
 
-    const userPrompt = `Gera uma mensagem de prospecção para Instagram DM para este perfil:\n\n${profileInfo}${workspaceInfo}\n\nTom: ${tone}\nEtapa da sequência: ${sequenceStep}/3`;
+    const draft = typeof body?.draft === "string" ? body.draft.trim().slice(0, 1500) : "";
+    const instruction = typeof body?.instruction === "string" ? body.instruction.trim().slice(0, 500) : "";
+    const draftInfo = draft
+      ? `\n\nRascunho escrito pelo utilizador (melhora-o mantendo a ideia, factos e intenção; não inventes dados):\n"""${draft}"""`
+      : "";
+    const instructionInfo = instruction ? `\n\nInstrução do utilizador: ${instruction}` : "";
+    const userPrompt = `Gera uma mensagem de prospecção para Instagram DM para este perfil:\n\n${profileInfo}${workspaceInfo}\n\nTom: ${tone}\nEtapa da sequência: ${sequenceStep}/3${draftInfo}${instructionInfo}`;
 
     console.log(`[PROSPECTING] Generate msg: step=${sequenceStep}, tone=${tone}`);
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

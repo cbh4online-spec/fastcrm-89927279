@@ -4,6 +4,7 @@ import { PreparedDmPanel } from "./PreparedDmPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -84,6 +85,7 @@ export function ProspectingMessageDialog({
   const [tone, setTone] = useState<Tone>(defaultTone);
   const [activeStep, setActiveStep] = useState("1");
   const [copied, setCopied] = useState(false);
+  const [aiInstruction, setAiInstruction] = useState("");
   const [openedStep, setOpenedStep] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { currentWorkspace } = useWorkspace();
@@ -119,8 +121,14 @@ export function ProspectingMessageDialog({
   const currentOutreachStep = profile.outreach_step || 0;
   const isInstagramProfile = profile.platform === "instagram";
 
-  const generateMessage = async (stepIndex: number, selectedTone: Tone = tone) => {
+  const generateMessage = async (
+    stepIndex: number,
+    selectedTone: Tone = tone,
+    assist?: { draft?: string; instruction?: string },
+  ) => {
     setOpenedStep((opened) => opened === stepIndex + 1 ? null : opened);
+    setPrepared(null);
+    setOpenedSnapshot(null);
     setSteps(prev => {
       const next = [...prev];
       next[stepIndex] = { ...next[stepIndex], isLoading: true };
@@ -147,8 +155,11 @@ export function ProspectingMessageDialog({
           },
           tone: selectedTone,
           workspaceContext,
+          workspaceId: currentWorkspace?.id,
           serviceContext,
           sequenceStep: stepIndex + 1,
+          draft: assist?.draft?.slice(0, 1500),
+          instruction: assist?.instruction?.slice(0, 500),
         },
       });
 
@@ -416,7 +427,7 @@ export function ProspectingMessageDialog({
                         return next;
                       });
                     }}
-                    placeholder="A mensagem gerada aparecerá aqui..."
+                    placeholder="Escreva aqui a sua mensagem, ou use a gerada pela IA..."
                     className="min-h-[120px] resize-none"
                   />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -428,6 +439,52 @@ export function ProspectingMessageDialog({
                         ✓ Enviada
                       </Badge>
                     )}
+                  </div>
+                  <div className="space-y-2 rounded-lg border bg-muted/30 p-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Escreva a sua mensagem acima e peça ajuda à IA:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {[
+                        { label: "Melhorar o meu texto", instruction: "Melhora a clareza e a fluidez." },
+                        { label: "Mais curta", instruction: "Torna a mensagem mais curta e direta." },
+                        { label: "Mais pessoal", instruction: "Torna a mensagem mais pessoal, usando a bio do perfil." },
+                        { label: "Corrigir português", instruction: "Corrige apenas a ortografia e gramática em português de Portugal, sem mudar o conteúdo." },
+                      ].map((a) => (
+                        <Button
+                          key={a.label}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={!steps[i].message.trim() || steps.some(s => s.isLoading)}
+                          onClick={() => generateMessage(i, tone, { draft: steps[i].message, instruction: a.instruction })}
+                        >
+                          {a.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      <Input
+                        value={aiInstruction}
+                        onChange={(e) => setAiInstruction(e.target.value.slice(0, 500))}
+                        placeholder="Ou diga o que quer, ex.: falar do workshop de sábado"
+                        aria-label="Instrução para a IA"
+                        className="h-8 text-xs"
+                        maxLength={500}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-8 gap-1"
+                        disabled={!aiInstruction.trim() || steps.some(s => s.isLoading)}
+                        onClick={() => {
+                          void generateMessage(i, tone, { draft: steps[i].message, instruction: aiInstruction });
+                        }}
+                      >
+                        <Sparkles className="w-3 h-3" /> Aplicar
+                      </Button>
+                    </div>
                   </div>
                   <OutreachMediaPicker
         loadState={media.isLoading ? "loading" : media.isError ? "error" : "ready"}
