@@ -4,6 +4,8 @@ import { Entity, EntityType } from '@/types/entity';
 import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 import { EntityOwnerSelector } from './EntityOwnerSelector';
+import { SalesRepSelector } from './SalesRepSelector';
+import { Briefcase } from 'lucide-react';
 
 interface HighlightCard {
   label: string;
@@ -128,6 +130,18 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
     icon: Clock,
     color: 'text-muted-foreground',
   });
+
+  if (entityType === 'company' || entityType === 'contact') {
+    cards.push({
+      label: 'Vendedor',
+      value: '',
+      icon: Briefcase,
+      color: 'text-muted-foreground',
+      customRender: (
+        <SalesRepSelector entityType={entityType} entityId={entity.id} currentSalesRepId={e.sales_rep_id} />
+      ),
+    });
+  }
 
   // Entity-specific
   if (entityType === 'company' && e.employee_count) {
