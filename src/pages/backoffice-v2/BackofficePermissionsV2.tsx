@@ -11,6 +11,9 @@ import { BackofficeShellV2 } from "@/components/backoffice-v2/BackofficeShellV2"
 import { PageHeader, StatTile, StatTileGrid, StatusPill, InitialsAvatar } from "@/components/backoffice-v2/_shared";
 import { cn } from "@/lib/utils";
 import { EASE_PREMIUM as EASE, staggerContainer, staggerItem } from "@/lib/motion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 /* ─────────────────────────────────────────────────────────
    Mockup visual — sem ligação a roles/permissions reais.
@@ -52,29 +55,43 @@ const MATRIX: Record<string, Record<RoleKey, boolean>> = {
   audit:         { admin: true, manager: true, sales: false, support: false, viewer: false },
 };
 
-const USERS_MOCK = [
-  { name: "João Ribeiro",   email: "joao@fastcrm.pt",   role: "Admin",     status: "active",  initials: "JR" },
-  { name: "Marta Lopes",    email: "marta@fastcrm.pt",  role: "Gestor",    status: "active",  initials: "ML" },
-  { name: "André Sousa",    email: "andre@fastcrm.pt",  role: "Comercial", status: "active",  initials: "AS" },
-  { name: "Sofia Carvalho", email: "sofia@fastcrm.pt", role: "Comercial", status: "trial",   initials: "SC" },
-  { name: "Rui Santos",     email: "rui@fastcrm.pt",    role: "Suporte",   status: "active",  initials: "RS" },
-  { name: "Inês Tavares",   email: "ines@fastcrm.pt",   role: "Visor",     status: "inactive",initials: "IT" },
-];
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner", admin: "Admin", agent: "Agente", viewer: "Visor", agency: "Agência",
+};
 
-const INTEGRATIONS = [
-  { name: "Google Workspace", desc: "Gmail · Calendar · Drive", icon: Mail,           connected: true },
-  { name: "Outlook 365",      desc: "Mail · Calendar · Teams",   icon: Calendar,       connected: true },
-  { name: "WhatsApp Business",desc: "Mensagens · Catálogo",      icon: MessageSquare,  connected: true },
-  { name: "Zapier",           desc: "5 000+ apps · automações",  icon: Zap,            connected: true },
-];
+type RealUser = { name: string; email: string; role: string; status: string };
 
-const AUDIT_EVENTS = [
-  { who: "João Ribeiro",   action: "Login de utilizador",        when: "há 4 min",  tone: "info"    as const },
-  { who: "Marta Lopes",    action: "Alteração de permissão",     when: "há 18 min", tone: "warning" as const },
-  { who: "André Sousa",    action: "Exportação de relatório",    when: "há 1 h",    tone: "info"    as const },
-  { who: "Sistema",        action: "Atualização de integração",  when: "há 2 h",    tone: "success" as const },
-  { who: "Sofia Carvalho", action: "Convite enviado",            when: "há 3 h",    tone: "info"    as const },
-];
+function useWorkspaceUsers() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+  return useQuery({
+    queryKey: ["backoffice-permissions-users", workspaceId],
+    enabled: !!workspaceId,
+    queryFn: async (): Promise<RealUser[]> => {
+      const { data: members, error } = await supabase
+        .from("workspace_members")
+        .select("user_id, role")
+        .eq("workspace_id", workspaceId!);
+      if (error) throw error;
+      const ids = (members ?? []).map((m) => m.user_id);
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name")
+        .in("user_id", ids);
+      const map = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+      return (members ?? []).map((m) => {
+        const p: any = map.get(m.user_id);
+        return {
+          name: p?.full_name || p?.email || "Sem nome",
+          email: p?.email || "",
+          role: ROLE_LABELS[m.role] ?? m.role,
+          status: "active",
+        };
+      });
+    },
+  });
+}
 
 const TABS = ["Utilizadores", "Funções", "Permissões", "Grupos"] as const;
 
@@ -83,6 +100,8 @@ export default function BackofficePermissionsV2() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
+  const usersQuery = useWorkspaceUsers();
+  const usersCount = usersQuery.data?.length ?? 0;
 
   // Skeleton inicial
   useEffect(() => {
@@ -105,7 +124,7 @@ export default function BackofficePermissionsV2() {
         <PageHeader
           badge={
             <>
-              <ShieldCheck className="h-3 w-3 text-brand" /> Governação · Mockup visual
+              <ShieldCheck className="h-3 w-3 text-brand" /> Governação
             </>
           }
           title="Utilizadores & Permissões"
@@ -122,10 +141,7 @@ export default function BackofficePermissionsV2() {
 
         {/* KPIs */}
         <StatTileGrid className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatTile index={0} label="Utilizadores"  value={42} icon={Users}       accent="bg-gradient-to-br from-brand to-brand-vivid" />
-          <StatTile index={1} label="Funções"        value={5}  icon={Crown}       accent="bg-gradient-to-br from-navy to-navy-700" />
-          <StatTile index={2} label="Integrações"    value={4}  icon={Plug}        accent="bg-gradient-to-br from-cyan to-brand" />
-          <StatTile index={3} label="Eventos hoje"  value={128} icon={ShieldAlert} accent="bg-gradient-to-br from-brand-vivid to-cyan" />
+          <StatTile index={0} label="Utilizadores"  value={usersCount} icon={Users}       accent="bg-gradient-to-br from-brand to-brand-vivid" />
         </StatTileGrid>
 
         {/* Tabs + content */}
@@ -204,7 +220,7 @@ export default function BackofficePermissionsV2() {
                     {tab === "Permissões" || tab === "Funções" ? (
                       <PermissionsMatrix />
                     ) : tab === "Utilizadores" ? (
-                      <UsersList query={search} />
+                      <UsersList query={search} users={usersQuery.data ?? []} loading={usersQuery.isLoading} />
                     ) : (
                       <GroupsEmpty />
                     )}
@@ -216,12 +232,6 @@ export default function BackofficePermissionsV2() {
 
           {/* Right column */}
           <div className="space-y-6">
-            <motion.div variants={staggerItem}>
-              {loading ? <SidePanelSkeleton /> : <IntegrationsCard />}
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              {loading ? <SidePanelSkeleton lines={5} /> : <AuditCard />}
-            </motion.div>
           </div>
         </motion.div>
       </div>
@@ -348,8 +358,10 @@ function PermissionsMatrix() {
 
 /* ───────────── Users list ───────────── */
 
-function UsersList({ query }: { query: string }) {
-  const filtered = USERS_MOCK.filter(
+function UsersList({ query, users, loading }: { query: string; users: RealUser[]; loading: boolean }) {
+  if (loading) return <TabSkeleton variant="users" />;
+  if (users.length === 0) return <div className="px-6 py-12 text-center text-sm text-navy-500">Ainda não há utilizadores neste espaço de trabalho.</div>;
+  const filtered = users.filter(
     (u) =>
       !query ||
       u.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -369,7 +381,7 @@ function UsersList({ query }: { query: string }) {
         <tbody>
           {filtered.map((u, i) => (
             <motion.tr
-              key={u.email}
+              key={u.email || u.name}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.04 + i * 0.025, duration: 0.26, ease: EASE }}
@@ -416,101 +428,6 @@ function GroupsEmpty() {
       <button className="mt-2 inline-flex h-9 items-center gap-1.5 rounded-lg border border-navy-100 bg-white px-3 text-xs font-semibold text-navy transition-colors hover:border-brand/40 hover:text-brand">
         <Plus className="h-3.5 w-3.5" /> Criar grupo
       </button>
-    </div>
-  );
-}
-
-/* ───────────── Integrations ───────────── */
-
-function IntegrationsCard() {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-[0_10px_30px_-20px_hsl(213_65%_12%/0.18)]">
-      <div className="flex items-center justify-between border-b border-navy-100 px-5 py-4">
-        <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-cyan/10 text-cyan">
-            <Plug className="h-4 w-4" />
-          </span>
-          <div>
-            <div className="font-display text-sm font-semibold text-navy">Integrações</div>
-            <div className="text-[11px] text-navy-300">4 conectores ativos</div>
-          </div>
-        </div>
-        <button className="text-[11px] font-semibold text-brand transition-colors hover:text-brand-vivid">
-          Gerir <ArrowUpRight className="ml-0.5 inline h-3 w-3" />
-        </button>
-      </div>
-      <ul className="divide-y divide-navy-100/60">
-        {INTEGRATIONS.map((i, idx) => (
-          <motion.li
-            key={i.name}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.06 + idx * 0.05, duration: 0.3, ease: EASE }}
-            className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-brand-ice/40"
-          >
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand/8 text-brand transition-all group-hover:bg-brand group-hover:text-white">
-              <i.icon className="h-4 w-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium text-navy">{i.name}</div>
-              <div className="truncate text-[11px] text-navy-300">{i.desc}</div>
-            </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
-              <span className="h-1.5 w-1.5 rounded-full bg-success v2-soft-pulse" />
-              Conectado
-            </span>
-          </motion.li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/* ───────────── Audit ───────────── */
-
-function AuditCard() {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-[0_10px_30px_-20px_hsl(213_65%_12%/0.18)]">
-      <div className="flex items-center justify-between border-b border-navy-100 px-5 py-4">
-        <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10 text-brand">
-            <FileText className="h-4 w-4" />
-          </span>
-          <div>
-            <div className="font-display text-sm font-semibold text-navy">Auditoria recente</div>
-            <div className="text-[11px] text-navy-300">Últimas 24h</div>
-          </div>
-        </div>
-        <button className="text-[11px] font-semibold text-brand transition-colors hover:text-brand-vivid">
-          Ver tudo <ArrowUpRight className="ml-0.5 inline h-3 w-3" />
-        </button>
-      </div>
-      <ul className="relative space-y-0 px-5 py-4">
-        <span aria-hidden className="absolute left-[26px] top-6 bottom-6 w-px bg-gradient-to-b from-brand/30 via-navy-100 to-transparent" />
-        {AUDIT_EVENTS.map((e, i) => {
-          const dot =
-            e.tone === "warning" ? "bg-warning" :
-            e.tone === "success" ? "bg-success" : "bg-brand";
-          return (
-            <motion.li
-              key={i}
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.06 + i * 0.05, duration: 0.3, ease: EASE }}
-              className="relative flex items-start gap-3 py-2.5"
-            >
-              <span className={cn("relative z-[1] mt-1.5 inline-flex h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white", dot)} />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-navy">
-                  <span className="font-semibold">{e.who}</span>
-                  <span className="text-navy-500"> · {e.action}</span>
-                </p>
-                <p className="text-[11px] text-navy-300">{e.when}</p>
-              </div>
-            </motion.li>
-          );
-        })}
-      </ul>
     </div>
   );
 }
