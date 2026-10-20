@@ -139,10 +139,7 @@ export default function BackofficePermissionsV2() {
 
         {/* KPIs */}
         <StatTileGrid className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatTile index={0} label="Utilizadores"  value={42} icon={Users}       accent="bg-gradient-to-br from-brand to-brand-vivid" />
-          <StatTile index={1} label="Funções"        value={5}  icon={Crown}       accent="bg-gradient-to-br from-navy to-navy-700" />
-          <StatTile index={2} label="Integrações"    value={4}  icon={Plug}        accent="bg-gradient-to-br from-cyan to-brand" />
-          <StatTile index={3} label="Eventos hoje"  value={128} icon={ShieldAlert} accent="bg-gradient-to-br from-brand-vivid to-cyan" />
+          <StatTile index={0} label="Utilizadores"  value={usersCount} icon={Users}       accent="bg-gradient-to-br from-brand to-brand-vivid" />
         </StatTileGrid>
 
         {/* Tabs + content */}
@@ -233,12 +230,6 @@ export default function BackofficePermissionsV2() {
 
           {/* Right column */}
           <div className="space-y-6">
-            <motion.div variants={staggerItem}>
-              {loading ? <SidePanelSkeleton /> : <IntegrationsCard />}
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              {loading ? <SidePanelSkeleton lines={5} /> : <AuditCard />}
-            </motion.div>
           </div>
         </motion.div>
       </div>
