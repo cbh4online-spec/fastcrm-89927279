@@ -2,6 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const ACTIVE_STATUSES = ["sent", "partially_paid", "paid"];
+
+/** Faturação = faturas (FT) + faturas-recibo (FR); notas de débito/crédito ficam de fora. */
+export function countsAsBilledRevenue(documentType: string | null | undefined): boolean {
+  return !documentType || documentType === "invoice" || documentType === "receipt";
+}
 const INVOICES_PAGE_SIZE = 1000;
 const INVOICES_MAX_PAGES = 50;
 const FINANCIALS_INVOICE_SELECT =
@@ -152,7 +157,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
       const yearsMap = new Map<number, number[]>();
       for (let y = currentYear - 2; y <= currentYear; y++) yearsMap.set(y, Array(12).fill(0));
       for (const inv of invoices) {
-        if (!inv.issue_date) continue;
+        if (!inv.issue_date || !countsAsBilledRevenue(inv.document_type)) continue;
         const d = new Date(inv.issue_date);
         const y = d.getFullYear();
         const arr = yearsMap.get(y);
@@ -176,7 +181,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
         kYearPrev = 0;
 
       for (const inv of invoices) {
-        if (!inv.issue_date) continue;
+        if (!inv.issue_date || !countsAsBilledRevenue(inv.document_type)) continue;
         const d = new Date(inv.issue_date);
         const net = Number(inv.subtotal || 0);
         const y = d.getFullYear();
