@@ -547,6 +547,13 @@
       "when": 1792594254316,
       "tag": "0077_split_sales_rep_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1792599928515,
+      "tag": "0078_tighten_public_read_policies",
+      "breakpoints": true
     }
   ]
 }
