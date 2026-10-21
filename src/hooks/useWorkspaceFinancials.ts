@@ -157,7 +157,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
       const yearsMap = new Map<number, number[]>();
       for (let y = currentYear - 2; y <= currentYear; y++) yearsMap.set(y, Array(12).fill(0));
       for (const inv of invoices) {
-        if (!inv.issue_date) continue;
+        if (!inv.issue_date || !countsAsBilledRevenue(inv.document_type)) continue;
         const d = new Date(inv.issue_date);
         const y = d.getFullYear();
         const arr = yearsMap.get(y);
@@ -181,7 +181,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
         kYearPrev = 0;
 
       for (const inv of invoices) {
-        if (!inv.issue_date) continue;
+        if (!inv.issue_date || !countsAsBilledRevenue(inv.document_type)) continue;
         const d = new Date(inv.issue_date);
         const net = Number(inv.subtotal || 0);
         const y = d.getFullYear();
