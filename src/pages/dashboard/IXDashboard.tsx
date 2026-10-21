@@ -257,7 +257,7 @@ export default function IXDashboard() {
           {active === "faturacao" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiTile icon={FileText} accent="primary" label="Faturado (mês)" value={formatEUR(monthMetrics.total)} hint={`${monthMetrics.count} documentos`} delta={financials?.kpis.thisMonthDelta} />
+                <KpiTile icon={FileText} accent="primary" label="Faturado (mês)" value={formatEUR(financials?.kpis.thisMonth ?? 0)} hint={`s/ IVA · ${monthMetrics.count} documentos`} delta={financials?.kpis.thisMonthDelta} />
                 <KpiTile icon={Wallet} accent="success" label="Recebido (mês)" value={formatEUR(monthMetrics.paid)} />
                 <KpiTile icon={CalendarRange} accent="warning" label="Este trimestre" value={formatEUR(financials?.kpis.thisQuarter ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisQuarterDelta} />
                 <KpiTile icon={CalendarDays} accent="info" label="Este ano" value={formatEUR(financials?.kpis.thisYear ?? 0)} hint="s/ IVA" delta={financials?.kpis.thisYearDelta} />
