@@ -2,6 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const ACTIVE_STATUSES = ["sent", "partially_paid", "paid"];
+
+/** Faturação = faturas (FT) + faturas-recibo (FR); notas de débito/crédito ficam de fora. */
+export function countsAsBilledRevenue(documentType: string | null | undefined): boolean {
+  return !documentType || documentType === "invoice" || documentType === "receipt";
+}
 const INVOICES_PAGE_SIZE = 1000;
 const INVOICES_MAX_PAGES = 50;
 const FINANCIALS_INVOICE_SELECT =
