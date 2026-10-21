@@ -71,7 +71,7 @@ export function SalesRepSelector({ entityType, entityId, currentSalesRepId }: Pr
     const { error } = await (workspaceClient as any).from(table).update({ sales_rep_id: repId }).eq('id', entityId);
     setSaving(false);
     if (error) {
-      toast.error('Não foi possível atribuir o vendedor');
+      toast.error('Não foi possível atribuir o vendedor', { description: error.message });
       return;
     }
     setOpen(false);
