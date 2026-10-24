@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastCRM WhatsApp Pro</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header class="header">
+    <img src="icons/icon48.png" alt="" class="logo" width="28" height="28" />
+    <div>
+      <h1>FastCRM WhatsApp Pro</h1>
+      <p class="subtitle">Prova de conceito — Iteração 1</p>
+    </div>
+  </header>
+
+  <section class="card" id="status-card">
+    <h2>Estado da ligação</h2>
+    <p class="status-row">
+      <span class="dot dot-off" id="status-dot" aria-hidden="true"></span>
+      <span id="status-text">Não ligado</span>
+    </p>
+    <p class="hint">
+      A sessão é gerida no separador do FastCRM. A extensão nunca lê
+      cookies, tokens nem conversas, e não verifica o estado da sessão.
+    </p>
+    <button id="btn-open-login" class="btn btn-primary" type="button">
+      Abrir página de entrada do FastCRM
+    </button>
+  </section>
+
+  <section class="card">
+    <h2>Ações rápidas</h2>
+    <button id="btn-open-fastcrm" class="btn btn-secondary" type="button">
+      Abrir FastCRM
+    </button>
+    <button id="btn-open-inbox" class="btn btn-secondary" type="button">
+      Abrir Inbox do FastCRM
+    </button>
+    <button id="btn-open-whatsapp" class="btn btn-secondary" type="button">
+      Abrir WhatsApp Web
+    </button>
+  </section>
+
+  <section class="card">
+    <h2>Configuração</h2>
+    <label for="input-fastcrm-url">URL do FastCRM</label>
+    <input
+      id="input-fastcrm-url"
+      type="url"
+      inputmode="url"
+      placeholder="https://fastcrm.exemplo.pt"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <p class="hint">Apenas endereços https:// são aceites.</p>
+    <button id="btn-save-url" class="btn btn-secondary" type="button">
+      Guardar configuração
+    </button>
+    <p id="save-feedback" class="feedback" role="status" aria-live="polite"></p>
+  </section>
+
+  <footer class="footer">
+    <p>
+      Sem envio automático · sem scraping · sem automação de DOM no WhatsApp Web.
+      Envios futuros serão sempre assistidos e confirmados pelo utilizador.
+    </p>
+  </footer>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
