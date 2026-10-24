@@ -1,37 +1,32 @@
 /**
- * FastCRM WhatsApp Pro — Service Worker (Manifest V3)
+ * FastCRM WhatsApp Pro — Service Worker (MV3, v0.2.0)
  *
- * Responsabilidades nesta iteração (prova de conceito):
- *  - Abrir o painel lateral quando o utilizador clica no ícone da extensão.
- *  - Abrir separadores https a pedido do painel.
- *
- * Deliberadamente NÃO faz:
- *  - Nenhum content script (nada é injetado em páginas).
- *  - Nenhuma leitura de cookies, tokens ou sessões.
- *  - Nenhuma automação de DOM no WhatsApp Web.
- *  - Nenhum envio automático de mensagens.
- *  - Nenhum fetch cross-origin (sem host_permissions, por decisão).
+ * Única ação: abrir separadores para URLs da allowlist (lib/urls.js),
+ * a pedido do próprio painel lateral. Sem fetch, sem cookies, sem content scripts.
  */
+import { isAllowedUrl } from "./lib/urls.js";
 
-// Abrir o side panel ao clicar no ícone da toolbar.
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error("[FastCRM] setPanelBehavior falhou:", error));
 
-// Mensagens vindas do side panel.
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === "OPEN_TAB" && typeof message.url === "string") {
-    const url = message.url;
-    // Só permitimos abrir URLs https — nunca javascript:, data:, file:, etc.
-    if (/^https:\/\//i.test(url)) {
-      chrome.tabs.create({ url }).then(
-        () => sendResponse({ ok: true }),
-        (error) => sendResponse({ ok: false, error: String(error) })
-      );
-    } else {
-      sendResponse({ ok: false, error: "URL não permitido (apenas https://)" });
-    }
-    return true; // resposta assíncrona
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Só mensagens da própria extensão (painel), nunca de páginas web.
+  if (sender.id !== chrome.runtime.id || sender.tab) {
+    sendResponse({ ok: false, error: "Remetente não autorizado" });
+    return false;
   }
-  return false;
+  if (!message || message.type !== "OPEN_TAB" || typeof message.url !== "string") {
+    sendResponse({ ok: false, error: "Mensagem inválida" });
+    return false;
+  }
+  if (!isAllowedUrl(message.url)) {
+    sendResponse({ ok: false, error: "Destino fora da lista permitida" });
+    return false;
+  }
+  chrome.tabs.create({ url: message.url }).then(
+    () => sendResponse({ ok: true }),
+    (error) => sendResponse({ ok: false, error: String(error) })
+  );
+  return true;
 });
