@@ -11,63 +11,72 @@
     <img src="icons/icon48.png" alt="" class="logo" width="28" height="28" />
     <div>
       <h1>FastCRM WhatsApp Pro</h1>
-      <p class="subtitle">Prova de conceito — Iteração 1</p>
+      <p class="subtitle">Versão 0.2.0 · uso manual</p>
     </div>
   </header>
 
-  <section class="card" id="status-card">
-    <h2>Estado da ligação</h2>
-    <p class="status-row">
-      <span class="dot dot-off" id="status-dot" aria-hidden="true"></span>
-      <span id="status-text">Não ligado</span>
-    </p>
+  <div class="status-banner" role="status">
+    <span class="dot dot-off" aria-hidden="true"></span>
+    <div>
+      <strong>Sem ligação autenticada</strong>
+      <p class="hint">A autenticação segura será implementada na próxima fase.</p>
+    </div>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Secções">
+    <button role="tab" id="tab-inicio" aria-controls="panel-inicio" aria-selected="true" class="tab">Início</button>
+    <button role="tab" id="tab-contacto" aria-controls="panel-contacto" aria-selected="false" tabindex="-1" class="tab">Contacto</button>
+    <button role="tab" id="tab-config" aria-controls="panel-config" aria-selected="false" tabindex="-1" class="tab">Configurações</button>
+  </nav>
+
+  <section role="tabpanel" id="panel-inicio" aria-labelledby="tab-inicio" class="card">
+    <h2>Atalhos do FastCRM</h2>
+    <div class="grid">
+      <button class="btn btn-secondary" data-route="inbox" type="button">Inbox</button>
+      <button class="btn btn-secondary" data-route="leads" type="button">Leads</button>
+      <button class="btn btn-secondary" data-route="contacts" type="button">Contactos</button>
+      <button class="btn btn-secondary" data-route="pipeline" type="button">Pipeline</button>
+      <button class="btn btn-secondary" data-route="tasks" type="button">Tarefas</button>
+      <button class="btn btn-secondary" data-route="whatsapp" type="button">WhatsApp Web</button>
+    </div>
+    <button class="btn btn-primary" data-route="auth" type="button">Entrar no FastCRM</button>
+    <p id="nav-feedback" class="feedback" role="status" aria-live="polite"></p>
+  </section>
+
+  <section role="tabpanel" id="panel-contacto" aria-labelledby="tab-contacto" class="card" hidden>
+    <h2>Verificar número</h2>
+    <form id="phone-form" novalidate>
+      <label for="input-phone">Número de telefone</label>
+      <input id="input-phone" type="tel" inputmode="tel" maxlength="40" autocomplete="off"
+             placeholder="912 345 678 ou +351 912 345 678" aria-describedby="phone-feedback" />
+      <button class="btn btn-primary" type="submit">Validar</button>
+    </form>
+    <p id="phone-feedback" class="feedback" role="status" aria-live="polite"></p>
+    <div id="phone-actions" hidden>
+      <p class="result">Número normalizado: <code id="phone-normalized"></code></p>
+      <button id="btn-copy-phone" class="btn btn-secondary" type="button">Copiar número</button>
+      <button class="btn btn-secondary" data-route="contacts" type="button">Abrir Contactos no FastCRM</button>
+      <p class="hint">
+        A pesquisa é manual: cole o número na pesquisa da página de Contactos.
+        A extensão não consulta o FastCRM e não sabe se o contacto existe.
+      </p>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="panel-config" aria-labelledby="tab-config" class="card" hidden>
+    <h2>Configurações</h2>
+    <p>Endereço do FastCRM: <code id="config-origin"></code></p>
     <p class="hint">
-      A sessão é gerida no separador do FastCRM. A extensão nunca lê
-      cookies, tokens nem conversas, e não verifica o estado da sessão.
+      Por segurança, o endereço é fixo e não pode ser alterado aqui.
+      A extensão só abre páginas do FastCRM e do WhatsApp Web.
     </p>
-    <button id="btn-open-login" class="btn btn-primary" type="button">
-      Abrir página de entrada do FastCRM
-    </button>
+    <ul class="hint list">
+      <li>Sem envio automático de mensagens.</li>
+      <li>Sem leitura de conversas, cookies ou sessões.</li>
+      <li>Sem pedidos de rede a partir da extensão.</li>
+    </ul>
   </section>
 
-  <section class="card">
-    <h2>Ações rápidas</h2>
-    <button id="btn-open-fastcrm" class="btn btn-secondary" type="button">
-      Abrir FastCRM
-    </button>
-    <button id="btn-open-inbox" class="btn btn-secondary" type="button">
-      Abrir Inbox do FastCRM
-    </button>
-    <button id="btn-open-whatsapp" class="btn btn-secondary" type="button">
-      Abrir WhatsApp Web
-    </button>
-  </section>
-
-  <section class="card">
-    <h2>Configuração</h2>
-    <label for="input-fastcrm-url">URL do FastCRM</label>
-    <input
-      id="input-fastcrm-url"
-      type="url"
-      inputmode="url"
-      placeholder="https://fastcrm.exemplo.pt"
-      autocomplete="off"
-      spellcheck="false"
-    />
-    <p class="hint">Apenas endereços https:// são aceites.</p>
-    <button id="btn-save-url" class="btn btn-secondary" type="button">
-      Guardar configuração
-    </button>
-    <p id="save-feedback" class="feedback" role="status" aria-live="polite"></p>
-  </section>
-
-  <footer class="footer">
-    <p>
-      Sem envio automático · sem scraping · sem automação de DOM no WhatsApp Web.
-      Envios futuros serão sempre assistidos e confirmados pelo utilizador.
-    </p>
-  </footer>
-
-  <script src="sidepanel.js"></script>
+  <script type="module" src="sidepanel.js"></script>
 </body>
 </html>

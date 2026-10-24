@@ -1,88 +1,107 @@
 /**
- * FastCRM WhatsApp Pro — Side Panel (Iteração 1, prova de conceito)
- *
- * - Configuração do URL do FastCRM persistida em chrome.storage.local.
- * - Estado fixo "Não ligado": a extensão NÃO verifica nem deduz o estado
- *   da sessão (sem host_permissions, um fetch cross-origin falharia por
- *   CORS e seria indistinguível de indisponibilidade real — por isso foi
- *   removido). A sessão vive no separador do FastCRM.
- * - Todas as ações abrem separadores normais — nada é injetado em páginas.
- *
- * NOTA para iterações futuras: quando existir integração autenticada,
- * o URL base deve ser restringido a uma lista de origens permitidas
- * (ALLOWED_ORIGINS) e não a qualquer origem https arbitrária.
+ * FastCRM WhatsApp Pro — Side Panel (v0.2.0)
+ * Uso manual: atalhos, validação local de números, cópia explícita.
+ * Não faz pedidos de rede nem lê dados de páginas.
  */
+import { normalizePhone } from "./lib/phone.js";
+import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl } from "./lib/urls.js";
 
-const DEFAULT_FASTCRM_URL = "https://fastcrm.metodopare.ai";
-const STORAGE_KEY = "fastcrmBaseUrl";
+const $ = (id) => document.getElementById(id);
 
-/**
- * Origens permitidas para o URL base do FastCRM.
- * Nesta iteração (sem integração autenticada) aceitamos qualquer origem
- * https configurada pelo utilizador, normalizada a esquema+host+porta.
- * Na iteração com autenticação, esta validação passará a ser uma
- * lista fechada de origens (allowlist) para impedir que um URL
- * arbitrário receba tokens ou dados do utilizador.
- */
-function sanitizeBaseUrl(raw) {
-  if (typeof raw !== "string" || raw.trim() === "") return null;
-  try {
-    const url = new URL(raw.trim());
-    if (url.protocol !== "https:") return null;
-    // Normaliza para a origem — sem path, query nem hash.
-    return url.origin;
-  } catch {
-    return null;
+function setFeedback(el, text, kind) {
+  el.textContent = text;
+  el.className = "feedback" + (kind ? " feedback-" + kind : "");
+}
+
+function openTab(url, feedbackEl) {
+  if (!url || !isAllowedUrl(url)) {
+    setFeedback(feedbackEl, "Esta página não está disponível.", "error");
+    return;
+  }
+  chrome.runtime.sendMessage({ type: "OPEN_TAB", url }, (response) => {
+    if (chrome.runtime.lastError || !response?.ok) {
+      setFeedback(feedbackEl, "Não foi possível abrir a página.", "error");
+    }
+  });
+}
+
+function resolveRoute(key) {
+  return key === "whatsapp" ? WHATSAPP_WEB_ORIGIN + "/" : fastcrmUrl(key);
+}
+
+function setupTabs() {
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const select = (tab) => {
+    for (const t of tabs) {
+      const on = t === tab;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      $(t.getAttribute("aria-controls")).hidden = !on;
+    }
+    tab.focus();
+  };
+  tabs.forEach((tab, i) => {
+    tab.addEventListener("click", () => select(tab));
+    tab.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") select(tabs[(i + 1) % tabs.length]);
+      if (e.key === "ArrowLeft") select(tabs[(i - 1 + tabs.length) % tabs.length]);
+    });
+  });
+}
+
+function setupRoutes() {
+  for (const btn of document.querySelectorAll("[data-route]")) {
+    const url = resolveRoute(btn.dataset.route);
+    const feedback = btn.closest("section").querySelector(".feedback");
+    if (!url || !isAllowedUrl(url)) {
+      btn.disabled = true;
+      btn.title = "Página indisponível";
+      continue;
+    }
+    btn.addEventListener("click", () => openTab(url, feedback));
   }
 }
 
-async function getBaseUrl() {
-  const stored = await chrome.storage.local.get(STORAGE_KEY);
-  return sanitizeBaseUrl(stored[STORAGE_KEY]) || DEFAULT_FASTCRM_URL;
-}
+function setupPhone() {
+  let current = null;
+  const feedback = $("phone-feedback");
+  const actions = $("phone-actions");
 
-function openTab(url) {
-  chrome.runtime.sendMessage({ type: "OPEN_TAB", url }, (response) => {
-    if (chrome.runtime.lastError || !response?.ok) {
-      console.error("[FastCRM] Falha ao abrir separador:", response?.error);
-    }
-  });
-}
-
-async function init() {
-  const base = await getBaseUrl();
-  document.getElementById("input-fastcrm-url").value = base;
-
-  document.getElementById("btn-open-login").addEventListener("click", async () => {
-    openTab((await getBaseUrl()) + "/auth");
+  $("input-phone").addEventListener("input", () => {
+    current = null;
+    actions.hidden = true;
+    setFeedback(feedback, "");
   });
 
-  document.getElementById("btn-open-fastcrm").addEventListener("click", async () => {
-    openTab(await getBaseUrl());
-  });
-
-  document.getElementById("btn-open-inbox").addEventListener("click", async () => {
-    openTab((await getBaseUrl()) + "/dashboard/inbox");
-  });
-
-  document.getElementById("btn-open-whatsapp").addEventListener("click", () => {
-    openTab("https://web.whatsapp.com/");
-  });
-
-  document.getElementById("btn-save-url").addEventListener("click", async () => {
-    const input = document.getElementById("input-fastcrm-url");
-    const feedback = document.getElementById("save-feedback");
-    const clean = sanitizeBaseUrl(input.value);
-    if (!clean) {
-      feedback.textContent = "URL inválido. Use um endereço https:// completo.";
-      feedback.className = "feedback feedback-error";
+  $("phone-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const r = normalizePhone($("input-phone").value);
+    if (!r.ok) {
+      current = null;
+      actions.hidden = true;
+      setFeedback(feedback, r.error, "error");
       return;
     }
-    await chrome.storage.local.set({ [STORAGE_KEY]: clean });
-    input.value = clean;
-    feedback.textContent = "Configuração guardada.";
-    feedback.className = "feedback feedback-ok";
+    current = r.e164;
+    $("phone-normalized").textContent = r.e164;
+    actions.hidden = false;
+    setFeedback(feedback, "Formato válido. Não foi feita nenhuma pesquisa no FastCRM.", "ok");
+  });
+
+  $("btn-copy-phone").addEventListener("click", async () => {
+    if (!current) return;
+    try {
+      await navigator.clipboard.writeText(current);
+      setFeedback(feedback, "Número copiado.", "ok");
+    } catch {
+      setFeedback(feedback, "Não foi possível copiar. Selecione o número e copie manualmente.", "error");
+    }
   });
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", () => {
+  $("config-origin").textContent = FASTCRM_ORIGIN;
+  setupTabs();
+  setupRoutes();
+  setupPhone();
+});

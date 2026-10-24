@@ -1,0 +1,10 @@
+{
+  "name": "fastcrm-whatsapp-pro",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Ficheiro só para testes locais (node --test). O Chrome ignora-o.",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

@@ -159,3 +159,17 @@ input[type="url"]:focus {
   border-top: 1px solid var(--border);
   margin-top: 8px;
 }
+
+/* v0.2.0 — estado, separadores, grelha */
+.status-banner { display: flex; gap: 10px; align-items: flex-start; margin: 0 12px 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid currentColor; opacity: 0.95; }
+.status-banner strong { display: block; font-size: 13px; }
+.status-banner .hint { margin: 2px 0 0; }
+.tabs { display: flex; gap: 4px; margin: 0 12px 12px; }
+.tab { flex: 1; padding: 8px 6px; font: inherit; font-size: 13px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
+.tab[aria-selected="true"] { border-color: currentColor; font-weight: 600; }
+.tab:focus-visible, .btn:focus-visible, input:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.grid .btn { margin: 0; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.result code, #config-origin { word-break: break-all; font-weight: 600; }
+.list { padding-left: 18px; }
