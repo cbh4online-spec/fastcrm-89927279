@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "FastCRM WhatsApp Pro",
+    "description": "Nome da extensão"
+  },
+  "appDescription": {
+    "message": "Painel lateral do FastCRM para trabalho assistido junto do WhatsApp Web.",
+    "description": "Descrição da extensão"
+  }
+}
