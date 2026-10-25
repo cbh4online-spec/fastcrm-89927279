@@ -14,7 +14,7 @@ function deps(over: Partial<Deps> = {}): Deps {
   return {
     getClaims: () => Promise.resolve({ sub: "u1", role: "authenticated", client_id: CFG.clientId, exp: 2000 }),
     getUserId: () => Promise.resolve("u1"),
-    listMemberships: () => Promise.resolve([{ workspace_id: WS, role: "agent", name: "A" }, { workspace_id: OTHER, role: "hr", name: "B" }]),
+    listMemberships: () => Promise.resolve([{ workspace_id: WS, role: "agent", name: "A" }, { workspace_id: OTHER, role: "guest", name: "B" }]),
     getMembership: (_u, w) => Promise.resolve(w === WS ? { workspace_id: WS, role: "agent" } : null),
     getInstance: () => Promise.resolve(null),
     findContacts: () => Promise.resolve([{ id: "c1", workspace_id: WS, name: "X", phone: "+351912345678", notes: "secreto" }, { id: "c2", workspace_id: OTHER, name: "Y" }]),
@@ -71,7 +71,7 @@ Deno.test("lookup: sem membership (incl. super admin) => 403; nunca consulta dad
   const r = await handleAction({ ok: true, action: "lookup", workspaceId: OTHER, variants: ["+351912345678"] }, "u1", CFG, d);
   assertEquals(r.status, 403);
   assertEquals(queried, false);
-  const hr = await handleAction({ ok: true, action: "lookup", workspaceId: WS, variants: ["x"] }, "u1", CFG, deps({ getMembership: () => Promise.resolve({ workspace_id: WS, role: "hr" }) }));
+  const hr = await handleAction({ ok: true, action: "lookup", workspaceId: WS, variants: ["x"] }, "u1", CFG, deps({ getMembership: () => Promise.resolve({ workspace_id: WS, role: "guest" }) }));
   assertEquals(hr.status, 403);
 });
 
