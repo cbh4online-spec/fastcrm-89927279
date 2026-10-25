@@ -5,7 +5,8 @@
  */
 import { normalizePhone } from "./lib/phone.js";
 import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl, detailUrl } from "./lib/urls.js";
-import { isLookupReady } from "./lib/oauth-config.js";
+import { isLookupReady, isOAuthConfigured } from "./lib/oauth-config.js";
+import { oauthRedirectUri } from "./lib/oauth-pkce.js";
 
 /** Estado só em memória; nunca persistido. */
 const state = { phone: null, workspaceId: "", nonce: 0, authStatus: "disconnected" };
@@ -283,7 +284,8 @@ function renderAuth(status) {
 
 async function setupAuth() {
   const fb = $("auth-feedback");
-  renderAuth((await sendAuth("AUTH_STATUS")).status);
+  // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
+  renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS")).status : "config_pending");
   $("btn-auth-login").addEventListener("click", async (e) => {
     e.currentTarget.disabled = true;
     const r = await sendAuth("AUTH_START");
@@ -298,7 +300,28 @@ async function setupAuth() {
   });
 }
 
+function setupRedirectUri() {
+  const uri = oauthRedirectUri(globalThis.chrome);
+  const fb = $("config-feedback");
+  if (!uri) {
+    $("config-redirect").textContent = "Indisponível neste contexto (abra o painel da extensão instalada).";
+    return;
+  }
+  $("config-redirect").textContent = uri;
+  const btn = $("btn-copy-redirect");
+  btn.disabled = false;
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(uri);
+      setFeedback(fb, "URI copiado.", "ok");
+    } catch {
+      setFeedback(fb, "Não foi possível copiar. Selecione e copie manualmente.", "error");
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  setupRedirectUri();
   $("config-origin").textContent = FASTCRM_ORIGIN;
   setupTabs();
   setupRoutes();
