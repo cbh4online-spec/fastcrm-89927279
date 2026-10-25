@@ -19,6 +19,7 @@ export const FASTCRM_ROUTES = Object.freeze({
   inbox: "/dashboard/inbox",
   leads: "/dashboard/leads",
   contacts: "/dashboard/contacts",
+  lookup: "/dashboard/whatsapp-pro/lookup",
   pipeline: "/dashboard/opportunities",
   tasks: "/dashboard/tasks",
 });
