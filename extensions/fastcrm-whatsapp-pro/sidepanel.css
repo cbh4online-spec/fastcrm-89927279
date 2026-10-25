@@ -174,3 +174,7 @@ input[type="url"]:focus, input[type="tel"]:focus {
 .result code, #config-origin { word-break: break-all; font-weight: 600; }
 .list { padding-left: 18px; }
 .dot-on { background: #16a34a; }
+select { width: 100%; padding: 6px; margin: 4px 0 8px; }
+.results { list-style: none; padding: 0; margin: 4px 0 8px; }
+.results li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border, #ddd); }
+.results li span { overflow-wrap: anywhere; }
