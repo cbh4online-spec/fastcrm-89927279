@@ -11,7 +11,15 @@ export const REQUEST_TIMEOUT_MS = 10_000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EXT_ORIGIN_RE = /^chrome-extension:\/\/[a-p]{32}$/;
 
-export interface ApiConfig { enabled: boolean; clientId: string; allowedOrigin: string; supabaseUrl: string; anonKey: string }
+export interface ApiConfig { enabled: boolean; clientId: string; allowedOrigin: string; supabaseUrl: string; anonKey: string; pilotWorkspaceIds: ReadonlySet<string> }
+
+/** Lista explícita de workspaces piloto (UUIDs separados por vírgula). Inválida/vazia => null. */
+export function parsePilotIds(raw: string | undefined): ReadonlySet<string> | null {
+  if (!raw) return null;
+  const ids = raw.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+  if (!ids.length || ids.length > 50 || ids.some((id) => !UUID_RE.test(id))) return null;
+  return new Set(ids);
+}
 
 export function readConfig(env: (k: string) => string | undefined): ApiConfig | null {
   const cfg = {
@@ -20,10 +28,12 @@ export function readConfig(env: (k: string) => string | undefined): ApiConfig | 
     allowedOrigin: env("FASTCRM_WA_EXTENSION_ALLOWED_ORIGIN") ?? "",
     supabaseUrl: env("SUPABASE_URL") ?? "",
     anonKey: env("SUPABASE_ANON_KEY") ?? "",
+    pilotWorkspaceIds: parsePilotIds(env("FASTCRM_WA_EXTENSION_PILOT_WORKSPACE_IDS")),
   };
+  if (!cfg.pilotWorkspaceIds) return null;
   if (!cfg.enabled || !/^[A-Za-z0-9._-]{8,128}$/.test(cfg.clientId) || !EXT_ORIGIN_RE.test(cfg.allowedOrigin)
     || !cfg.supabaseUrl.startsWith("https://") || !cfg.anonKey) return null;
-  return cfg;
+  return cfg as ApiConfig;
 }
 
 export function corsHeaders(origin: string): Record<string, string> {
@@ -128,11 +138,13 @@ const canRead = (role: string) => roleHasCapability(role as WorkspaceRole, "crm.
 export async function handleAction(req: Exclude<ParsedRequest, { ok: false }>, userId: string, cfg: ApiConfig, deps: Deps): Promise<Result> {
   if (req.action === "workspaces") {
     const rows = await deps.listMemberships(userId, WORKSPACE_LIMIT);
-    const workspaces = rows.filter((r) => canRead(r.role)).slice(0, WORKSPACE_LIMIT)
+    const workspaces = rows.filter((r) => canRead(r.role) && cfg.pilotWorkspaceIds.has(String(r.workspace_id).toLowerCase())).slice(0, WORKSPACE_LIMIT)
       .map((r) => ({ id: r.workspace_id, name: r.name ?? null, role: r.role }));
     return { status: 200, body: { workspaces } };
   }
 
+  // lookup — workspace fora do piloto é recusado antes de qualquer leitura.
+  if (!cfg.pilotWorkspaceIds.has(req.workspaceId)) return fail(403, "workspace_not_in_pilot");
   // lookup — membership explícita obrigatória (sem bypass de super admin).
   const member = await deps.getMembership(userId, req.workspaceId);
   if (!member || member.workspace_id !== req.workspaceId || !canRead(member.role)) return fail(403, "forbidden");

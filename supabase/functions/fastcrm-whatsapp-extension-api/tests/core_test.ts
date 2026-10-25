@@ -8,7 +8,7 @@ import {
 const WS = "11111111-1111-4111-8111-111111111111";
 const OTHER = "22222222-2222-4222-8222-222222222222";
 const ORIGIN = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
-const CFG: ApiConfig = { enabled: true, clientId: "client-ext-123", allowedOrigin: ORIGIN, supabaseUrl: "https://main.supabase.co", anonKey: "anon" };
+const CFG: ApiConfig = { enabled: true, clientId: "client-ext-123", allowedOrigin: ORIGIN, supabaseUrl: "https://main.supabase.co", anonKey: "anon", pilotWorkspaceIds: new Set([WS]) };
 
 function deps(over: Partial<Deps> = {}): Deps {
   return {
@@ -26,7 +26,7 @@ function deps(over: Partial<Deps> = {}): Deps {
 
 Deno.test("desativada por omissão / config incompleta => null (503)", () => {
   assertEquals(readConfig(() => undefined), null);
-  const env: Record<string, string> = { FASTCRM_WA_EXTENSION_API_ENABLED: "true", FASTCRM_WA_EXTENSION_OAUTH_CLIENT_ID: "client-ext-123", FASTCRM_WA_EXTENSION_ALLOWED_ORIGIN: ORIGIN, SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k" };
+  const env: Record<string, string> = { FASTCRM_WA_EXTENSION_API_ENABLED: "true", FASTCRM_WA_EXTENSION_OAUTH_CLIENT_ID: "client-ext-123", FASTCRM_WA_EXTENSION_ALLOWED_ORIGIN: ORIGIN, SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k", FASTCRM_WA_EXTENSION_PILOT_WORKSPACE_IDS: WS };
   assert(readConfig((k) => env[k]));
   assertEquals(readConfig((k) => ({ ...env, FASTCRM_WA_EXTENSION_ALLOWED_ORIGIN: "*" })[k]), null);
   assertEquals(readConfig((k) => ({ ...env, FASTCRM_WA_EXTENSION_ALLOWED_ORIGIN: "https://evil.com" })[k]), null);
@@ -100,4 +100,21 @@ Deno.test("lookup: filtra outro workspace, remove campos sensíveis, limite 10",
 Deno.test("rate limit por utilizador", () => {
   const allow = createRateLimiter(2, 1000);
   assert(allow("u", 0)); assert(allow("u", 1)); assertEquals(allow("u", 2), false); assert(allow("v", 2)); assert(allow("u", 1001));
+});
+
+Deno.test("piloto: allowlist obrigatória e válida", () => {
+  const env: Record<string, string> = { FASTCRM_WA_EXTENSION_API_ENABLED: "true", FASTCRM_WA_EXTENSION_OAUTH_CLIENT_ID: "client-ext-123", FASTCRM_WA_EXTENSION_ALLOWED_ORIGIN: ORIGIN, SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "k" };
+  assertEquals(readConfig((k) => env[k]), null);
+  for (const v of ["", " , ", "nao-uuid", `${WS},x`]) assertEquals(readConfig((k) => ({ ...env, FASTCRM_WA_EXTENSION_PILOT_WORKSPACE_IDS: v })[k]), null);
+  assertEquals(readConfig((k) => ({ ...env, FASTCRM_WA_EXTENSION_PILOT_WORKSPACE_IDS: ` ${WS.toUpperCase()} , ${OTHER}` })[k])?.pilotWorkspaceIds.size, 2);
+});
+
+Deno.test("piloto: workspace fora da allowlist bloqueado antes de membership/dados", async () => {
+  let touched = false;
+  const d = deps({ getMembership: () => { touched = true; return Promise.resolve({ workspace_id: OTHER, role: "owner" }); }, findContacts: () => { touched = true; return Promise.resolve([]); } });
+  const r = await handleAction({ ok: true, action: "lookup", workspaceId: OTHER, variants: ["+351912345678"] }, "u1", CFG, d);
+  assertEquals(r, { status: 403, body: { error: "workspace_not_in_pilot" } });
+  assertEquals(touched, false);
+  const w = await handleAction({ ok: true, action: "workspaces" }, "u1", CFG, deps({ listMemberships: () => Promise.resolve([{ workspace_id: WS, role: "owner", name: "A" }, { workspace_id: OTHER, role: "owner", name: "B" }]) }));
+  assertEquals(w.body, { workspaces: [{ id: WS, name: "A", role: "owner" }] });
 });

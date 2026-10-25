@@ -29,6 +29,14 @@ export function allowedFastcrmOrigins() {
 }
 
 const ALLOWED_PATHS = new Set(Object.values(FASTCRM_ROUTES));
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DETAIL_PATH_RE = /^\/dashboard\/(contacts|leads)\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Ficha de contacto/lead: só UUID, origem fixa, sem query/hash. */
+export function detailUrl(kind, id) {
+  if ((kind !== "contacts" && kind !== "leads") || typeof id !== "string" || !UUID_RE.test(id)) return null;
+  return `${FASTCRM_ORIGIN}/dashboard/${kind}/${encodeURIComponent(id)}`;
+}
 
 /**
  * Valida um URL de destino. Só aceita:
@@ -49,7 +57,7 @@ export function isAllowedUrl(raw) {
 
   if (url.origin === WHATSAPP_WEB_ORIGIN) return url.pathname === "/";
   if (!allowedFastcrmOrigins().includes(url.origin)) return false;
-  return ALLOWED_PATHS.has(url.pathname);
+  return ALLOWED_PATHS.has(url.pathname) || DETAIL_PATH_RE.test(url.pathname);
 }
 
 export function fastcrmUrl(routeKey) {

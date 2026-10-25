@@ -69,3 +69,4 @@ node -e 'JSON.parse(require("fs").readFileSync("manifest.json"))'
 - Pesquisa de contactos no painel: **não disponível** (requer API v0.4B).
 - Setup e arquitetura: `docs/fastcrm-whatsapp-pro/V0.4-ARQUITETURA-E-OPERACAO.md`.
 - Empacotar: `node scripts/package-extension.mjs --dist-only` (o ZIP piloto 0.3.1 público não é tocado).
+- 4B2: pesquisa no painel (workspaces + contactos/leads) implementada mas **desativada** (`API_READY=false`, client_id vazio). Ver docs V0.4-ARQUITETURA-E-OPERACAO.md.

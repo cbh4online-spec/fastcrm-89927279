@@ -88,5 +88,12 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
     return { status: "connected" };
   }
 
-  return { status, start, logout };
+  /** Só para uso interno do service worker. Nunca reencaminhar à UI. */
+  async function getAccessTokenForServiceWorker() {
+    if ((await status()) !== "connected") return null;
+    const s = await readSession();
+    return s && s.expiresAt - 30000 > now() ? s.accessToken : null;
+  }
+
+  return { status, start, logout, getAccessTokenForServiceWorker };
 }

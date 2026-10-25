@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 
 const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const fixedFiles = ['manifest.json', 'background.js', 'sidepanel.html', 'sidepanel.js', 'sidepanel.css', 'lib/phone.js', 'lib/urls.js', 'lib/messages.js', 'lib/oauth-config.js', 'lib/oauth-client.js', 'lib/oauth-pkce.js'];
+const fixedFiles = ['manifest.json', 'background.js', 'sidepanel.html', 'sidepanel.js', 'sidepanel.css', 'lib/phone.js', 'lib/urls.js', 'lib/messages.js', 'lib/extension-api.js', 'lib/oauth-config.js', 'lib/oauth-client.js', 'lib/oauth-pkce.js'];
 const timestamp = new Date('2026-01-01T00:00:00Z');
 
 async function regularFile(root, relative) {

@@ -1,16 +1,20 @@
 /**
  * FastCRM WhatsApp Pro — Service Worker (MV3, v0.4.0)
  *
- * - OPEN_TAB: abre separadores da allowlist (lib/urls.js).
+ * - OPEN_TAB: abre separadores da allowlist (lib/urls.js), incluindo fichas por UUID.
  * - AUTH_STATUS / AUTH_START / AUTH_LOGOUT: OAuth 2.1 + PKCE (lib/oauth-client.js).
- * - CONTACT_LOOKUP: recusado até existir a API read-only (v0.4B).
- * Respostas nunca incluem tokens. Sem content scripts, sem cookies.
+ * - LIST_WORKSPACES / CONTACT_LOOKUP: API de leitura (lib/extension-api.js), bloqueada
+ *   enquanto API_READY=false ou sem client_id. Token nunca sai do service worker.
  */
 import { isAllowedUrl } from "./lib/urls.js";
 import { createOAuthClient } from "./lib/oauth-client.js";
+import { createExtensionApi } from "./lib/extension-api.js";
 import { isTrustedSender, isKnownMessage, sanitizeResponse } from "./lib/messages.js";
 
 const oauth = createOAuthClient({ chromeApi: chrome });
+const api = createExtensionApi({ getToken: () => oauth.getAccessTokenForServiceWorker() });
+/** Workspaces devolvidos pela API nesta sessão do SW (só memória). */
+let allowedWorkspaces = new Set();
 
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
@@ -29,9 +33,19 @@ async function handle(message) {
       return { ok: r.status === "connected", status: r.status, error: r.error };
     }
     case "AUTH_LOGOUT":
+      allowedWorkspaces = new Set();
       return { ok: true, status: await oauth.logout() };
-    case "CONTACT_LOOKUP":
-      return { ok: false, error: "api_indisponivel" };
+    case "LIST_WORKSPACES": {
+      const r = await api.listWorkspaces();
+      allowedWorkspaces = new Set(r.ok ? r.workspaces.map((w) => w.id) : []);
+      if (r.error === "sessao_expirada") await oauth.logout();
+      return r;
+    }
+    case "CONTACT_LOOKUP": {
+      const r = await api.lookup(message.workspaceId, message.phone, allowedWorkspaces);
+      if (r.error === "sessao_expirada") { allowedWorkspaces = new Set(); await oauth.logout(); }
+      return r;
+    }
     default:
       return { ok: false, error: "Mensagem inválida" };
   }
@@ -47,7 +61,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
   handle(message).then(
-    (r) => sendResponse(sanitizeResponse(r)),
+    (r) => sendResponse(sanitizeResponse(r, message.type)),
     () => sendResponse({ ok: false, error: "erro_interno" })
   );
   return true;

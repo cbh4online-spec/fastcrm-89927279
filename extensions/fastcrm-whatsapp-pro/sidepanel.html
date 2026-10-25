@@ -34,6 +34,12 @@
     <button id="btn-auth-login" class="btn btn-primary" type="button" hidden>Ligar ao FastCRM</button>
     <button id="btn-auth-logout" class="btn btn-secondary" type="button" hidden>Terminar ligação</button>
     <p id="auth-feedback" class="feedback" role="status" aria-live="polite"></p>
+    <div id="workspace-block" hidden>
+      <button id="btn-load-workspaces" class="btn btn-secondary" type="button">Carregar empresas</button>
+      <label for="select-workspace">Workspace para pesquisa</label>
+      <select id="select-workspace" disabled><option value="">— carregue as empresas —</option></select>
+      <p id="workspace-feedback" class="feedback" role="status" aria-live="polite"></p>
+    </div>
     <h2>Atalhos do FastCRM</h2>
     <div class="grid">
       <button class="btn btn-secondary" data-route="inbox" type="button">Inbox</button>
@@ -67,7 +73,16 @@
       </p>
     </div>
     <h2>Contacto no painel</h2>
-    <p class="hint">A pesquisa diretamente no painel requer a API de leitura (v0.4B), ainda não disponível. Use «Copiar e pesquisar no FastCRM».</p>
+    <p id="panel-lookup-pending" class="hint">Pesquisa no painel: configuração pendente (cliente OAuth, API e ativação pelo administrador). Use «Copiar e pesquisar no FastCRM».</p>
+    <div id="panel-lookup" hidden>
+      <button id="btn-panel-lookup" class="btn btn-primary" type="button" disabled>Pesquisar no painel</button>
+      <p id="lookup-feedback" class="feedback" role="status" aria-live="polite"></p>
+      <div id="lookup-results" hidden>
+        <h3>Contactos</h3><ul id="list-contacts" class="list results"></ul>
+        <h3>Leads</h3><ul id="list-leads" class="list results"></ul>
+        <p class="hint">Sem resultados não garante que o número não exista (formatos guardados podem variar).</p>
+      </div>
+    </div>
   </section>
 
   <section role="tabpanel" id="panel-config" aria-labelledby="tab-config" class="card" hidden>
