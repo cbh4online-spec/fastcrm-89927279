@@ -25,7 +25,7 @@ export function isOAuthConfigured(clientId = PUBLIC_CLIENT_ID) {
  * API de leitura (iteração 4B). Endpoint fixo; nunca configurável pelo utilizador.
  * API_READY=false até um administrador confirmar flags backend + E2E.
  * PUBLIC_API_KEY: só uma chave PÚBLICA (anon/publishable) e só se o gateway a exigir.
- * Chaves privadas (service_role, secrets) são PROIBIDAS na extensão.
+ * Chaves privadas (chave de serviço, secrets) são PROIBIDAS na extensão.
  */
 export const API_ENDPOINT = AUTH_ORIGIN + "/functions/v1/fastcrm-whatsapp-extension-api";
 export const API_READY = false;
