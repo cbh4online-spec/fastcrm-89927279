@@ -61,6 +61,8 @@ O script gera `extensions/fastcrm-whatsapp-pro/dist/fastcrm-whatsapp-pro/` a par
 - Clipboard no documento aberto num separador funcionou em algumas execuções; nesse separador a abertura foi recusada, corretamente, pelo guard `sender.tab`. No painel headless, a cópia foi recusada e apresentou o fallback. **Fluxo completo copiar → abrir por clique no painel ainda requer teste humano Chrome/Edge.** Não se alargaram permissões para contornar a limitação.
 - Screenshot do documento da extensão a 360 × 800 e 1280 × 1800, sem overflow; screenshot do painel nativo capturada. Não equivalem ao teste manual da barra do Chrome/Edge.
 - Não foi testado Edge nativo, ícone físico, pesquisa autenticada com dados reais nem isolamento entre contas nesta entrega.
+- Testes: Node 9 aprovados/1 falhado (asserção de versão literal 0.3.0 no teste legado mantido intacto); Vitest pesquisa 10/10 e acesso/download 2/2; lint focado e sintaxe aprovados. Download real pelo botão testado numa montagem isolada sem dados, com hash igual ao ZIP; não é E2E autenticado.
+- QA nativo reproduzível: `python3 extensions/fastcrm-whatsapp-pro/scripts/check-native.py`, com Playwright/Chromium previamente disponíveis. Perfil/capturas temporários em `/tmp`; sem instalação global. O teste reporta a recusa de clipboard em headless e verifica separadamente a abertura por mensagem real; não mascara essa limitação.
 
 ### Checklist do piloto humano — por executar
 - [ ] Instalar Chrome e Edge sem erros e abrir pelo ícone.
