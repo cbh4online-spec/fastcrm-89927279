@@ -130,7 +130,7 @@ function setupPhone() {
 const AUTH_TEXT = {
   config_pending: ["Configuração OAuth pendente", "O cliente OAuth público ainda não foi registado. Use o fluxo manual.", "dot-off"],
   disconnected: ["Desligado", "Ligue-se para preparar a futura pesquisa no painel.", "dot-off"],
-  connected: ["Ligado ao FastCRM", "Sessão válida só até fechar o browser. Pesquisa no painel: v0.4B.", "dot-on"],
+  connected: ["Ligado ao FastCRM", "Sessão válida só até fechar o browser.", "dot-on"],
 };
 const AUTH_ERRORS = {
   autorizacao_cancelada: "Ligação cancelada.",
