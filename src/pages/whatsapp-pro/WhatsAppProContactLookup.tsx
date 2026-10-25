@@ -39,15 +39,17 @@ function LookupForm({ workspaceId, workspaceName }: { workspaceId: string; works
 
   useEffect(() => {
     request.current?.abort();
+    request.current = null;
     setResults(null);
     setPhone("");
     setMessage("");
     setBusy(false);
-    return () => { request.current?.abort(); };
+    return () => { request.current?.abort(); request.current = null; };
   }, [workspaceClient, blocked]);
 
   function resetSearch(value: string) {
     request.current?.abort();
+    request.current = null;
     setPhone(value);
     setResults(null);
     setMessage("");
