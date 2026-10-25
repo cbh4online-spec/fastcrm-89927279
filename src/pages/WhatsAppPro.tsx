@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
@@ -34,6 +34,7 @@ import {
   Clock,
   Wrench,
   Users,
+  Download,
 } from "lucide-react";
 import {
   useWhatsAppProviderInstance,
@@ -68,6 +69,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     accent: "bg-emerald-500",
     items: [
       { label: "Inbox WhatsApp", to: "/dashboard/whatsapp-pro/inbox", icon: Inbox },
+      { label: "Pesquisar contacto", to: "/dashboard/whatsapp-pro/lookup", icon: Users },
       { label: "Mensagens agendadas", to: "/dashboard/whatsapp-pro/scheduled", icon: Clock },
       { label: "Grupos", to: "/dashboard/whatsapp-pro/groups", icon: Users },
       { label: "Quick replies", to: "/dashboard/whatsapp-pro/quick-replies", icon: Zap },
@@ -125,6 +127,33 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 
 export default function WhatsAppPro() {
   const navigate = useNavigate();
+  const [pilotDownloading, setPilotDownloading] = useState(false);
+  const [pilotDownloadError, setPilotDownloadError] = useState<string | null>(null);
+  const downloadPilot = async () => {
+    setPilotDownloading(true);
+    setPilotDownloadError(null);
+    try {
+      const response = await fetch("/downloads/fastcrm-whatsapp-pro-v0.3.1.zip");
+      if (!response.ok) throw new Error("Download indisponível");
+      const blob = await response.blob();
+      const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+      if (signature[0] !== 80 || signature[1] !== 75 || signature[2] !== 3 || signature[3] !== 4) {
+        throw new Error("Pacote indisponível");
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "fastcrm-whatsapp-pro-v0.3.1.zip";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch {
+      setPilotDownloadError("Não foi possível descarregar a extensão. Tente novamente.");
+    } finally {
+      setPilotDownloading(false);
+    }
+  };
   const { data: instance, isLoading: instanceLoading } = useWhatsAppProviderInstance();
   const { data: zapi } = useWhatsAppZapiConnection();
   const ensure = useEnsureWhatsAppProviderInstance();
@@ -196,6 +225,25 @@ export default function WhatsAppPro() {
             </div>
           </div>
         </header>
+
+        <section aria-labelledby="pilot-extension-title" className="border-b border-border pb-5 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h2 id="pilot-extension-title" className="text-base font-semibold">Extensão Chrome/Edge (piloto)</h2>
+              <p className="text-sm text-muted-foreground">Piloto — sem acesso autenticado diretamente no painel.</p>
+            </div>
+            <Button variant="outline" onClick={downloadPilot} disabled={pilotDownloading} className="gap-2 shrink-0">
+              <Download className="h-4 w-4" aria-hidden="true" />
+              {pilotDownloading ? "A descarregar…" : "Descarregar v0.3.1"}
+            </Button>
+          </div>
+          <ol className="list-decimal pl-5 text-sm text-muted-foreground space-y-1">
+            <li>Descompacte o ZIP descarregado.</li>
+            <li>Abra <code>chrome://extensions</code> ou <code>edge://extensions</code> e ative o Modo de programador.</li>
+            <li>Escolha «Carregar sem compactação» e selecione a pasta que contém <code>manifest.json</code>.</li>
+          </ol>
+          {pilotDownloadError && <p role="alert" className="text-sm text-destructive">{pilotDownloadError}</p>}
+        </section>
 
         {/* KPI cards */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -284,10 +332,11 @@ export default function WhatsAppPro() {
                       {group.items.map((item) => {
                         const Icon = item.icon;
                         return (
-                          <button
+                          <Button
+                            variant="outline"
                             key={item.to}
                             onClick={() => navigate(item.to)}
-                            className="group flex w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5 text-left transition-all hover:border-emerald-500/40 hover:bg-emerald-500/5"
+                            className="group flex h-auto w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5 text-left"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-emerald-500/10 group-hover:text-emerald-600">
@@ -296,7 +345,7 @@ export default function WhatsAppPro() {
                               <span className="text-sm font-medium truncate">{item.label}</span>
                             </div>
                             <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-emerald-600" />
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -316,7 +365,7 @@ export default function WhatsAppPro() {
                 <EmptyState message="Sem atividade ainda. Envie uma mensagem ou partilhe um produto para começar." />
               ) : (
                 <ul className="divide-y text-sm">
-                  {events.map((e: any) => (
+                  {events.map((e) => (
                     <li key={e.id} className="py-2 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <Badge variant="outline" className="text-[10px] shrink-0">{e.event_type}</Badge>

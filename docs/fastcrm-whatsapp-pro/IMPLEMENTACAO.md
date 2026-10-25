@@ -6,6 +6,7 @@
 | 1 | 0.1.1 | Esqueleto MV3, side panel, atalhos | Gravado (commit cb58ef57d) |
 | 2A | 0.2.0 | Só frontend: secções, validação E.164, allowlist, testes | Gravado; **não testado em browser** |
 | 2B | 0.3.0 | Pesquisa nativa com sessão web existente, sem autenticação na extensão | Implementado; testes dedicados passaram; E2E autenticado pendente |
+| Piloto | 0.3.1 | Atalho no módulo, ZIP reproduzível, guia Chrome/Edge e QA Chromium nativo | Pacote verificado; fluxo completo de clipboard no painel e Edge manual pendentes |
 | Futura | — | OAuth/PKCE e resultados dentro da extensão | Fora do âmbito; requer aprovação específica |
 
 ## Rotas confirmadas no código da app (2A)
@@ -71,3 +72,26 @@ A migração 0079 (políticas RLS de `event_registry`, `fastmatch_reputation_rev
 - **Médio:** o mapa de eventos fica vazio para admins de workspace que não são super admin.
 - **Médio (anterior à 0079):** oferta pública anónima pode falhar no `.select()` após o insert.
 Nenhuma destas foi tocada; cada correção requer autorização própria.
+
+## Entrega v0.3.1 — 25/10/2026
+
+### Diagnóstico, decisões e estrutura
+Base verificada: `4451e0060e0927b7ca54dce7a56b4b91f961de4e`, árvore inicialmente limpa. Rota lookup já existente e confirmada em `CommunicationRoutes.tsx`; extensão não recriada. Acrescentada uma entrada «Pesquisar contacto» no grupo Conversas de `WhatsAppPro.tsx`, sem mudanças aos hooks/provider. Bloco compacto com download fetch+blob, validação de assinatura ZIP, loading/erro e instruções de instalação. Botões de atalhos reutilizam Button. Removida anotação `any` preexistente na lista de eventos para passar lint, sem alterar comportamento.
+
+Empacotamento isolado: `scripts/package-extension.mjs`, Node nativo e binários locais zip/unzip; allowlist explícita, paths seguros, recusa symlinks, datas fixas, entradas na raiz e hash. Novos testes de pacote e de acesso frontend na pasta da extensão; testes v0.3.0 intactos. Guia `INSTALACAO-PILOTO.md` com diagnóstico, atualização, reversão e checklist humano.
+
+### Resultado do pacote
+`public/downloads/fastcrm-whatsapp-pro-v0.3.1.zip` — **9 543 bytes**, 11 ficheiros, integridade unzip confirmada; SHA-256 `5e984a53840a83a0967035787600a880cf08c8f65f4a4e513ac75aac1854d616`. Duas gerações independentes nos testes produziram o mesmo hash. DIST inclui apenas manifest, background, sidepanel HTML/JS/CSS, lib phone/urls, locale e 3 ícones.
+
+### QA e critérios de aceitação
+- Node completo: **9 aprovados, 1 falhado**, nenhum ignorado. Falha do teste legado `lookup.test.js` na asserção literal versão `0.3.0`, incompatível com o incremento pedido; não se editou esse teste. Asserções de MV3/paths/permissões são também verificadas pelo novo teste de pacote v0.3.1.
+- Vitest pesquisa v0.3.0: **10/10 aprovados**; dois avisos informativos React Router v7, sem falhas.
+- Vitest adicional do módulo: **2/2 aprovados**, navegação para lookup e erro/loading do download. Executado com configuração temporária para incluir o teste isolado sob a pasta da extensão, sem alterar a configuração global.
+- Download pelo botão real verificado via Playwright numa montagem isolada do módulo (hooks/layout substituídos apenas no teste para impedir qualquer leitura/escrita de dados): ficheiro guardado com 9 543 bytes e hash correto, sem erros JS; vistas desktop/mobile inspecionadas. Não é E2E autenticado do módulo.
+- Sintaxe JS/MJS e lint focado passaram; build automático registou `build OK`. Nenhum build/typecheck global manual.
+- Chromium nativo via persistent context headless, DIST, perfil temporário e sem mocks: worker real, manifest e APIs reais; painel aberto com sidePanel.open e acedido via CDP. Normalização e `OPEN_TAB` autorizado `ok: true`; URL externo recusado. A página da extensão num separador normal é recusada por sender.tab como previsto.
+- Clipboard no painel headless foi recusado: feedback de erro e nenhum separador aberto. **Não se declara confirmado o fluxo humano completo copiar → abrir**, nem instalação Edge/gesto físico no ícone. Capturas temporárias do documento desktop/mobile e painel nativo; sem overflow a 360px. Sem login, pesquisa real ou acesso a dados; navegações de produção abortadas.
+- A interface nova não foi publicada: a extensão abre a origem de produção fixa, pelo que o acesso novo no módulo depende de publicação futura expressamente autorizada.
+
+### Escopo, persistência e bloqueios
+Alterações limitadas à extensão, documentação, `src/pages/WhatsAppPro.tsx` e ZIP autorizado. Não se editaram AGENTS.md/roadmap.md por estarem fora da allowlist; a regra técnica do empacotamento fica documentada no README da extensão. Nenhuma alteração a 0079, backend, dados, sessão, .env, providers, envios ou produção. OAuth/PKCE e resultados no painel continuam fora do âmbito. Gravação/commit geridos pelo Lovable, sem comandos git stateful; comunicar apenas hash efetivamente observado, nunca inventar hash final.

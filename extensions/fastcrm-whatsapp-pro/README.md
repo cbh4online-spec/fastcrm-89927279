@@ -1,6 +1,15 @@
-# FastCRM WhatsApp Pro — extensão Chrome/Edge (MV3) · v0.3.0
+# FastCRM WhatsApp Pro — extensão Chrome/Edge (MV3) · v0.3.1
 
 Painel lateral para trabalho **manual** junto do WhatsApp Web. Não publicado.
+
+## Piloto v0.3.1
+- No módulo WhatsApp Pro: **Conversas → Pesquisar contacto** e download do pacote piloto.
+- Guia completo: `docs/fastcrm-whatsapp-pro/INSTALACAO-PILOTO.md`.
+- Empacotar: `node extensions/fastcrm-whatsapp-pro/scripts/package-extension.mjs` na raiz; `--dist-only` para apenas preparar Load unpacked.
+- DIST: `extensions/fastcrm-whatsapp-pro/dist/fastcrm-whatsapp-pro`; ZIP: `public/downloads/fastcrm-whatsapp-pro-v0.3.1.zip`, manifest na raiz e só 11 ficheiros de execução.
+- Arquitetura: manter o empacotamento isolado e por allowlist explícita; nunca copiar o projeto, testes ou configurações para o pacote, para evitar distribuir dados/segredos.
+- Chromium instalado nativamente em perfil temporário: worker, manifest e painel real confirmados, sem mocks. Mensagem nativa abre destino autorizado e recusa externo. Clipboard no painel headless recusado: fallback confirmado, fluxo humano completo Chrome/Edge pendente.
+- O teste legado v0.3.0 conserva a asserção literal `0.3.0`: falha apenas nessa versão após o incremento obrigatório. Não foi alterado para passar. Consultar relatório v0.3.1 para contagens.
 
 ## O que faz
 - Três secções: **Início** (atalhos), **Contacto** (validar número), **Configurações** (informação).
@@ -32,7 +41,7 @@ node -e 'JSON.parse(require("fs").readFileSync("manifest.json"))'
 
 ## Instalação manual (Chrome/Edge 116+)
 1. `chrome://extensions` ou `edge://extensions` → ativar **Modo de programador**.
-2. **Carregar sem compactação** → escolher `extensions/fastcrm-whatsapp-pro/`.
+2. **Carregar sem compactação** → escolher `extensions/fastcrm-whatsapp-pro/dist/fastcrm-whatsapp-pro/` após empacotar (ou a pasta do ZIP descompactado).
 3. Clicar no ícone → abre o painel lateral.
 
 ## Checklist manual (por preencher por quem testar — ainda não executado)
