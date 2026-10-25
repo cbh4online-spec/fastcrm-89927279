@@ -135,7 +135,8 @@ test("remetentes não autorizados e respostas sem tokens", () => {
 
 test("pesquisa no painel recusada sem API e sem segredos no código", () => {
   const bg = readFileSync(new URL("../background.js", import.meta.url), "utf8");
-  assert.match(bg, /case "CONTACT_LOOKUP":\s*return \{ ok: false, error: "api_indisponivel" \}/);
+  assert.match(bg, /case "CONTACT_LOOKUP":[\s\S]*api\.lookup\(/);
+  assert.doesNotMatch(bg, /accessToken/);
   const files = ["background.js", "sidepanel.js", "sidepanel.html", ...readdirSync(new URL("../lib/", import.meta.url)).map((f) => "lib/" + f)];
   for (const f of files) {
     const src = readFileSync(new URL("../" + f, import.meta.url), "utf8");
