@@ -10,10 +10,11 @@ test("lookup tem destino fixo e rejeita telefone no URL", () => {
   assert.equal(isAllowedUrl(`${fastcrmUrl("lookup")}#912345678`), false);
 });
 
-test("MV3 v0.3.0 mantém limites de acesso e todos os paths", () => {
+test("MV3 mantém limites de acesso e todos os paths", () => {
   const base = new URL("../", import.meta.url);
   const manifest = JSON.parse(readFileSync(new URL("manifest.json", base), "utf8"));
-  assert.equal(manifest.version, "0.3.0");
+  const pkg = JSON.parse(readFileSync(new URL("package.json", base), "utf8"));
+  assert.equal(manifest.version, pkg.version, "manifest e package.json devem coincidir");
   assert.equal(manifest.manifest_version, 3);
   assert.deepEqual(manifest.permissions, ["storage", "sidePanel"]);
   assert.deepEqual(manifest.host_permissions, []);
