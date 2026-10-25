@@ -11,15 +11,15 @@
     <img src="icons/icon48.png" alt="" class="logo" width="28" height="28" />
     <div>
       <h1>FastCRM WhatsApp Pro</h1>
-      <p class="subtitle">Versão 0.3.1 · uso manual</p>
+      <p class="subtitle">Versão 0.4.0 · piloto</p>
     </div>
   </header>
 
-  <div class="status-banner" role="status">
-    <span class="dot dot-off" aria-hidden="true"></span>
+  <div class="status-banner" role="status" aria-live="polite">
+    <span id="auth-dot" class="dot dot-off" aria-hidden="true"></span>
     <div>
-      <strong>Sem ligação autenticada</strong>
-      <p class="hint">A autenticação segura será implementada na próxima fase.</p>
+      <strong id="auth-title">A verificar ligação…</strong>
+      <p id="auth-hint" class="hint"></p>
     </div>
   </div>
 
@@ -30,6 +30,10 @@
   </nav>
 
   <section role="tabpanel" id="panel-inicio" aria-labelledby="tab-inicio" class="card">
+    <h2>Ligar ao FastCRM</h2>
+    <button id="btn-auth-login" class="btn btn-primary" type="button" hidden>Ligar ao FastCRM</button>
+    <button id="btn-auth-logout" class="btn btn-secondary" type="button" hidden>Terminar ligação</button>
+    <p id="auth-feedback" class="feedback" role="status" aria-live="polite"></p>
     <h2>Atalhos do FastCRM</h2>
     <div class="grid">
       <button class="btn btn-secondary" data-route="inbox" type="button">Inbox</button>
@@ -62,6 +66,8 @@
         A pesquisa usa a sessão do website e o workspace aí selecionado; os resultados não aparecem na extensão.
       </p>
     </div>
+    <h2>Contacto no painel</h2>
+    <p class="hint">A pesquisa diretamente no painel requer a API de leitura (v0.4B), ainda não disponível. Use «Copiar e pesquisar no FastCRM».</p>
   </section>
 
   <section role="tabpanel" id="panel-config" aria-labelledby="tab-config" class="card" hidden>
@@ -74,7 +80,8 @@
     <ul class="hint list">
       <li>Sem envio automático de mensagens.</li>
       <li>Sem leitura de conversas, cookies ou sessões.</li>
-      <li>Sem pedidos de rede a partir da extensão.</li>
+      <li>Pedidos de rede apenas ao servidor de autenticação do FastCRM, para iniciar sessão.</li>
+      <li>A sessão fica só em memória e termina ao fechar o browser.</li>
     </ul>
   </section>
 

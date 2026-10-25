@@ -16,10 +16,10 @@ test("MV3 mantém limites de acesso e todos os paths", () => {
   const pkg = JSON.parse(readFileSync(new URL("package.json", base), "utf8"));
   assert.equal(manifest.version, pkg.version, "manifest e package.json devem coincidir");
   assert.equal(manifest.manifest_version, 3);
-  assert.deepEqual(manifest.permissions, ["storage", "sidePanel"]);
-  assert.deepEqual(manifest.host_permissions, []);
+  assert.deepEqual(manifest.permissions, ["storage", "sidePanel", "identity"]);
+  assert.deepEqual(manifest.host_permissions, ["https://eumnfkccyvlyoyjchiwe.supabase.co/*"]);
   assert.equal(manifest.content_scripts, undefined);
-  assert.match(manifest.content_security_policy.extension_pages, /connect-src 'none'/);
+  assert.match(manifest.content_security_policy.extension_pages, /connect-src https:\/\/eumnfkccyvlyoyjchiwe\.supabase\.co;/);
   for (const path of [manifest.background.service_worker, manifest.side_panel.default_path, `_locales/${manifest.default_locale}/messages.json`, ...Object.values(manifest.icons)]) {
     assert.ok(existsSync(new URL(path, base)), path);
   }
