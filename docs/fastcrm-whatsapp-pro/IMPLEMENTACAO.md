@@ -101,3 +101,4 @@ Alterações limitadas à extensão, documentação, `src/pages/WhatsAppPro.tsx`
 - Permissão `identity`; host/connect-src só para o servidor de autenticação.
 - Estado real: cliente OAuth não registado → «Configuração OAuth pendente». Login E2E não verificado.
 - Detalhes: `V0.4-ARQUITETURA-E-OPERACAO.md`.
+- Iteração 4B1: API de leitura inativa — ver V0.4B-API-LEITURA.md; scopes passaram a "email".
