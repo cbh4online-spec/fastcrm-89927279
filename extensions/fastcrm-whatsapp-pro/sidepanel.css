@@ -173,3 +173,4 @@ input[type="url"]:focus, input[type="tel"]:focus {
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .result code, #config-origin { word-break: break-all; font-weight: 600; }
 .list { padding-left: 18px; }
+.dot-on { background: #16a34a; }

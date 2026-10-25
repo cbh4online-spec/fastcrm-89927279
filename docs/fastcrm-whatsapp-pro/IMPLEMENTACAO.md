@@ -95,3 +95,9 @@ Empacotamento isolado: `scripts/package-extension.mjs`, Node nativo e binários 
 
 ### Escopo, persistência e bloqueios
 Alterações limitadas à extensão, documentação, `src/pages/WhatsAppPro.tsx` e ZIP autorizado. Não se editaram AGENTS.md/roadmap.md por estarem fora da allowlist; a regra técnica do empacotamento fica documentada no README da extensão. Nenhuma alteração a 0079, backend, dados, sessão, .env, providers, envios ou produção. OAuth/PKCE e resultados no painel continuam fora do âmbito. Gravação/commit geridos pelo Lovable, sem comandos git stateful; comunicar apenas hash efetivamente observado, nunca inventar hash final.
+
+## v0.4.0 — Iteração 4A (OAuth 2.1 + PKCE, sem API de leitura)
+- Novos: `lib/oauth-config.js`, `lib/oauth-pkce.js`, `lib/oauth-client.js`, `lib/messages.js`, `tests/oauth.test.js`.
+- Permissão `identity`; host/connect-src só para o servidor de autenticação.
+- Estado real: cliente OAuth não registado → «Configuração OAuth pendente». Login E2E não verificado.
+- Detalhes: `V0.4-ARQUITETURA-E-OPERACAO.md`.
