@@ -62,3 +62,10 @@ node -e 'JSON.parse(require("fs").readFileSync("manifest.json"))'
 - Chromium controlado com APIs Chrome simuladas: cópia correta, abertura só do destino fixo, recusa de clipboard sem abertura, sem overflow a 360px. **Não equivale a extensão instalada.**
 - Sem sessão: o website redirecionou para `/auth?redirect=%2Fdashboard%2Fwhatsapp-pro%2Flookup`, sem telefone; nenhum erro JS observado.
 - **Não executado:** pesquisa autenticada com dados reais, teste de RLS entre contas, instalação nativa Chrome/Edge e verificação visual da página autenticada em mobile. Não foi criada sessão/conta nem alterado qualquer dado.
+
+## v0.4.0 — OAuth 2.1 + PKCE (iteração 4A)
+- Secção «Ligar ao FastCRM» com estados: Configuração OAuth pendente / Desligado / Ligado.
+- `PUBLIC_CLIENT_ID` vazio de propósito: enquanto não houver cliente OAuth registado, o painel fica em «Configuração OAuth pendente» e o fluxo manual v0.3.1 continua igual.
+- Pesquisa de contactos no painel: **não disponível** (requer API v0.4B).
+- Setup e arquitetura: `docs/fastcrm-whatsapp-pro/V0.4-ARQUITETURA-E-OPERACAO.md`.
+- Empacotar: `node scripts/package-extension.mjs --dist-only` (o ZIP piloto 0.3.1 público não é tocado).

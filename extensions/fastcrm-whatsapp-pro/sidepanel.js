@@ -117,9 +117,52 @@ function setupPhone() {
   });
 }
 
+const AUTH_TEXT = {
+  config_pending: ["Configuração OAuth pendente", "O cliente OAuth público ainda não foi registado. Use o fluxo manual.", "dot-off"],
+  disconnected: ["Desligado", "Ligue-se para preparar a futura pesquisa no painel.", "dot-off"],
+  connected: ["Ligado ao FastCRM", "Sessão válida só até fechar o browser. Pesquisa no painel: v0.4B.", "dot-on"],
+};
+const AUTH_ERRORS = {
+  autorizacao_cancelada: "Ligação cancelada.",
+  autorizacao_recusada: "Autorização recusada.",
+  rede_indisponivel: "Servidor indisponível. Tente mais tarde.",
+};
+
+function sendAuth(type) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type }, (r) => resolve(chrome.runtime.lastError || !r ? { ok: false, status: "disconnected", error: "erro_interno" } : r));
+  });
+}
+
+function renderAuth(status) {
+  const [title, hint, dot] = AUTH_TEXT[status] ?? AUTH_TEXT.disconnected;
+  $("auth-title").textContent = title;
+  $("auth-hint").textContent = hint;
+  $("auth-dot").className = "dot " + dot;
+  $("btn-auth-login").hidden = status !== "disconnected";
+  $("btn-auth-logout").hidden = status !== "connected";
+}
+
+async function setupAuth() {
+  const fb = $("auth-feedback");
+  renderAuth((await sendAuth("AUTH_STATUS")).status);
+  $("btn-auth-login").addEventListener("click", async (e) => {
+    e.currentTarget.disabled = true;
+    const r = await sendAuth("AUTH_START");
+    e.currentTarget.disabled = false;
+    renderAuth(r.status);
+    setFeedback(fb, r.status === "connected" ? "Ligação estabelecida." : AUTH_ERRORS[r.error] ?? "Não foi possível ligar.", r.status === "connected" ? "ok" : "error");
+  });
+  $("btn-auth-logout").addEventListener("click", async () => {
+    renderAuth((await sendAuth("AUTH_LOGOUT")).status);
+    setFeedback(fb, "Ligação terminada.", "ok");
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   $("config-origin").textContent = FASTCRM_ORIGIN;
   setupTabs();
   setupRoutes();
   setupPhone();
+  setupAuth();
 });
