@@ -20,3 +20,19 @@ export const NETWORK_TIMEOUT_MS = 15000;
 export function isOAuthConfigured(clientId = PUBLIC_CLIENT_ID) {
   return typeof clientId === "string" && /^[A-Za-z0-9._-]{8,128}$/.test(clientId);
 }
+
+/**
+ * API de leitura (iteração 4B). Endpoint fixo; nunca configurável pelo utilizador.
+ * API_READY=false até um administrador confirmar flags backend + E2E.
+ * PUBLIC_API_KEY: só uma chave PÚBLICA (anon/publishable) e só se o gateway a exigir.
+ * Chaves privadas (service_role, secrets) são PROIBIDAS na extensão.
+ */
+export const API_ENDPOINT = AUTH_ORIGIN + "/functions/v1/fastcrm-whatsapp-extension-api";
+export const API_READY = false;
+export const API_REQUIRES_PUBLIC_KEY = false;
+export const PUBLIC_API_KEY = "";
+export const API_TIMEOUT_MS = 12000;
+
+export function isLookupReady({ clientId = PUBLIC_CLIENT_ID, apiReady = API_READY, requiresKey = API_REQUIRES_PUBLIC_KEY, publicKey = PUBLIC_API_KEY } = {}) {
+  return isOAuthConfigured(clientId) && apiReady === true && (!requiresKey || (typeof publicKey === "string" && publicKey.length > 20));
+}
