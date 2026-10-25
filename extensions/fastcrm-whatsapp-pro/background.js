@@ -1,5 +1,5 @@
 /**
- * FastCRM WhatsApp Pro — Service Worker (MV3, v0.2.0)
+ * FastCRM WhatsApp Pro — Service Worker (MV3, v0.3.0)
  *
  * Única ação: abrir separadores para URLs da allowlist (lib/urls.js),
  * a pedido do próprio painel lateral. Sem fetch, sem cookies, sem content scripts.

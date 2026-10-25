@@ -1,5 +1,5 @@
 /**
- * FastCRM WhatsApp Pro — Side Panel (v0.2.0)
+ * FastCRM WhatsApp Pro — Side Panel (v0.3.0)
  * Uso manual: atalhos, validação local de números, cópia explícita.
  * Não faz pedidos de rede nem lê dados de páginas.
  */
@@ -13,7 +13,7 @@ function setFeedback(el, text, kind) {
   el.className = "feedback" + (kind ? " feedback-" + kind : "");
 }
 
-function openTab(url, feedbackEl) {
+function openTab(url, feedbackEl, successText) {
   if (!url || !isAllowedUrl(url)) {
     setFeedback(feedbackEl, "Esta página não está disponível.", "error");
     return;
@@ -21,6 +21,8 @@ function openTab(url, feedbackEl) {
   chrome.runtime.sendMessage({ type: "OPEN_TAB", url }, (response) => {
     if (chrome.runtime.lastError || !response?.ok) {
       setFeedback(feedbackEl, "Não foi possível abrir a página.", "error");
+    } else if (successText) {
+      setFeedback(feedbackEl, successText, "ok");
     }
   });
 }
@@ -95,6 +97,22 @@ function setupPhone() {
       setFeedback(feedback, "Número copiado.", "ok");
     } catch {
       setFeedback(feedback, "Não foi possível copiar. Selecione o número e copie manualmente.", "error");
+    }
+  });
+
+  $("btn-copy-lookup").addEventListener("click", async () => {
+    if (!current) return;
+    const snapshot = current;
+    const button = $("btn-copy-lookup");
+    button.disabled = true;
+    try {
+      await navigator.clipboard.writeText(snapshot);
+      if (current !== snapshot) return;
+      openTab(fastcrmUrl("lookup"), feedback, "Abri o FastCRM. Cola o número e clica Pesquisar.");
+    } catch {
+      setFeedback(feedback, "Não foi possível copiar. Copie o número manualmente e abra «Pesquisar no FastCRM» no Início.", "error");
+    } finally {
+      button.disabled = false;
     }
   });
 }

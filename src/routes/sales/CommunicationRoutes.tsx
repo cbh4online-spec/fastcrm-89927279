@@ -5,6 +5,7 @@ const Inbox = lazy(() => import("@/pages/Inbox"));
 const InboxSnippets = lazy(() => import("@/pages/InboxSnippets"));
 const WhatsAppOpsDashboard = lazy(() => import("@/pages/WhatsAppOpsDashboard"));
 const WhatsAppPro = lazy(() => import("@/pages/WhatsAppPro"));
+const WhatsAppProContactLookup = lazy(() => import("@/pages/whatsapp-pro/WhatsAppProContactLookup"));
 const WhatsAppCampaignsPage = lazy(() => import("@/pages/WhatsAppCampaignsPage"));
 const WhatsAppAnalyticsPage = lazy(() => import("@/pages/WhatsAppAnalyticsPage"));
 const WhatsAppTemplatesPage = lazy(() => import("@/pages/WhatsAppTemplatesPage"));
@@ -55,6 +56,7 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/inbox/ops" element={<Navigate to="/dashboard/whatsapp/ops" replace />} />
 
       <Route path="/dashboard/whatsapp-pro" element={<WhatsAppPro />} />
+      <Route path="/dashboard/whatsapp-pro/lookup" element={<WhatsAppProContactLookup />} />
       <Route path="/dashboard/whatsapp-pro/campaigns" element={<WhatsAppCampaignsPage />} />
       <Route path="/dashboard/whatsapp-pro/analytics" element={<WhatsAppAnalyticsPage />} />
       <Route path="/dashboard/whatsapp-pro/templates" element={<WhatsAppTemplatesPage />} />
