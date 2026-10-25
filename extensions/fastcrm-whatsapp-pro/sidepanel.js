@@ -5,7 +5,7 @@
  */
 import { normalizePhone } from "./lib/phone.js";
 import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl, detailUrl } from "./lib/urls.js";
-import { isLookupReady } from "./lib/oauth-config.js";
+import { isLookupReady, isOAuthConfigured } from "./lib/oauth-config.js";
 import { oauthRedirectUri } from "./lib/oauth-pkce.js";
 
 /** Estado só em memória; nunca persistido. */
@@ -284,7 +284,8 @@ function renderAuth(status) {
 
 async function setupAuth() {
   const fb = $("auth-feedback");
-  renderAuth((await sendAuth("AUTH_STATUS")).status);
+  // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
+  renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS")).status : "config_pending");
   $("btn-auth-login").addEventListener("click", async (e) => {
     e.currentTarget.disabled = true;
     const r = await sendAuth("AUTH_START");
