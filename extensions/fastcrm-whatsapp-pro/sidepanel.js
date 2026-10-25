@@ -6,6 +6,7 @@
 import { normalizePhone } from "./lib/phone.js";
 import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl, detailUrl } from "./lib/urls.js";
 import { isLookupReady } from "./lib/oauth-config.js";
+import { oauthRedirectUri } from "./lib/oauth-pkce.js";
 
 /** Estado só em memória; nunca persistido. */
 const state = { phone: null, workspaceId: "", nonce: 0, authStatus: "disconnected" };
@@ -298,17 +299,8 @@ async function setupAuth() {
   });
 }
 
-export function oauthRedirectUri(chromeApi, runtimeId) {
-  try {
-    const uri = chromeApi?.identity?.getRedirectURL?.("oauth2");
-    return typeof uri === "string" && uri === `https://${runtimeId}.chromiumapp.org/oauth2` ? uri : null;
-  } catch {
-    return null;
-  }
-}
-
 function setupRedirectUri() {
-  const uri = oauthRedirectUri(globalThis.chrome, globalThis.chrome?.runtime?.id);
+  const uri = oauthRedirectUri(globalThis.chrome);
   const fb = $("config-feedback");
   if (!uri) {
     $("config-redirect").textContent = "Indisponível neste contexto (abra o painel da extensão instalada).";

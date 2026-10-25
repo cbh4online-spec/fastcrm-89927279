@@ -65,3 +65,14 @@ export function parseCallback(callbackUrl, { redirectUri, expectedState }) {
   if (!/^[A-Za-z0-9\-._~]{8,512}$/.test(code)) return { ok: false, error: "code_invalido" };
   return { ok: true, code };
 }
+
+/** URI de retorno real da extensão instalada, ou null se indisponível/inesperado. */
+export function oauthRedirectUri(chromeApi) {
+  try {
+    const id = chromeApi?.runtime?.id;
+    const uri = chromeApi?.identity?.getRedirectURL?.("oauth2");
+    return isValidRedirectUri(uri, id) ? uri : null;
+  } catch {
+    return null;
+  }
+}
