@@ -298,7 +298,37 @@ async function setupAuth() {
   });
 }
 
+export function oauthRedirectUri(chromeApi, runtimeId) {
+  try {
+    const uri = chromeApi?.identity?.getRedirectURL?.("oauth2");
+    return typeof uri === "string" && uri === `https://${runtimeId}.chromiumapp.org/oauth2` ? uri : null;
+  } catch {
+    return null;
+  }
+}
+
+function setupRedirectUri() {
+  const uri = oauthRedirectUri(globalThis.chrome, globalThis.chrome?.runtime?.id);
+  const fb = $("config-feedback");
+  if (!uri) {
+    $("config-redirect").textContent = "Indisponível neste contexto (abra o painel da extensão instalada).";
+    return;
+  }
+  $("config-redirect").textContent = uri;
+  const btn = $("btn-copy-redirect");
+  btn.disabled = false;
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(uri);
+      setFeedback(fb, "URI copiado.", "ok");
+    } catch {
+      setFeedback(fb, "Não foi possível copiar. Selecione e copie manualmente.", "error");
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  setupRedirectUri();
   $("config-origin").textContent = FASTCRM_ORIGIN;
   setupTabs();
   setupRoutes();

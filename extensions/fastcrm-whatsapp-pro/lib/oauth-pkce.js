@@ -53,7 +53,7 @@ export function parseCallback(callbackUrl, { redirectUri, expectedState }) {
   let url;
   try { url = new URL(callbackUrl); } catch { return { ok: false, error: "callback_invalido" }; }
   const expected = new URL(redirectUri);
-  if (url.protocol !== "https:" || url.origin !== expected.origin || url.pathname !== expected.pathname || url.username || url.password) {
+  if (url.protocol !== "https:" || url.origin !== expected.origin || url.pathname !== expected.pathname || url.username || url.password || url.hash || callbackUrl.includes("#")) {
     return { ok: false, error: "redirect_invalido" };
   }
   const p = url.searchParams;
