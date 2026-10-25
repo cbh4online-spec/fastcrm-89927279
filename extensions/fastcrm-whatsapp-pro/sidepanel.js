@@ -4,7 +4,11 @@
  * Não faz pedidos de rede nem lê dados de páginas.
  */
 import { normalizePhone } from "./lib/phone.js";
-import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl } from "./lib/urls.js";
+import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl, detailUrl } from "./lib/urls.js";
+import { isLookupReady } from "./lib/oauth-config.js";
+
+/** Estado só em memória; nunca persistido. */
+const state = { phone: null, workspaceId: "", nonce: 0, authStatus: "disconnected" };
 
 const $ = (id) => document.getElementById(id);
 
@@ -71,6 +75,8 @@ function setupPhone() {
 
   $("input-phone").addEventListener("input", () => {
     current = null;
+    state.phone = null;
+    clearResults();
     actions.hidden = true;
     setFeedback(feedback, "");
   });
@@ -80,11 +86,15 @@ function setupPhone() {
     const r = normalizePhone($("input-phone").value);
     if (!r.ok) {
       current = null;
+      state.phone = null;
+      clearResults();
       actions.hidden = true;
       setFeedback(feedback, r.error, "error");
       return;
     }
     current = r.e164;
+    state.phone = r.e164;
+    clearResults();
     $("phone-normalized").textContent = r.e164;
     actions.hidden = false;
     setFeedback(feedback, "Formato válido. Não foi feita nenhuma pesquisa no FastCRM.", "ok");
@@ -134,13 +144,141 @@ function sendAuth(type) {
   });
 }
 
+const LOOKUP_ERRORS = {
+  sessao_expirada: "Sessão expirada. Ligue-se novamente.",
+  acesso_negado: "Acesso negado a este workspace.",
+  instancia_nao_suportada: "Este workspace está noutra instância e não é suportado na extensão.",
+  limite_excedido: "Demasiados pedidos. Aguarde um minuto.",
+  servico_desativado: "Serviço de pesquisa desativado pelo administrador.",
+  api_nao_configurada: "Pesquisa no painel ainda não configurada.",
+  desligado: "Ligue-se ao FastCRM primeiro.",
+  workspace_invalido: "Escolha um workspace carregado.",
+  telefone_invalido: "Número inválido.",
+  rede_indisponivel: "Servidor indisponível. Tente mais tarde.",
+};
+const lookupError = (e) => LOOKUP_ERRORS[e] ?? "Não foi possível concluir a pesquisa.";
+
+function clearResults() {
+  state.nonce++;
+  $("list-contacts").replaceChildren();
+  $("list-leads").replaceChildren();
+  $("lookup-results").hidden = true;
+  setFeedback($("lookup-feedback"), "");
+  updateLookupButton();
+}
+
+function resetSession() {
+  state.workspaceId = "";
+  state.phone = null;
+  const sel = $("select-workspace");
+  sel.replaceChildren(new Option("— carregue as empresas —", ""));
+  sel.disabled = true;
+  $("input-phone").value = "";
+  $("phone-actions").hidden = true;
+  setFeedback($("phone-feedback"), "");
+  setFeedback($("workspace-feedback"), "");
+  clearResults();
+}
+
+function updateLookupButton() {
+  const enabled = state.authStatus === "connected" && isLookupReady();
+  $("panel-lookup").hidden = !enabled;
+  $("panel-lookup-pending").hidden = enabled;
+  $("workspace-block").hidden = !enabled;
+  $("btn-panel-lookup").disabled = !(enabled && state.phone && state.workspaceId);
+}
+
+function renderList(el, rows, kind, extraKey) {
+  el.replaceChildren();
+  if (!rows.length) {
+    const li = document.createElement("li");
+    li.textContent = "Nenhum resultado.";
+    el.append(li);
+    return;
+  }
+  for (const r of rows.slice(0, 10)) {
+    const li = document.createElement("li");
+    const text = document.createElement("span");
+    text.textContent = [r.name, r[extraKey], r.phone].filter(Boolean).join(" · ");
+    li.append(text);
+    const url = detailUrl(kind, r.id);
+    if (url && isAllowedUrl(url)) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn btn-secondary";
+      b.textContent = "Abrir ficha";
+      b.addEventListener("click", () => openTab(url, $("lookup-feedback")));
+      li.append(b);
+    }
+    el.append(li);
+  }
+}
+
+function setupPanelLookup() {
+  $("btn-load-workspaces").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    const fb = $("workspace-feedback");
+    setFeedback(fb, "A carregar…");
+    const r = await send({ type: "LIST_WORKSPACES" });
+    btn.disabled = false;
+    const sel = $("select-workspace");
+    state.workspaceId = "";
+    clearResults();
+    if (!r.ok) {
+      sel.replaceChildren(new Option("— indisponível —", ""));
+      sel.disabled = true;
+      setFeedback(fb, lookupError(r.error), "error");
+      if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); }
+      return;
+    }
+    sel.replaceChildren(new Option("— escolha —", ""), ...(r.workspaces ?? []).map((w) => new Option(w.name || "Workspace sem nome", w.id)));
+    sel.disabled = !(r.workspaces ?? []).length;
+    setFeedback(fb, (r.workspaces ?? []).length ? "Escolha o workspace." : "Sem workspaces disponíveis para o piloto.", (r.workspaces ?? []).length ? "ok" : "error");
+  });
+
+  $("select-workspace").addEventListener("change", (e) => {
+    state.workspaceId = e.currentTarget.value;
+    clearResults();
+  });
+
+  $("btn-panel-lookup").addEventListener("click", async () => {
+    if (!state.phone || !state.workspaceId) return;
+    const nonce = ++state.nonce;
+    const btn = $("btn-panel-lookup");
+    btn.disabled = true;
+    setFeedback($("lookup-feedback"), "A pesquisar…");
+    const r = await send({ type: "CONTACT_LOOKUP", workspaceId: state.workspaceId, phone: state.phone });
+    if (nonce !== state.nonce) return; // resposta atrasada: descartar
+    updateLookupButton();
+    if (!r.ok) {
+      setFeedback($("lookup-feedback"), lookupError(r.error), "error");
+      if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); }
+      return;
+    }
+    renderList($("list-contacts"), r.contacts ?? [], "contacts", "company");
+    renderList($("list-leads"), r.leads ?? [], "leads", "status");
+    $("lookup-results").hidden = false;
+    setFeedback($("lookup-feedback"), "Pesquisa concluída.", "ok");
+  });
+}
+
+function send(message) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(message, (r) => resolve(chrome.runtime.lastError || !r ? { ok: false, error: "erro_interno" } : r));
+  });
+}
+
 function renderAuth(status) {
+  if (status !== state.authStatus) resetSession();
+  state.authStatus = status;
   const [title, hint, dot] = AUTH_TEXT[status] ?? AUTH_TEXT.disconnected;
   $("auth-title").textContent = title;
   $("auth-hint").textContent = hint;
   $("auth-dot").className = "dot " + dot;
   $("btn-auth-login").hidden = status !== "disconnected";
   $("btn-auth-logout").hidden = status !== "connected";
+  updateLookupButton();
 }
 
 async function setupAuth() {
@@ -154,6 +292,7 @@ async function setupAuth() {
     setFeedback(fb, r.status === "connected" ? "Ligação estabelecida." : AUTH_ERRORS[r.error] ?? "Não foi possível ligar.", r.status === "connected" ? "ok" : "error");
   });
   $("btn-auth-logout").addEventListener("click", async () => {
+    resetSession();
     renderAuth((await sendAuth("AUTH_LOGOUT")).status);
     setFeedback(fb, "Ligação terminada.", "ok");
   });
@@ -164,5 +303,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTabs();
   setupRoutes();
   setupPhone();
+  setupPanelLookup();
   setupAuth();
 });
