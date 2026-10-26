@@ -286,6 +286,12 @@ function renderAuth(status) {
 }
 
 async function setupAuth() {
+  $("btn-auth-login").hidden = status !== "disconnected";
+  $("btn-auth-logout").hidden = status !== "connected";
+  updateLookupButton();
+}
+
+async function setupAuth() {
   const fb = $("auth-feedback");
   // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
   renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS").catch(() => ({ status: "disconnected" }))).status : "config_pending");
@@ -301,28 +307,6 @@ async function setupAuth() {
     // Pedido de permissão DIRETAMENTE no gesto, antes de qualquer await ou mensagem.
     const granted = requestServerAccess(globalThis.chrome);
     return finishLogin(btn, granted, fb);
-  });
-  $("btn-auth-logout").hidden = status !== "connected";
-  updateLookupButton();
-}
-
-async function setupAuth() {
-  const fb = $("auth-feedback");
-  // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
-  renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS").catch(() => ({ status: "disconnected" }))).status : "config_pending");
-  $("btn-auth-login").addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    try {
-      const r = await sendAuth("AUTH_START");
-      renderAuth(r.status);
-      setFeedback(fb, r.status === "connected" ? "Ligação estabelecida." : AUTH_ERRORS[r.error] ?? "Não foi possível ligar.", r.status === "connected" ? "ok" : "error");
-    } catch {
-      renderAuth(isOAuthConfigured() ? "disconnected" : "config_pending");
-      setFeedback(fb, "Não foi possível ligar. Tente novamente.", "error");
-    } finally {
-      btn.disabled = false;
-    }
   });
   $("btn-auth-logout").addEventListener("click", async () => {
     resetSession();
