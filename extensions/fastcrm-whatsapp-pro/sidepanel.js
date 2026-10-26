@@ -267,7 +267,7 @@ function setupPanelLookup() {
 function send(message) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(message, (r) => resolve(chrome.runtime.lastError || !r ? { ok: false, error: "erro_interno" } : r));
-  });
+  }).catch(() => ({ ok: false, error: "erro_interno" }));
 }
 
 function renderAuth(status) {
@@ -285,18 +285,30 @@ function renderAuth(status) {
 async function setupAuth() {
   const fb = $("auth-feedback");
   // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
-  renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS")).status : "config_pending");
+  renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS").catch(() => ({ status: "disconnected" }))).status : "config_pending");
   $("btn-auth-login").addEventListener("click", async (e) => {
-    e.currentTarget.disabled = true;
-    const r = await sendAuth("AUTH_START");
-    e.currentTarget.disabled = false;
-    renderAuth(r.status);
-    setFeedback(fb, r.status === "connected" ? "Ligação estabelecida." : AUTH_ERRORS[r.error] ?? "Não foi possível ligar.", r.status === "connected" ? "ok" : "error");
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const r = await sendAuth("AUTH_START");
+      renderAuth(r.status);
+      setFeedback(fb, r.status === "connected" ? "Ligação estabelecida." : AUTH_ERRORS[r.error] ?? "Não foi possível ligar.", r.status === "connected" ? "ok" : "error");
+    } catch {
+      renderAuth(isOAuthConfigured() ? "disconnected" : "config_pending");
+      setFeedback(fb, "Não foi possível ligar. Tente novamente.", "error");
+    } finally {
+      btn.disabled = false;
+    }
   });
   $("btn-auth-logout").addEventListener("click", async () => {
     resetSession();
-    renderAuth((await sendAuth("AUTH_LOGOUT")).status);
-    setFeedback(fb, "Ligação terminada.", "ok");
+    try {
+      renderAuth((await sendAuth("AUTH_LOGOUT")).status);
+      setFeedback(fb, "Ligação terminada.", "ok");
+    } catch {
+      renderAuth(isOAuthConfigured() ? "disconnected" : "config_pending");
+      setFeedback(fb, "Não foi possível confirmar o fim da ligação. Tente novamente.", "error");
+    }
   });
 }
 
