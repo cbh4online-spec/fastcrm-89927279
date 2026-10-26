@@ -1,5 +1,5 @@
 /**
- * Preflight administrativo do piloto OAuth (v0.4.1). Só Node standard, sem rede, sem segredos.
+ * Preflight administrativo do piloto OAuth (v0.4.3). Só Node standard, sem rede, sem segredos.
  * Lê ficheiros locais e indica PASS/FAIL. Nunca imprime valores de client_id, chaves ou tokens.
  *
  * Uso: node scripts/pilot-preflight.mjs [--expect=safe|pilot]
@@ -30,7 +30,8 @@ export async function runPreflight({ root = here, repoRoot = path.resolve(root, 
   try { m = JSON.parse(manifestRaw); } catch { /* fica null */ }
   add("manifest", "Manifest V3 válido", m?.manifest_version === 3);
   add("manifest", "Permissões exatas storage+sidePanel+identity", JSON.stringify(m?.permissions) === JSON.stringify(EXPECTED_PERMISSIONS));
-  add("manifest", "host_permissions só o backend FastCRM", JSON.stringify(m?.host_permissions) === JSON.stringify([`${HOST}/*`]));
+  add("manifest", "Sem host_permissions obrigatório (ausente ou [])", m && (m.host_permissions === undefined || (Array.isArray(m.host_permissions) && m.host_permissions.length === 0)));
+  add("manifest", "optional_host_permissions exato (só backend FastCRM)", JSON.stringify(m?.optional_host_permissions) === JSON.stringify([`${HOST}/*`]) && !m?.optional_permissions);
   add("manifest", "CSP exata (connect-src só backend)", m?.content_security_policy?.extension_pages === EXPECTED_CSP);
   add("manifest", "Sem content scripts / externally_connectable / key ad hoc", m && !m.content_scripts && !m.externally_connectable && !m.key);
   add("manifest", "Service worker e side panel definidos", m?.background?.service_worker === "background.js" && m?.side_panel?.default_path === "sidepanel.html");
@@ -59,10 +60,12 @@ export async function runPreflight({ root = here, repoRoot = path.resolve(root, 
   const oauthClient = await read(path.join(root, "lib/oauth-client.js"));
   add("segurança", "Tokens só em storage.session", oauthClient?.includes("storage.session") && !/storage\.(local|sync)/.test(oauthClient));
   add("segurança", "Proteção de corrida login/logout (geração + fila)", oauthClient?.includes("generation") && oauthClient.includes("login_em_curso") && oauthClient.includes("serial("));
+  const panel = await read(path.join(root, "sidepanel.js"));
+  add("segurança", "Painel pede permissão só no clique Ligar", (panel?.match(/requestServerAccess\(/g) ?? []).length === 1 && !/permissions\.request/.test(panel ?? ""));
   const messages = await read(path.join(root, "lib/messages.js"));
   add("segurança", "Nenhuma mensagem expõe token", messages && !/TOKEN/.test(messages.match(/MESSAGE_TYPES[^\n]+/)?.[0] ?? "TOKEN"));
 
-  for (const f of ["scripts/package-extension.mjs", "background.js", "sidepanel.html", "sidepanel.js", "lib/oauth-pkce.js", "lib/sw-handlers.js", "lib/extension-api.js"]) {
+  for (const f of ["scripts/package-extension.mjs", "background.js", "sidepanel.html", "sidepanel.js", "lib/oauth-pkce.js", "lib/sw-handlers.js", "lib/extension-api.js", "lib/server-permission.js"]) {
     add("ficheiros", `Existe ${f}`, (await read(path.join(root, f))) !== null);
   }
 

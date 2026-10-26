@@ -20,6 +20,7 @@ function harness() {
   const fetches = [];
   const chromeApi = {
     runtime: { id: EXT },
+    permissions: { contains: async () => true },
     identity: {
       getRedirectURL: (p) => `https://${EXT}.chromiumapp.org/${p}`,
       launchWebAuthFlow: ({ url }) => { const d = deferred(); launches.push({ state: new URL(url).searchParams.get("state"), ...d }); return d.p; },

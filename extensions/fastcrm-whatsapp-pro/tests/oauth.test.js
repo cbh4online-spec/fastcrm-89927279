@@ -16,6 +16,7 @@ function fakeChrome({ callback, launchError } = {}) {
   return {
     store,
     runtime: { id: EXT },
+    permissions: { contains: async () => true },
     identity: {
       getRedirectURL: (p) => `https://${EXT}.chromiumapp.org/${p}`,
       launchWebAuthFlow: async ({ url, interactive }) => {

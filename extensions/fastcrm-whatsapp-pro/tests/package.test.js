@@ -8,12 +8,12 @@ import { packageExtension, validatePackage } from '../scripts/package-extension.
 
 const sourceDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-test('pacote piloto inclui apenas os 17 ficheiros de execução, com manifest na raiz', async () => {
+test('pacote piloto inclui apenas os 18 ficheiros de execução, com manifest na raiz', async () => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'fastcrm-package-'));
   try {
     const result = await packageExtension({ sourceDir, distDir: path.join(temp, 'dist'), zipPath: path.join(temp, 'pilot.zip') });
-    assert.deepEqual(result.files, ['_locales/pt_PT/messages.json', 'background.js', 'icons/icon128.png', 'icons/icon16.png', 'icons/icon48.png', 'lib/extension-api.js', 'lib/messages.js', 'lib/oauth-client.js', 'lib/oauth-config.js', 'lib/oauth-pkce.js', 'lib/phone.js', 'lib/sw-handlers.js', 'lib/urls.js', 'manifest.json', 'sidepanel.css', 'sidepanel.html', 'sidepanel.js']);
-    assert.equal((await validatePackage(result.distDir)).version, '0.4.2');
+    assert.deepEqual(result.files, ['_locales/pt_PT/messages.json', 'background.js', 'icons/icon128.png', 'icons/icon16.png', 'icons/icon48.png', 'lib/extension-api.js', 'lib/messages.js', 'lib/oauth-client.js', 'lib/oauth-config.js', 'lib/oauth-pkce.js', 'lib/phone.js', 'lib/server-permission.js', 'lib/sw-handlers.js', 'lib/urls.js', 'manifest.json', 'sidepanel.css', 'sidepanel.html', 'sidepanel.js']);
+    assert.equal((await validatePackage(result.distDir)).version, '0.4.3');
     assert.equal((await fs.readFile(path.join(result.distDir, 'sidepanel.html'), 'utf8')).match(/Versão ([0-9.]+) · piloto/)?.[1], (await validatePackage(result.distDir)).version);
     if (result.zip) {
       assert.ok(result.size > 0);

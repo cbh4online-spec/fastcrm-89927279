@@ -1,5 +1,5 @@
 /**
- * FastCRM WhatsApp Pro — Side Panel (v0.3.0)
+ * FastCRM WhatsApp Pro — Side Panel (v0.4.3)
  * Uso manual: atalhos, validação local de números, cópia explícita.
  * Não faz pedidos de rede nem lê dados de páginas.
  */
@@ -7,6 +7,7 @@ import { normalizePhone } from "./lib/phone.js";
 import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl, detailUrl } from "./lib/urls.js";
 import { isLookupReady, isOAuthConfigured } from "./lib/oauth-config.js";
 import { oauthRedirectUri } from "./lib/oauth-pkce.js";
+import { requestServerAccess, isServerOriginRemoval } from "./lib/server-permission.js";
 
 /** Estado só em memória; nunca persistido. */
 const state = { phone: null, workspaceId: "", nonce: 0, authStatus: "disconnected" };
@@ -137,6 +138,7 @@ const AUTH_ERRORS = {
   autorizacao_cancelada: "Ligação cancelada.",
   autorizacao_recusada: "Autorização recusada.",
   rede_indisponivel: "Servidor indisponível. Tente mais tarde.",
+  sem_permissao_servidor: "O Chrome não autorizou o acesso ao servidor FastCRM. Clique «Ligar» e aceite o pedido.",
 };
 
 function sendAuth(type) {
@@ -156,6 +158,7 @@ const LOOKUP_ERRORS = {
   workspace_invalido: "Escolha um workspace carregado.",
   telefone_invalido: "Número inválido.",
   rede_indisponivel: "Servidor indisponível. Tente mais tarde.",
+  sem_permissao_servidor: "Sem autorização do Chrome para contactar o FastCRM. Ligue-se novamente.",
 };
 const lookupError = (e) => LOOKUP_ERRORS[e] ?? "Não foi possível concluir a pesquisa.";
 
@@ -286,6 +289,27 @@ async function setupAuth() {
   const fb = $("auth-feedback");
   // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
   renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS").catch(() => ({ status: "disconnected" }))).status : "config_pending");
+  $("btn-auth-login").addEventListener("click", (e) => {
+    const btn = e.currentTarget; // guardado sincronamente: o Chrome limpa currentTarget após o dispatch
+    if (!isOAuthConfigured()) {
+      // Build atual (inativa): nada é pedido ao Chrome nem ao service worker.
+      renderAuth("config_pending");
+      setFeedback(fb, "A ligação ao FastCRM ainda não está disponível nesta versão. Use o fluxo manual.", "error");
+      return;
+    }
+    btn.disabled = true;
+    // Pedido de permissão DIRETAMENTE no gesto, antes de qualquer await ou mensagem.
+    const granted = requestServerAccess(globalThis.chrome);
+    return finishLogin(btn, granted, fb);
+  });
+  $("btn-auth-logout").hidden = status !== "connected";
+  updateLookupButton();
+}
+
+async function setupAuth() {
+  const fb = $("auth-feedback");
+  // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
+  renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS").catch(() => ({ status: "disconnected" }))).status : "config_pending");
   $("btn-auth-login").addEventListener("click", async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;
@@ -310,6 +334,37 @@ async function setupAuth() {
       setFeedback(fb, "Não foi possível confirmar o fim da ligação. Tente novamente.", "error");
     }
   });
+}
+
+async function finishLogin(btn, granted, fb) {
+  try {
+    if (!(await granted)) {
+      renderAuth("disconnected");
+      setFeedback(fb, AUTH_ERRORS.sem_permissao_servidor, "error");
+      return;
+    }
+    const r = await sendAuth("AUTH_START");
+    renderAuth(r.status);
+    setFeedback(fb, r.status === "connected" ? "Ligação estabelecida." : AUTH_ERRORS[r.error] ?? "Não foi possível ligar.", r.status === "connected" ? "ok" : "error");
+  } catch {
+    renderAuth(isOAuthConfigured() ? "disconnected" : "config_pending");
+    setFeedback(fb, "Não foi possível ligar. Tente novamente.", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/** Revogação no Chrome: limpar telefone, resultados e workspaces; respostas atrasadas descartadas (nonce). */
+function onServerAccessRemoved(removed) {
+  if (!isServerOriginRemoval(removed)) return;
+  resetSession();
+  state.authStatus = "";
+  renderAuth(isOAuthConfigured() ? "disconnected" : "config_pending");
+  setFeedback($("auth-feedback"), "O acesso ao servidor foi retirado no Chrome. Ligação terminada.", "error");
+}
+
+function setupPermissionWatch() {
+  try { globalThis.chrome?.permissions?.onRemoved?.addListener(onServerAccessRemoved); } catch { /* sem API: nada a vigiar */ }
 }
 
 function setupRedirectUri() {
@@ -339,5 +394,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupRoutes();
   setupPhone();
   setupPanelLookup();
+  setupPermissionWatch();
   setupAuth();
 });

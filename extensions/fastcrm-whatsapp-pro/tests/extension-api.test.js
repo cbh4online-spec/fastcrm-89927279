@@ -27,7 +27,7 @@ test("endpoint fixo e pesquisa bloqueada por omissão", async () => {
 
 test("pedido: POST JSON, sem cookies/redirects, token só no Authorization", async () => {
   let sent;
-  const api = createExtensionApi({ ready: () => true, getToken: async () => TOKEN,
+  const api = createExtensionApi({ ready: () => true, hasAccess: async () => true, getToken: async () => TOKEN,
     fetchImpl: async (url, init) => { sent = { url, init }; return ok({ workspaces: [{ id: WS.toUpperCase(), name: "<b>X</b>", role: "agent", secret: "s" }, { id: "nao-uuid" }] }); } });
   const r = await api.listWorkspaces();
   assert.equal(sent.url, API_ENDPOINT);
@@ -42,16 +42,16 @@ test("pedido: POST JSON, sem cookies/redirects, token só no Authorization", asy
 });
 
 test("desligado ou token expirado não chama a rede", async () => {
-  const api = createExtensionApi({ ready: () => true, getToken: async () => null, fetchImpl: () => assert.fail("fetch") });
+  const api = createExtensionApi({ ready: () => true, hasAccess: async () => true, getToken: async () => null, fetchImpl: () => assert.fail("fetch") });
   assert.deepEqual(await api.listWorkspaces(), { ok: false, error: "desligado" });
   const store = { [SESSION_KEY]: { accessToken: TOKEN, expiresAt: 1000 + 20000 } };
-  const chromeApi = { runtime: { id: "x" }, storage: { session: { get: async (k) => ({ [k]: store[k] }), remove: async (k) => { delete store[k]; }, set: async () => {} } } };
+  const chromeApi = { runtime: { id: "x" }, permissions: { contains: async () => true }, storage: { session: { get: async (k) => ({ [k]: store[k] }), remove: async (k) => { delete store[k]; }, set: async () => {} } } };
   const client = createOAuthClient({ chromeApi, clientId: "client-123", now: () => 1000 });
   assert.equal(await client.getAccessTokenForServiceWorker(), null);
 });
 
 test("lookup: workspace fora da lista recebida, telefone inválido, sem rede", async () => {
-  const api = createExtensionApi({ ready: () => true, getToken: async () => TOKEN, fetchImpl: () => assert.fail("fetch") });
+  const api = createExtensionApi({ ready: () => true, hasAccess: async () => true, getToken: async () => TOKEN, fetchImpl: () => assert.fail("fetch") });
   const allowed = new Set([WS]);
   assert.equal((await api.lookup(OTHER, "912345678", allowed)).error, "workspace_invalido");
   assert.equal((await api.lookup(WS, "abc", allowed)).error, "telefone_invalido");
@@ -61,7 +61,7 @@ test("lookup: workspace fora da lista recebida, telefone inválido, sem rede", a
 test("lookup: normaliza, limita a 10, remove campos e registos de outro workspace", async () => {
   let body;
   const rows = Array.from({ length: 15 }, (_, i) => ({ id: `33333333-3333-4333-8333-${String(i).padStart(12, "0")}`, workspace_id: WS, name: "N", phone: "+351912345678", company: "Co", email: "a@b", notes: "x" }));
-  const api = createExtensionApi({ ready: () => true, getToken: async () => TOKEN,
+  const api = createExtensionApi({ ready: () => true, hasAccess: async () => true, getToken: async () => TOKEN,
     fetchImpl: async (_u, init) => { body = JSON.parse(init.body); return ok({ workspace_id: WS, contacts: [...rows, { id: C1, workspace_id: OTHER, name: "Y" }], leads: [{ id: C1, workspace_id: WS, name: "L", status: "new" }] }); } });
   const r = await api.lookup(WS, "912 345 678", new Set([WS]));
   assert.deepEqual(body, { action: "lookup", workspace_id: WS, phone: "+351912345678" });
@@ -76,10 +76,10 @@ test("lookup: normaliza, limita a 10, remove campos e registos de outro workspac
 test("códigos HTTP mapeados sem confundir com zero resultados", async () => {
   for (const [code, err] of [[401, "sessao_expirada"], [403, "acesso_negado"], [409, "instancia_nao_suportada"], [429, "limite_excedido"], [503, "servico_desativado"], [500, "erro_servico"]]) {
     assert.equal(mapHttpError(code), err);
-    const api = createExtensionApi({ ready: () => true, getToken: async () => TOKEN, fetchImpl: async () => ({ ok: false, status: code }) });
+    const api = createExtensionApi({ ready: () => true, hasAccess: async () => true, getToken: async () => TOKEN, fetchImpl: async () => ({ ok: false, status: code }) });
     assert.equal((await api.listWorkspaces()).error, err);
   }
-  const net = createExtensionApi({ ready: () => true, getToken: async () => TOKEN, fetchImpl: async () => { throw new Error("x"); } });
+  const net = createExtensionApi({ ready: () => true, hasAccess: async () => true, getToken: async () => TOKEN, fetchImpl: async () => { throw new Error("x"); } });
   assert.equal((await net.listWorkspaces()).error, "rede_indisponivel");
 });
 

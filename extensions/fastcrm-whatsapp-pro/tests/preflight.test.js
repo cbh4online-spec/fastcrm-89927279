@@ -19,7 +19,7 @@ const patchCfg = async (dir, from, to) => {
   await fs.writeFile(f, (await fs.readFile(f, "utf8")).replace(from, to));
 };
 
-test("v0.4.2 no repositório está fail-closed e passa o preflight", async () => {
+test("v0.4.3 no repositório está fail-closed e passa o preflight", async () => {
   const r = await runPreflight();
   assert.equal(r.ok, true, formatReport(r));
   assert.equal(r.active.apiPainel, "inativo");
