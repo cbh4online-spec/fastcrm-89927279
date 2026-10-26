@@ -70,3 +70,11 @@ node -e 'JSON.parse(require("fs").readFileSync("manifest.json"))'
 - Setup e arquitetura: `docs/fastcrm-whatsapp-pro/V0.4-ARQUITETURA-E-OPERACAO.md`.
 - Empacotar: `node scripts/package-extension.mjs --dist-only` (o ZIP piloto 0.3.1 público não é tocado).
 - 4B2: pesquisa no painel (workspaces + contactos/leads) implementada mas **desativada** (`API_READY=false`, client_id vazio). Ver docs V0.4-ARQUITETURA-E-OPERACAO.md.
+
+## v0.4.1 — piloto OAuth preparado, ainda inativo
+
+- Corrigida a corrida entre «Iniciar sessão» e «Terminar sessão» e entre dois inícios simultâneos (`lib/oauth-client.js`: geração por tentativa, uma tentativa ativa de cada vez, escritas em `storage.session` em fila). Um login antigo nunca reabre sessão depois de um logout.
+- `scripts/pilot-preflight.mjs` (`npm run preflight`): verificação local PASS/FAIL, sem rede nem segredos.
+- Testes: `tests/oauth-race.test.js`, `tests/preflight.test.js`.
+- Guia operacional: `docs/fastcrm-whatsapp-pro/PILOTO-OAUTH-ATIVACAO.md`.
+- `PUBLIC_CLIENT_ID=""` e `API_READY=false` mantêm-se. Sem ZIP público v0.4.1 (só `--dist-only`).
