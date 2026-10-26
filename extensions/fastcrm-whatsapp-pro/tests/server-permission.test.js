@@ -13,6 +13,7 @@ const TOKEN = "t".repeat(40);
 const WS = "11111111-1111-4111-8111-111111111111";
 const deferred = () => { let resolve; const p = new Promise((r) => (resolve = r)); return { p, resolve }; };
 const tick = () => new Promise((r) => setImmediate(r));
+const until = async (f) => { for (let i = 0; i < 200 && !f(); i++) await tick(); assert.ok(f(), "condição não atingida"); };
 
 test("manifest: host obrigatório ausente, opcional exato, CSP inalterada", () => {
   const m = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
@@ -119,7 +120,7 @@ test("revogação durante callback OAuth: sem troca de token", async () => {
   let granted = true;
   const h = oauthHarness({ access: async () => granted });
   const p = h.oauth.start();
-  await tick(); await tick();
+  await until(() => h.launches.length === 1);
   granted = false;
   h.launches[0].resolve(`${REDIRECT}?code=abcdefgh12&state=${h.launches[0].state}`);
   const r = await p;
@@ -131,9 +132,9 @@ test("revogação durante callback OAuth: sem troca de token", async () => {
 test("revogação (onRemoved => logout) durante troca de token: token descartado", async () => {
   const h = oauthHarness({ access: async () => true });
   const p = h.oauth.start();
-  await tick(); await tick();
+  await until(() => h.launches.length === 1);
   h.launches[0].resolve(`${REDIRECT}?code=abcdefgh12&state=${h.launches[0].state}`);
-  for (let i = 0; i < 10 && !h.fetches.length; i++) await tick();
+  await until(() => h.fetches.length === 1);
   await h.oauth.logout();
   okToken(h.fetches[0]);
   assert.equal((await p).error, "sessao_alterada");
@@ -144,9 +145,9 @@ test("permissão retirada após ligação: status desligado e token apagado", as
   let granted = true;
   const h = oauthHarness({ access: async () => granted });
   const p = h.oauth.start();
-  await tick(); await tick();
+  await until(() => h.launches.length === 1);
   h.launches[0].resolve(`${REDIRECT}?code=abcdefgh12&state=${h.launches[0].state}`);
-  for (let i = 0; i < 10 && !h.fetches.length; i++) await tick();
+  await until(() => h.fetches.length === 1);
   okToken(h.fetches[0]);
   assert.equal((await p).status, "connected");
   granted = false;
