@@ -1,4 +1,15 @@
-# Piloto local myMYA Hub — v0.4.2 inativo
+# Piloto local myMYA Hub — v0.4.3 inativo
+
+1. Extrair `fastcrm-whatsapp-pro-v0.4.3-inactivo.zip` para uma pasta fixa; `chrome://extensions` → **Modo de programador** → **Carregar sem compactação** → pasta com `manifest.json`.
+2. Confirmar versão **0.4.3**. Ao instalar, o Chrome já **não** pede acesso ao servidor FastCRM (passou a opcional).
+3. O painel mostra **Configuração OAuth pendente**; «Ligar» não pede permissões nem contacta o servidor (`PUBLIC_CLIENT_ID` vazio, `API_READY=false`).
+4. Ao atualizar a partir da 0.4.2 (mesma pasta + **Recarregar**), a extensão tenta retirar o acesso antigo ao servidor. Confirmar em **Detalhes → Acesso ao site** e com `chrome.permissions.contains(...)` na consola do service worker; se continuar concedido, revogar manualmente. Ver `docs/fastcrm-whatsapp-pro/DISTRIBUICAO-PRIVADA.md`.
+
+Pacote local, não publicado nem submetido à Chrome Web Store. ZIPs 0.4.1/0.4.2 preservados. Reprodução: `packageExtension({ distOnly: true, distDir })` + `python3 scripts/make-pilot-zip.py <dist> <zip>`.
+
+---
+
+## Histórico — v0.4.2 inativo
 
 1. Extrair `fastcrm-whatsapp-pro-v0.4.2-inactivo.zip` para uma nova pasta fixa no computador.
 2. Abrir `chrome://extensions` e ativar **Modo de programador**.

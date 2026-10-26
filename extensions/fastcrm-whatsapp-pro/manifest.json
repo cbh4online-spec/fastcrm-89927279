@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FastCRM WhatsApp Pro",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Painel lateral do FastCRM para trabalho manual e assistido junto do WhatsApp Web. Sem envio automático, sem leitura de conversas.",
   "default_locale": "pt_PT",
   "minimum_chrome_version": "116",
@@ -10,7 +10,7 @@
     "sidePanel",
     "identity"
   ],
-  "host_permissions": [
+  "optional_host_permissions": [
     "https://eumnfkccyvlyoyjchiwe.supabase.co/*"
   ],
   "content_security_policy": {

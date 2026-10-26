@@ -110,3 +110,10 @@ Alterações limitadas à extensão, documentação, `src/pages/WhatsAppPro.tsx`
 - **Não feito / bloqueado:** ID estável da extensão, ativação do servidor OAuth, registo do cliente, variáveis do backend, login real e E2E com 2 utilizadores/2 workspaces. Correções da página de consentimento (ver secção 9 do guia) ficam para a próxima iteração.
 - **Riscos:** consentimento sem scopes visíveis; `/login` e `/.lovable/oauth/consent` estão registadas (falta testar o fluxo real de login e retorno com `authorization_id`, incluindo Google/Apple); ID unpacked diferente entre máquinas; pendência RLS 0079 separada e não alterada.
 - ZIP público v0.3.1 inalterado.
+
+
+## v0.4.3 — acesso ao servidor opcional, ainda inativo
+
+- `host_permissions` removido; `optional_host_permissions` exato com o host atual. CSP e permissões nomeadas inalteradas.
+- `lib/server-permission.js`: pedido só no clique «Ligar» (e só com cliente OAuth configurado), verificação no SW antes de OAuth/token/API, revogação via `onRemoved`, migração que retira o host antigo apenas no estado seguro.
+- Detalhes, verificação pós-upgrade e checklist de loja: `DISTRIBUICAO-PRIVADA.md`. Domínio próprio para API: não configurado.

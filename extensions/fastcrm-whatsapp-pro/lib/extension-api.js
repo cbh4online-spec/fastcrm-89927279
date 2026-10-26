@@ -36,11 +36,15 @@ export function sanitizeLookup(body, workspaceId) {
   return { contacts: pick(body.contacts, "company"), leads: pick(body.leads, "status") };
 }
 
-export function createExtensionApi({ fetchImpl = fetch, getToken, ready = () => isLookupReady() }) {
+/** hasAccess é assíncrono e separado de ready() (síncrono): uma Promise nunca conta como "pronto". */
+export function createExtensionApi({ fetchImpl = fetch, getToken, ready = () => isLookupReady(), hasAccess = async () => false }) {
+  const access = async () => { try { return (await hasAccess()) === true; } catch { return false; } };
   async function call(payload) {
-    if (!ready()) return { ok: false, error: "api_nao_configurada" };
+    if (ready() !== true) return { ok: false, error: "api_nao_configurada" };
+    if (!(await access())) return { ok: false, error: "sem_permissao_servidor" };
     const token = await getToken();
     if (!token) return { ok: false, error: "desligado" };
+    if (!(await access())) return { ok: false, error: "sem_permissao_servidor" };
     const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
     if (API_REQUIRES_PUBLIC_KEY) headers.apikey = PUBLIC_API_KEY;
     const controller = new AbortController();
