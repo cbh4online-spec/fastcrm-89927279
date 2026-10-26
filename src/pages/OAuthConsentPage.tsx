@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ShieldCheck } from "lucide-react";
 
-type OAuthRedirect = { redirect_url?: string; redirect_to?: string };
+type OAuthRedirect = { redirect_url?: string };
 type OAuthDetails = OAuthRedirect & {
   client?: { name?: string } | null;
   scope?: string;
@@ -71,7 +71,7 @@ export default function OAuthConsentPage() {
           setError(LOAD_ERROR);
           return;
         }
-        const immediate = data.redirect_url ?? data.redirect_to;
+        const immediate = data.redirect_url;
         // Destino devolvido pelo SDK para consentimento já concedido; não vem da URL da página.
         if (immediate && !data.client) {
           window.location.href = immediate;
@@ -103,7 +103,7 @@ export default function OAuthConsentPage() {
       const { data, error: err } = approve
         ? await api.approveAuthorization(authorizationId)
         : await api.denyAuthorization(authorizationId);
-      const target = data?.redirect_url ?? data?.redirect_to;
+      const target = data?.redirect_url;
       if (err || !target) {
         setError(DECISION_ERROR);
         return;
