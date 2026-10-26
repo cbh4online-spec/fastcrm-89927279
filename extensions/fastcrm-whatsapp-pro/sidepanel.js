@@ -286,12 +286,6 @@ function renderAuth(status) {
 }
 
 async function setupAuth() {
-  $("btn-auth-login").hidden = status !== "disconnected";
-  $("btn-auth-logout").hidden = status !== "connected";
-  updateLookupButton();
-}
-
-async function setupAuth() {
   const fb = $("auth-feedback");
   // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
   renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS").catch(() => ({ status: "disconnected" }))).status : "config_pending");
