@@ -1,5 +1,5 @@
 /**
- * FastCRM WhatsApp Pro — Service Worker (MV3, v0.4.1)
+ * FastCRM WhatsApp Pro — Service Worker (MV3, v0.4.3)
  *
  * - OPEN_TAB: abre separadores da allowlist (lib/urls.js), incluindo fichas por UUID.
  * - AUTH_STATUS / AUTH_START / AUTH_LOGOUT: OAuth 2.1 + PKCE (lib/oauth-client.js).
@@ -9,15 +9,29 @@
 import { createHandler } from "./lib/sw-handlers.js";
 import { createOAuthClient } from "./lib/oauth-client.js";
 import { createExtensionApi } from "./lib/extension-api.js";
+import { hasServerAccess, isServerOriginRemoval, migrateSafeState } from "./lib/server-permission.js";
 import { isTrustedSender, isKnownMessage, sanitizeResponse } from "./lib/messages.js";
 
 const oauth = createOAuthClient({ chromeApi: chrome });
-const api = createExtensionApi({ getToken: () => oauth.getAccessTokenForServiceWorker() });
-const { handle } = createHandler({ oauth, api, openTab: (url) => chrome.tabs.create({ url }) });
+const api = createExtensionApi({ getToken: () => oauth.getAccessTokenForServiceWorker(), hasAccess: () => hasServerAccess(chrome) });
+const { handle, revoke } = createHandler({ oauth, api, openTab: (url) => chrome.tabs.create({ url }) });
 
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch(() => console.error("[FastCRM] setPanelBehavior falhou"));
+
+// v0.4.3: revogação do acesso ao servidor (chrome://extensions) => sessão invalidada.
+chrome.permissions?.onRemoved?.addListener((removed) => {
+  if (isServerOriginRemoval(removed)) revoke();
+});
+
+// Migração 0.4.2 -> 0.4.3: só remove o host antigo no estado seguro (sem client_id, API_READY=false).
+// Sem rede e sem dados sensíveis nos logs; resultado guardado só para diagnóstico em Configurações.
+const runMigration = () => migrateSafeState(chrome)
+  .then((result) => chrome.storage.local.set({ fastcrm_permission_migration: result }))
+  .catch(() => {});
+chrome.runtime.onInstalled.addListener(runMigration);
+chrome.runtime.onStartup.addListener(runMigration);
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!isTrustedSender(sender, chrome.runtime.id)) {

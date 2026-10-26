@@ -47,5 +47,11 @@ export function createHandler({ oauth, api, openTab }) {
     }
   }
 
-  return { handle, _allowedCount: () => allowedWorkspaces.size };
+  /** Revogação da permissão do servidor: invalida sessão, workspaces e respostas pendentes. */
+  async function revoke() {
+    resetSession();
+    try { await oauth.logout(); } catch { /* falha fechada: sessão já invalidada em memória */ }
+  }
+
+  return { handle, revoke, _allowedCount: () => allowedWorkspaces.size };
 }

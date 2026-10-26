@@ -4,6 +4,8 @@
  * A UI só recebe estados: "config_pending" | "disconnected" | "connected".
  * Sem refresh nesta versão (falha fechada: token expirado = desligado).
  *
+ * v0.4.3 — permissão opcional do host verificada antes do OAuth, da troca de token, da
+ *   gravação e de cada leitura do token; revogação => logout() (invalida a geração).
  * v0.4.1 — concorrência:
  * - `generation` é incrementado por logout() e por cada start() aceite. Uma tentativa só
  *   grava o token se a sua geração ainda for a atual NO MOMENTO da escrita (verificado
@@ -15,6 +17,7 @@
  */
 import { AUTHORIZE_ENDPOINT, TOKEN_ENDPOINT, PUBLIC_CLIENT_ID, SCOPES, REDIRECT_PATH, NETWORK_TIMEOUT_MS, isOAuthConfigured } from "./oauth-config.js";
 import { buildAuthorizeRequest, parseCallback, isValidRedirectUri } from "./oauth-pkce.js";
+import { hasServerAccess } from "./server-permission.js";
 
 export const SESSION_KEY = "fastcrm_oauth_session";
 
@@ -81,6 +84,9 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
 
   async function runAttempt(gen) {
     const stale = () => gen !== generation;
+    // Defesa em profundidade: chamadas diretas ao SW não contornam o consentimento do Chrome.
+    if (!(await access())) return { status: await status(), error: "sem_permissao_servidor" };
+    if (stale()) return { status: await status(), error: "sessao_alterada" };
     const extensionId = chromeApi.runtime.id;
     const redirectUri = chromeApi.identity.getRedirectURL(REDIRECT_PATH);
     if (!isValidRedirectUri(redirectUri, extensionId)) return { status: await status(), error: "redirect_invalido" };
@@ -96,6 +102,8 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
     const parsed = parseCallback(callback, { redirectUri, expectedState: req.state });
     if (!parsed.ok) return { status: await status(), error: parsed.error };
 
+    if (!(await access())) return stale() ? { status: await status(), error: "sessao_alterada" } : await failAttempt("sem_permissao_servidor");
+    if (stale()) return { status: await status(), error: "sessao_alterada" };
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
     let body;
@@ -124,6 +132,7 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
     const session = validateTokenResponse(body, now());
     if (stale()) return { status: await status(), error: "sessao_alterada" };
     if (!session) return await failAttempt("token_invalido");
+    if (!(await access())) return stale() ? { status: await status(), error: "sessao_alterada" } : await failAttempt("sem_permissao_servidor");
     // Verificação final dentro da fila: logout enfileira remove depois deste set.
     const written = await serial(async () => {
       if (stale()) return false;
