@@ -7,7 +7,7 @@ import vm from "node:vm";
 const source = readFileSync(new URL("../sidepanel.js", import.meta.url), "utf8")
   .replace(/^import .*;\r?$/gm, "");
 
-async function harness({ configured = true, transportThrows = false } = {}) {
+async function harness({ configured = true, transportThrows = false, action = "btn-auth-login", statusThrows = false } = {}) {
   const elements = new Map();
   const element = (id) => {
     if (!elements.has(id)) elements.set(id, {
@@ -25,7 +25,10 @@ async function harness({ configured = true, transportThrows = false } = {}) {
     chrome: { runtime: {
       lastError: null,
       sendMessage(message, callback) {
-        if (message.type === "AUTH_STATUS") return callback({ status: "disconnected" });
+        if (message.type === "AUTH_STATUS") {
+          if (statusThrows) throw new Error("estado indisponível");
+          return callback({ status: "disconnected" });
+        }
         if (transportThrows) throw new Error("transporte inesperado");
         reply = callback;
       },
@@ -33,13 +36,34 @@ async function harness({ configured = true, transportThrows = false } = {}) {
   });
   vm.runInContext(source, context, { filename: "sidepanel.js" });
   await vm.runInContext("setupAuth()", context);
-  const button = element("btn-auth-login");
+  vm.runInContext("setupPanelLookup()", context);
+  if (action === "btn-panel-lookup") vm.runInContext('state.phone = "+351912345678"; state.workspaceId = "workspace-teste"', context);
+  const button = element(action);
   const event = { currentTarget: button };
   const completion = button.listeners.get("click")(event);
   // O Chrome limpa currentTarget ao terminar o dispatch, antes da resposta assíncrona.
   event.currentTarget = null;
   return { context, element, button, completion, reply: (result) => reply(result) };
 }
+
+for (const action of ["btn-auth-logout", "btn-load-workspaces", "btn-panel-lookup"]) {
+  test(`${action}: falha inesperada de transporte é tratada no handler real`, async () => {
+    const h = await harness({ action, transportThrows: true });
+    await assert.doesNotReject(h.completion);
+    const feedback = h.element(action === "btn-auth-logout" ? "auth-feedback" : action === "btn-load-workspaces" ? "workspace-feedback" : "lookup-feedback");
+    assert.ok(feedback.textContent.length > 0);
+    if (action === "btn-load-workspaces") assert.equal(h.button.disabled, false);
+    if (action === "btn-auth-logout") assert.equal(vm.runInContext("state.authStatus", h.context), "disconnected");
+  });
+}
+
+test("estado inicial: transporte inesperado mantém o painel desligado e operacional", async () => {
+  const h = await harness({ statusThrows: true });
+  assert.equal(vm.runInContext("state.authStatus", h.context), "disconnected");
+  h.reply({ status: "config_pending" });
+  await assert.doesNotReject(h.completion);
+  assert.equal(h.button.disabled, false);
+});
 
 for (const [name, result, configured, expectedStatus] of [
   ["sucesso", { status: "connected" }, true, "connected"],
