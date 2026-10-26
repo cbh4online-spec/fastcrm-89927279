@@ -79,6 +79,7 @@ for (const action of ["btn-auth-logout", "btn-load-workspaces", "btn-panel-looku
 test("estado inicial: transporte inesperado mantém o painel desligado e operacional", async () => {
   const h = await harness({ statusThrows: true });
   assert.equal(vm.runInContext("state.authStatus", h.context), "disconnected");
+  await new Promise((r) => setImmediate(r)); // AUTH_START só depois da concessão
   h.reply({ status: "config_pending" });
   await assert.doesNotReject(h.completion);
   assert.equal(h.button.disabled, false);
