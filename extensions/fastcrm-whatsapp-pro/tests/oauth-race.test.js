@@ -11,6 +11,7 @@ const CLIENT = "client-test-123";
 const TOKEN = "tok_" + "x".repeat(40);
 const deferred = () => { let resolve, reject; const p = new Promise((r, j) => { resolve = r; reject = j; }); return { p, resolve, reject }; };
 const tick = () => new Promise((r) => setTimeout(r, 0));
+const until = async (fn) => { for (let i = 0; i < 500 && !fn(); i++) await tick(); assert.ok(fn(), "estado esperado não atingido"); };
 
 /** Chrome falso em que o callback e a troca de token ficam pendentes até o teste decidir. */
 function harness() {
@@ -39,8 +40,8 @@ function harness() {
 test("fluxo normal continua a ligar", async () => {
   const h = harness();
   const p = h.oauth.start();
-  await tick(); h.callback(h.launches[0]);
-  await tick(); await tick(); h.okToken(h.fetches[0]);
+  await until(() => h.launches[0]); h.callback(h.launches[0]);
+  await until(() => h.fetches[0]); h.okToken(h.fetches[0]);
   assert.deepEqual(await p, { status: "connected" });
   assert.equal(await h.oauth.status(), "connected");
 });
@@ -48,7 +49,7 @@ test("fluxo normal continua a ligar", async () => {
 test("logout durante o callback: sessão nunca é reaberta", async () => {
   const h = harness();
   const p = h.oauth.start();
-  await tick();
+  await until(() => h.launches[0]);
   assert.equal(await h.oauth.logout(), "disconnected");
   h.callback(h.launches[0]);
   const r = await p;
@@ -61,8 +62,8 @@ test("logout durante o callback: sessão nunca é reaberta", async () => {
 test("logout durante a troca de token lenta: token descartado", async () => {
   const h = harness();
   const p = h.oauth.start();
-  await tick(); h.callback(h.launches[0]);
-  await tick(); await tick();
+  await until(() => h.launches[0]); h.callback(h.launches[0]);
+  await until(() => h.fetches[0]);
   assert.equal(h.fetches.length, 1);
   await h.oauth.logout();
   h.okToken(h.fetches[0]);
@@ -76,8 +77,8 @@ test("logout durante a troca de token lenta: token descartado", async () => {
 test("logout concorrente com a escrita do token: estado final desligado", async () => {
   const h = harness();
   const p = h.oauth.start();
-  await tick(); h.callback(h.launches[0]);
-  await tick(); await tick();
+  await until(() => h.launches[0]); h.callback(h.launches[0]);
+  await until(() => h.fetches[0]);
   h.okToken(h.fetches[0]);
   // Interleavings: logout em vários pontos à volta do storage.set.
   for (let i = 0; i < 3; i++) await tick();
@@ -90,24 +91,24 @@ test("logout concorrente com a escrita do token: estado final desligado", async 
 test("AUTH_START simultâneo é recusado e não toca no primeiro", async () => {
   const h = harness();
   const p1 = h.oauth.start();
-  await tick();
+  await until(() => h.launches[0]);
   const r2 = await h.oauth.start();
   assert.equal(r2.error, "login_em_curso");
   assert.equal(h.launches.length, 1);
   h.callback(h.launches[0]);
-  await tick(); await tick(); h.okToken(h.fetches[0]);
+  await until(() => h.fetches[0]); h.okToken(h.fetches[0]);
   assert.deepEqual(await p1, { status: "connected" });
 });
 
 test("tentativa antiga lenta não sobrepõe login novo após logout", async () => {
   const h = harness();
   const old = h.oauth.start();
-  await tick(); h.callback(h.launches[0]);
-  await tick(); await tick();
+  await until(() => h.launches[0]); h.callback(h.launches[0]);
+  await until(() => h.fetches[0]);
   await h.oauth.logout();
   const fresh = h.oauth.start();
-  await tick(); h.callback(h.launches[1]);
-  await tick(); await tick();
+  await until(() => h.launches[1]); h.callback(h.launches[1]);
+  await until(() => h.fetches[1]);
   h.okToken(h.fetches[1], "tok_new_" + "y".repeat(40));
   assert.deepEqual(await fresh, { status: "connected" });
   h.okToken(h.fetches[0], "tok_old_" + "z".repeat(40));
@@ -118,11 +119,11 @@ test("tentativa antiga lenta não sobrepõe login novo após logout", async () =
 test("cancelamento e falha de troca deixam desligado", async () => {
   const h = harness();
   const p = h.oauth.start();
-  await tick(); h.launches[0].reject(new Error("cancel"));
+  await until(() => h.launches[0]); h.launches[0].reject(new Error("cancel"));
   assert.equal((await p).error, "autorizacao_cancelada");
   const p2 = h.oauth.start();
-  await tick(); h.callback(h.launches[1]);
-  await tick(); await tick(); h.fetches[0].resolve({ ok: false });
+  await until(() => h.launches[1]); h.callback(h.launches[1]);
+  await until(() => h.fetches[0]); h.fetches[0].resolve({ ok: false });
   assert.deepEqual(await p2, { status: "disconnected", error: "troca_token_falhou" });
 });
 
@@ -131,7 +132,7 @@ test("handler: logout durante AUTH_START não deixa workspaces nem token na UI",
   const api = { listWorkspaces: async () => ({ ok: true, workspaces: [{ id: "11111111-1111-4111-8111-111111111111", name: "A", role: "owner" }] }), lookup: async () => ({ ok: true, contacts: [], leads: [] }) };
   const sw = createHandler({ oauth: h.oauth, api, openTab: async () => {} });
   const start = sw.handle({ type: "AUTH_START" });
-  await tick();
+  await until(() => h.launches[0]);
   await sw.handle({ type: "AUTH_LOGOUT" });
   h.callback(h.launches[0]);
   const r = sanitizeResponse(await start, "AUTH_START");
