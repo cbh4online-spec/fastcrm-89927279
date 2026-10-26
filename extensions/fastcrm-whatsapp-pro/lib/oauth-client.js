@@ -56,10 +56,9 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
     return isOAuthConfigured(clientId) ? "disconnected" : "config_pending";
   }
 
-  /** Remove sessão só se a tentativa ainda for a atual (não apaga sessão de login posterior). */
-  async function failAttempt(gen, error) {
-    if (gen === generation) await logout();
-    return { status: await status(), error: gen === generation || activeAttempt === 0 ? error : "sessao_alterada" };
+  /** Só chamado quando a tentativa ainda é a atual: falha fechada (limpa sessão). */
+  async function failAttempt(error) {
+    return { status: await logout(), error };
   }
 
   async function start() {
@@ -109,26 +108,23 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
         credentials: "omit",
         redirect: "error",
       });
-      if (!res.ok) return stale() ? { status: await status(), error: "sessao_alterada" } : await failAttempt(gen, "troca_token_falhou");
+      if (!res.ok) return stale() ? { status: await status(), error: "sessao_alterada" } : await failAttempt("troca_token_falhou");
       body = await res.json();
     } catch {
-      return stale() ? { status: await status(), error: "sessao_alterada" } : await failAttempt(gen, "rede_indisponivel");
+      return stale() ? { status: await status(), error: "sessao_alterada" } : await failAttempt("rede_indisponivel");
     } finally {
       clearTimeout(timer);
     }
     const session = validateTokenResponse(body, now());
     if (stale()) return { status: await status(), error: "sessao_alterada" };
-    if (!session) return await failAttempt(gen, "token_invalido");
+    if (!session) return await failAttempt("token_invalido");
     // Verificação final dentro da fila: logout enfileira remove depois deste set.
     const written = await serial(async () => {
       if (stale()) return false;
       await storage.set({ [SESSION_KEY]: session });
       return true;
     });
-    if (!written || stale()) {
-      if (!written) return { status: await status(), error: "sessao_alterada" };
-      return { status: await status(), error: "sessao_alterada" };
-    }
+    if (!written || stale()) return { status: await status(), error: "sessao_alterada" };
     return { status: "connected" };
   }
 
