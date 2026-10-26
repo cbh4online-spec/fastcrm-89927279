@@ -27,12 +27,14 @@ export function validateTokenResponse(body, now = Date.now()) {
   return { accessToken: access_token, expiresAt: now + expires_in * 1000 };
 }
 
-export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUBLIC_CLIENT_ID, now = () => Date.now() }) {
+export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUBLIC_CLIENT_ID, now = () => Date.now(), hasAccess = () => hasServerAccess(chromeApi) }) {
   const storage = chromeApi.storage.session;
   let generation = 0;
   let activeAttempt = 0; // geração da tentativa em curso (0 = nenhuma)
   let queue = Promise.resolve();
   const serial = (fn) => { const run = queue.then(fn, fn); queue = run.catch(() => {}); return run; };
+  // Guard assíncrono separado (v0.4.3): sem permissão opcional concedida => sem OAuth/token.
+  const access = async () => { try { return (await hasAccess()) === true; } catch { return false; } };
 
   async function readSession() {
     const data = await storage.get(SESSION_KEY);
@@ -41,6 +43,10 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
 
   async function status() {
     if (!isOAuthConfigured(clientId)) return "config_pending";
+    if (!(await access())) {
+      await serial(() => storage.remove(SESSION_KEY));
+      return "disconnected";
+    }
     const s = await readSession();
     if (!s || typeof s.accessToken !== "string" || !Number.isFinite(s.expiresAt) || s.expiresAt - 30000 <= now()) {
       if (s) await serial(() => storage.remove(SESSION_KEY));
