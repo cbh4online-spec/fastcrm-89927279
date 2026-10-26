@@ -108,5 +108,5 @@ Alterações limitadas à extensão, documentação, `src/pages/WhatsAppPro.tsx`
 
 - **Feito:** proteção de concorrência no login (logout durante callback ou troca de token descarta o token; segundo login simultâneo recusado com `login_em_curso`; workspaces limpos); preflight local; guia `PILOTO-OAUTH-ATIVACAO.md`; versão 0.4.1 (manifest, package, validador do empacotador).
 - **Não feito / bloqueado:** ID estável da extensão, ativação do servidor OAuth, registo do cliente, variáveis do backend, login real e E2E com 2 utilizadores/2 workspaces. Correções da página de consentimento (ver secção 9 do guia) ficam para a próxima iteração.
-- **Riscos:** consentimento sem scopes visíveis; redirect `/login` vs `/auth`; ID unpacked diferente entre máquinas; pendência RLS 0079 separada e não alterada.
+- **Riscos:** consentimento sem scopes visíveis; `/login` e `/.lovable/oauth/consent` estão registadas (falta testar o fluxo real de login e retorno com `authorization_id`, incluindo Google/Apple); ID unpacked diferente entre máquinas; pendência RLS 0079 separada e não alterada.
 - ZIP público v0.3.1 inalterado.

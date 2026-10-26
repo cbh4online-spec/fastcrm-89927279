@@ -110,7 +110,7 @@ Ficheiro: `src/pages/OAuthConsentPage.tsx`. Pendências para a próxima iteraç�
 |---|---|
 | Alta | Não mostra os **scopes** pedidos nem o redirect/cliente de forma verificável; só o nome. |
 | Alta | Se a resposta trouxer `redirect_url` sem `client`, redireciona **sem consentimento visível**. Confirmar que só acontece em consentimento já concedido. |
-| Média | Redireciona para `/login?redirect=…`; a app usa `/auth`. Confirmar que `/login` existe/redireciona, senão o fluxo quebra para utilizadores sem sessão. |
+| Confirmado | `/login` e `/.lovable/oauth/consent` estão registadas; falta testar o fluxo real de login e retorno com `authorization_id` (incluindo Google/Apple). |
 | Média | Mostra `error.message` do servidor tal como vem; preferir mensagens PT-PT controladas. |
 | Baixa | Tipos `any` nos detalhes da autorização. |
 
