@@ -1,5 +1,5 @@
 /**
- * FastCRM WhatsApp Pro — Service Worker (MV3, v0.4.0)
+ * FastCRM WhatsApp Pro — Service Worker (MV3, v0.4.1)
  *
  * - OPEN_TAB: abre separadores da allowlist (lib/urls.js), incluindo fichas por UUID.
  * - AUTH_STATUS / AUTH_START / AUTH_LOGOUT: OAuth 2.1 + PKCE (lib/oauth-client.js).
