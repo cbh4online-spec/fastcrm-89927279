@@ -26,9 +26,9 @@ chrome.permissions?.onRemoved?.addListener((removed) => {
 });
 
 // Migração 0.4.2 -> 0.4.3: só remove o host antigo no estado seguro (sem client_id, API_READY=false).
-// Sem rede e sem dados sensíveis nos logs; resultado guardado só para diagnóstico em Configurações.
+// Sem rede e sem persistência; só o código de resultado (nunca tokens) vai para a consola do SW.
 const runMigration = () => migrateSafeState(chrome)
-  .then((result) => chrome.storage.local.set({ fastcrm_permission_migration: result }))
+  .then((result) => { if (result === "remove_failed") console.warn("[FastCRM] host antigo não removido; revogar manualmente em chrome://extensions"); })
   .catch(() => {});
 chrome.runtime.onInstalled.addListener(runMigration);
 chrome.runtime.onStartup.addListener(runMigration);
