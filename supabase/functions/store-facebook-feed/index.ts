@@ -2,6 +2,7 @@
 // Uso: GET /functions/v1/store-facebook-feed?slug=<store_slug>
 // Só expõe produtos publicados na loja (dados já públicos na loja online).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { storeFeedPrice } from '../_shared/storeFeedPrice.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +12,6 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const DEFAULT_DOMAIN = "fastcrm.metodopare.ai";
-const DEFAULT_VAT = 23;
 
 const esc = (s: unknown) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -59,9 +59,8 @@ Deno.serve(async (req) => {
     const imgs: string[] = Array.isArray(p.images) ? p.images.filter((u: unknown) => typeof u === "string" && u) : [];
     const main = imgs[p.primary_image_index ?? 0] || imgs[0] || "";
     const extra = imgs.filter((u) => u !== main).slice(0, 10);
-    // Meta (UE) exige preço com IVA; base_price é guardado sem IVA.
-    const vat = Number(p.tax_rate_estimate_pct ?? DEFAULT_VAT);
-    const gross = Number(p.base_price) * (1 + vat / 100);
+    // Match the public product page and B2C checkout; never add VAT twice.
+    const price = storeFeedPrice(Number(p.base_price));
     const out = p.stock_status === "out_of_stock" || (p.track_stock && Number(p.stock_quantity ?? 0) <= 0 && p.stock_status !== "available");
     const condition = p.product_condition === "used" ? "used" : p.product_condition === "refurbished" ? "refurbished" : "new";
     const desc = String(p.short_description || p.commercial_description || p.name || "").replace(/<[^>]*>/g, "").slice(0, 5000);
@@ -74,7 +73,7 @@ Deno.serve(async (req) => {
       `      <g:link>${esc(`${storeUrl}/product/${p.store_slug || p.id}`)}</g:link>`,
       `      <g:image_link>${esc(main)}</g:image_link>`,
       ...extra.map((u) => `      <g:additional_image_link>${esc(u)}</g:additional_image_link>`),
-      `      <g:price>${gross.toFixed(2)} ${esc(p.currency || "EUR")}</g:price>`,
+      `      <g:price>${price} ${esc(p.currency || "EUR")}</g:price>`,
       `      <g:availability>${out ? "out of stock" : "in stock"}</g:availability>`,
       `      <g:condition>${condition}</g:condition>`,
       `      <g:brand>${esc(p.brand || settings.store_name || "Loja")}</g:brand>`,

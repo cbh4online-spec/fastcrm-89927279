@@ -14,8 +14,10 @@ describe("store webhook logic", () => {
     expect(decideAction("checkout.session.async_payment_succeeded", session)).toBe("mark_paid");
     expect(decideAction("checkout.session.async_payment_failed", { ...session, payment_status: "unpaid" })).toBe("mark_failed");
   });
-  it("ignora subscrições e outros eventos", () => {
-    expect(decideAction("checkout.session.completed", { ...session, mode: "subscription" })).toBe("ignore");
+  it("liquida apenas o checkout inicial pago de uma subscrição", () => {
+    expect(decideAction("checkout.session.completed", { ...session, mode: "subscription" })).toBe("mark_paid");
+    expect(decideAction("checkout.session.completed", { ...session, mode: "subscription", payment_status: "unpaid" })).toBe("keep_pending");
+    expect(decideAction("checkout.session.completed", { ...session, mode: "setup" })).toBe("ignore");
     expect(decideAction("invoice.paid", session)).toBe("ignore");
   });
   it("valida montante, moeda, sessão e workspace", () => {
