@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Percent, ArrowRight, TrendingUp, TrendingDown, FileText, Wallet, CalendarRange, CalendarDays, AlertTriangle, Clock, FolderOpen, Users, UserPlus, Euro, Package, Receipt, Hash, type LucideIcon } from "lucide-react";
-import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
+import { useDashboardInvoices, computeInvoiceStats } from "@/hooks/useDashboardInvoices";
 import { useCollectionCases } from "@/modules/collections/hooks/useCollectionCases";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceFinancials } from "@/hooks/useWorkspaceFinancials";
@@ -118,8 +118,8 @@ export default function IXDashboard() {
   const [active, setActive] = useState<SectionId>("faturacao");
 
   const { currentWorkspace } = useWorkspace();
-  const { data: invoices = [], isLoading: invLoading } = useInvoices();
-  const stats = useInvoiceStats();
+  const { data: invoices = [], isLoading: invLoading } = useDashboardInvoices(currentWorkspace?.id);
+  const stats = useMemo(() => computeInvoiceStats(invoices), [invoices]);
   // Só carrega os dados pesados quando o separador correspondente é aberto.
   const { data: cases = [], isLoading: casesLoading } = useCollectionCases({}, { enabled: active === "cobrancas" });
   const { data: financials, isLoading: finLoading } = useWorkspaceFinancials(currentWorkspace?.id);
