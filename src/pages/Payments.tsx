@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { InvoiceReceiptsCard } from "@/components/payments/InvoiceReceiptsCard";
+import { InvoiceReceiptsCard, useInvoiceReceipts } from "@/components/payments/InvoiceReceiptsCard";
 
 export default function Payments() {
   const { data: payments, isLoading } = usePayments();
@@ -57,7 +57,13 @@ export default function Payments() {
     });
   }, [payments, search, statusFilter]);
 
-  const totalReceived = payments?.filter(p => p.status === "succeeded").reduce((s, p) => s + (p.amount || 0), 0) || 0;
+  const { data: receipts = [], isLoading: receiptsLoading } = useInvoiceReceipts();
+  const onlinePaid = payments?.filter(p => p.status === "succeeded").reduce((s, p) => s + (p.amount || 0), 0) || 0;
+  const receiptsTotal = receipts.reduce((s, r) => s + r.amount, 0);
+  const totalReceived = onlinePaid + receiptsTotal;
+  const monthKey = format(new Date(), "yyyy-MM");
+  const receivedThisMonth = receipts.filter(r => (r.payment_date || "").startsWith(monthKey)).reduce((s, r) => s + r.amount, 0)
+    + (payments?.filter(p => p.status === "succeeded" && (p.created_at || "").startsWith(monthKey)).reduce((s, p) => s + (p.amount || 0), 0) || 0);
   const pendingAmount = payments?.filter(p => p.status === "pending").reduce((s, p) => s + (p.amount || 0), 0) || 0;
   const failedAmount = payments?.filter(p => p.status === "failed").reduce((s, p) => s + (p.amount || 0), 0) || 0;
   const totalPayments = payments?.length || 0;
@@ -150,8 +156,11 @@ export default function Payments() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-24" /> : (
-                <div className="text-2xl font-bold text-green-600">{fmt(totalReceived)}</div>
+              {isLoading || receiptsLoading ? <Skeleton className="h-8 w-24" /> : (
+                <>
+                  <div className="text-2xl font-bold text-green-600">{fmt(totalReceived)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{receipts.length.toLocaleString("pt-PT")} recibos de faturas · este mês {fmt(receivedThisMonth)}</p>
+                </>
               )}
             </CardContent>
           </Card>
