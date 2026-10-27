@@ -575,6 +575,13 @@
       "when": 1793105422556,
       "tag": "0081_scope_kb_articles_and_fastclub_aggregates",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1793113637243,
+      "tag": "0082_scope_sj_interests_taxonomy_select",
+      "breakpoints": true
     }
   ]
 }
