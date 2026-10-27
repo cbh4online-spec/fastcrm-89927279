@@ -63,7 +63,7 @@ export function computeInvoiceStats(
 
 export function useDashboardInvoices(workspaceId: string | undefined) {
   return useQuery({
-    queryKey: ["dashboard-invoices", workspaceId],
+    queryKey: ["invoices", "dashboard", workspaceId],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async (): Promise<DashboardInvoice[]> => {
