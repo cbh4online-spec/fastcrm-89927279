@@ -259,6 +259,8 @@ const App = () => (
 
 
                 {/* Legacy dashboard alias */}
+                <Route path="/metodo-pare" element={<Navigate to="/#metodo" replace />} />
+                <Route path="/cases" element={<Navigate to="/casos" replace />} />
                 <Route path="/dashboards" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboards/*" element={<Navigate to="/dashboard" replace />} />
 
