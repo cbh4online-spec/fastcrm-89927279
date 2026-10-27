@@ -61,9 +61,12 @@ export function InvoiceHistorySection({ contactId, companyId }: InvoiceHistorySe
     );
   }
 
-  const financialInvoices = invoices.filter(
-    (invoice) => invoice.status !== "draft" && invoice.status !== "cancelled"
-  );
+  // Notas de crédito e recibos não são dívida do cliente.
+  const financialInvoices = invoices.filter((invoice) => {
+    if (invoice.status === "draft" || invoice.status === "cancelled") return false;
+    const docType = (invoice as { document_type?: string | null }).document_type;
+    return !docType || docType === "invoice" || docType === "debit_note";
+  });
 
   const totalPaid = financialInvoices.reduce(
     (sum, invoice) => sum + getInvoicePaidAmount(invoice),
