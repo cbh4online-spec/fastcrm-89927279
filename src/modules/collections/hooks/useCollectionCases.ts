@@ -5,13 +5,16 @@ import type { CollectionCaseListFilters, CollectionCaseRow } from "../types/coll
 
 const PAGE_SIZE = 50;
 
-export function useCollectionCases(filters: CollectionCaseListFilters = {}) {
+export function useCollectionCases(
+  filters: CollectionCaseListFilters = {},
+  options: { enabled?: boolean } = {},
+) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
 
   return useQuery({
     queryKey: ["collection-cases", workspaceId, filters],
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && options.enabled !== false,
     queryFn: async (): Promise<CollectionCaseRow[]> => {
       if (!workspaceId) return [];
       let q = supabase

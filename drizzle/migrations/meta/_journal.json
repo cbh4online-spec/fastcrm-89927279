@@ -589,6 +589,13 @@
       "when": 1793113811395,
       "tag": "0083_scope_workspaces_menu_permissions_event_failures",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1793114221003,
+      "tag": "0084_scope_proposal_analytics_insert",
+      "breakpoints": true
     }
   ]
 }

@@ -120,9 +120,12 @@ export default function IXDashboard() {
   const { currentWorkspace } = useWorkspace();
   const { data: invoices = [], isLoading: invLoading } = useInvoices();
   const stats = useInvoiceStats();
-  const { data: cases = [], isLoading: casesLoading } = useCollectionCases();
+  // Só carrega os dados pesados quando o separador correspondente é aberto.
+  const { data: cases = [], isLoading: casesLoading } = useCollectionCases({}, { enabled: active === "cobrancas" });
   const { data: financials, isLoading: finLoading } = useWorkspaceFinancials(currentWorkspace?.id);
-  const { data: itemsAgg, isLoading: itemsLoading } = useInvoiceItemsAggregate(currentWorkspace?.id);
+  const { data: itemsAgg, isLoading: itemsLoading } = useInvoiceItemsAggregate(
+    active === "itens" ? currentWorkspace?.id : undefined,
+  );
 
 
   // Faturação — mês corrente
