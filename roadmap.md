@@ -2,12 +2,12 @@
 - [x] Corrigir violação de `entity_activities_activity_type_check` (tipo `message_sent` no registo de mensagens WhatsApp) — constraint alargada na migration 0005.
 
 ## Project monitoring (2026-10-27)
-- [ ] Verificar e corrigir reputação FastMatch calculada com avaliações parciais.
-- [ ] Verificar importação de leads após «Já enviei» e preservação da cadência.
-- [ ] Verificar webhook da loja, configuração segura e subscrições.
-- [ ] Verificar preços do catálogo Meta contra a loja.
-- [ ] Verificar acesso ao Mapa de Eventos pelos administradores.
-- [ ] Verificar atualização do vendedor atribuído na empresa.
+- [ ] Reputação FastMatch: problema confirmado; aguarda aprovação do plano de cálculo autoritativo e proteção de escrita.
+- [x] Corrigir origem na importação após «Já enviei»; não agendar follow-ups de prospeção que a conversão cancela. Testes aprovados, sem criar leads reais.
+- [x] Webhook: segredo da loja já configurado; corrigir checkout inicial pago de subscrição, preservando assinatura e idempotência. 13 testes isolados aprovados; sem cobrança real.
+- [x] Preços Meta: remover IVA duplicado; catálogo ativo Ajax confirmado em 828,52 EUR para FIBRA-KIT1-PRO-4G-W.
+- [ ] Mapa de Eventos: política bloqueia administradores; catálogo também vazio para super admin (0 registos). Aguarda aprovação do plano de acesso e conteúdo.
+- [x] Vendedor: invalidar companies em vez de companys; teste do seletor confirma atualização da lista e detalhe.
 
 ## Faturação (pedido 2026-09-02)
 - [ ] Permitir editar datas das faturas (emissão / vencimento) na listagem e no detalhe.
