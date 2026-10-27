@@ -603,6 +603,13 @@
       "when": 1793115179897,
       "tag": "0085_fast_workspace_rls_hot_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1793115368758,
+      "tag": "0086_scope_kb_categories_kernel_registry_live_sessions",
+      "breakpoints": true
     }
   ]
 }
