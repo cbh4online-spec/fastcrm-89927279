@@ -110186,6 +110186,20 @@ export type Database = {
           read_ct: number
         }[]
       }
+      read_event_catalog: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          created_at: string
+          description: string
+          domain: string
+          entity_type: string
+          event_name: string
+          id: string
+          is_active: boolean
+          source_module: string
+          version: number
+        }[]
+      }
       recompute_case_totals: { Args: { p_case_id: string }; Returns: undefined }
       reconcile_invoice_payments: {
         Args: { _invoice_ids?: string[]; _workspace_id?: string }

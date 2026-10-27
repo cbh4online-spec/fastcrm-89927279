@@ -624,6 +624,13 @@
       "when": 1793132969510,
       "tag": "0088_authoritative_fastmatch_reputation_and_admin_event_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1793133067528,
+      "tag": "0089_read_official_event_catalog_for_workspace_admins",
+      "breakpoints": true
     }
   ]
 }
