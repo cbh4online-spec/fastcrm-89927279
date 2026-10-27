@@ -62,7 +62,8 @@ export function usePublicCommunityEvents(workspaceId: string | undefined) {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from("community_events")
-        .select("*")
+        // Sem host_phone/host_email: visitantes sem sessão não têm acesso a esses campos.
+        .select("id,workspace_id,title,description,event_type,starts_at,ends_at,link,location,location_url,capacity,event_category,rsvp_required,cover_image_url,host_name,price,currency,status,tags,agenda,speakers,registration_url")
         .eq("workspace_id", workspaceId)
         .gte("event_date", new Date().toISOString())
         .order("event_date")
