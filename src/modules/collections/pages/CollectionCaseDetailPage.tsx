@@ -15,6 +15,8 @@ import { PromisesPanel } from "../components/PromisesPanel";
 import { AssignSequenceDialog } from "../components/AssignSequenceDialog";
 import { SendStatementDialog } from "../components/SendStatementDialog";
 import { formatEur } from "../lib/collectionsFormat";
+import { useCaseCompanyOpenInvoices, useLinkInvoiceToCase, useCasePayments } from "../hooks/useCaseCompanyOpenInvoices";
+import { toast } from "sonner";
 
 export default function CollectionCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +27,13 @@ export default function CollectionCaseDetailPage() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [statementOpen, setStatementOpen] = useState(false);
+  const noLinks = !!caseData && caseData.invoices.length === 0;
+  const { data: openInvoices, isLoading: openLoading } = useCaseCompanyOpenInvoices({
+    caseId: caseData?.id, workspaceId: caseData?.workspace_id, companyId: caseData?.company_id,
+    contactId: caseData?.contact_id, enabled: noLinks,
+  });
+  const linkInvoice = useLinkInvoiceToCase(caseData?.id ?? "", caseData?.workspace_id ?? "");
+  const { data: payments } = useCasePayments(caseData?.id, (caseData?.invoices ?? []).map((ci) => ci.invoice_id));
 
   if (isLoading) {
     return (
@@ -102,7 +111,27 @@ export default function CollectionCaseDetailPage() {
               <CardHeader><CardTitle className="text-base">Faturas</CardTitle></CardHeader>
               <CardContent>
                 {caseData.invoices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Sem faturas associadas.</p>
+                  openLoading ? <Skeleton className="h-16 w-full" /> : (openInvoices?.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sem faturas associadas nem faturas em aberto no CRM para este devedor.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Faturas da empresa em aberto (não ligadas ao processo). Ligue as que correspondem à dívida importada.</p>
+                      <div className="divide-y">
+                        {openInvoices!.map((inv) => (
+                          <div key={inv.id} className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
+                            <Link to={`/dashboard/invoices/${inv.id}`} className="font-medium hover:underline">{inv.invoice_number}</Link>
+                            <span className="text-muted-foreground">Venc. {inv.due_date ?? "—"}</span>
+                            <span className="font-medium">Em dívida {formatEur(Number(inv.total) - Math.max(0, Number(inv.amount_paid ?? 0)))}</span>
+                            <Button size="sm" variant="outline" disabled={linkInvoice.isPending}
+                              onClick={() => linkInvoice.mutate(inv, {
+                                onSuccess: () => toast.success("Fatura ligada ao processo"),
+                                onError: () => toast.error("Não foi possível ligar a fatura"),
+                              })}>Ligar ao processo</Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
                 ) : (
                   <div className="divide-y">
                     {caseData.invoices.map((ci) => {
@@ -130,6 +159,18 @@ export default function CollectionCaseDetailPage() {
               <CardHeader><CardTitle className="text-base">Histórico</CardTitle></CardHeader>
               <CardContent>
                 <CaseTimeline actions={actions ?? []} isLoading={actionsLoading} />
+                <div className="mt-4 space-y-2 border-t pt-3 text-sm">
+                  {(payments ?? []).map((p) => (
+                    <div key={p.id} className="flex justify-between gap-3">
+                      <span>Recebimento {p.invoice_number ? `· ${p.invoice_number}` : ""}</span>
+                      <span className="text-muted-foreground">{new Date(p.payment_date).toLocaleDateString("pt-PT")} · {formatEur(p.amount)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between gap-3 text-muted-foreground">
+                    <span>Processo criado{caseData.notes ? ` · ${caseData.notes}` : ""}</span>
+                    <span>{new Date(caseData.created_at).toLocaleDateString("pt-PT")}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
