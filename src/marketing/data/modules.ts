@@ -52,21 +52,25 @@ export const PILLARS: ModulePillar[] = [
         title: "Tarefas & Calendário",
         description: "Atividades automáticas por estado do negócio, sincronização com Google Calendar.",
         icon: Calendar,
+        bullets: ["Tarefas automáticas","Lembretes","Google Calendar","Agendamento online"],
       },
       {
         title: "Relatórios & KPIs",
         description: "Dashboards executivos, KPIs por equipa, leaderboard e modo TV para escritório.",
         icon: BarChart3,
+        bullets: ["Dashboards por equipa","Leaderboard","Modo TV","Exportação Excel"],
       },
       {
         title: "Account Brief",
         description: "Inteligência sobre cada conta: identidade, sinais, oportunidades e personalização.",
         icon: Layers,
+        bullets: ["Sinais de compra","Decisores","Oportunidades","Personalização"],
       },
       {
         title: "Faturação & Renovações",
         description: "Faturas com SAF-T, recorrências, renovações automáticas e MRR em tempo real.",
         icon: Receipt,
+        bullets: ["Importação SAF-T","Cobranças e vencidos","Contratos recorrentes","MRR em tempo real"],
       },
     ],
   },
@@ -89,6 +93,7 @@ export const PILLARS: ModulePillar[] = [
         title: "Lead Enricher Pro",
         description: "Enriquece leads com dados corporativos, sinais de crescimento e contactos públicos.",
         icon: Sparkles,
+        bullets: ["Dados de empresa","NIF e morada","Contactos públicos","Pontuação ICP"],
       },
       {
         title: "Account Brief Intelligence",
@@ -99,6 +104,7 @@ export const PILLARS: ModulePillar[] = [
         title: "Prospecting (Google Local + Web + Pros)",
         description: "Encontra empresas e profissionais por critérios geográficos e setoriais.",
         icon: Globe,
+        bullets: ["Google Local","Instagram","Bloqueio de duplicados","Cadência assistida"],
       },
       {
         title: "AI Sales Coach",
@@ -131,11 +137,13 @@ export const PILLARS: ModulePillar[] = [
         title: "WhatsApp Business",
         description: "Inbox unificada, templates, automações e atendimento via QR ou API oficial.",
         icon: MessageSquare,
+        bullets: ["Inbox partilhada","Templates","Opt-outs respeitados","Histórico na ficha"],
       },
       {
         title: "Funis & Landing Pages",
         description: "Páginas de venda, formulários, upsell, downsell e checkout integrado.",
         icon: TrendingUp,
+        bullets: ["Editor visual","Formulários","Upsell e downsell","Checkout integrado"],
       },
       {
         title: "Bio Links",
@@ -173,6 +181,7 @@ export const PILLARS: ModulePillar[] = [
         title: "Marketplace C2C",
         description: "Marketplace multi-vendedor com listings, sponsors, boost e disputas.",
         icon: Layers,
+        bullets: ["Multi-vendedor","Boost de anúncios","Reputação","Disputas"],
       },
       {
         title: "Lives Commerce",
@@ -183,11 +192,13 @@ export const PILLARS: ModulePillar[] = [
         title: "Portal B2B",
         description: "Cliente B2B com preços contratados, aprovações, stock e renovações.",
         icon: Shield,
+        bullets: ["Preços contratados","Aprovações","Stock em tempo real","Encomendas recorrentes"],
       },
       {
         title: "Checkout & Recovery",
         description: "Checkout otimizado, A/B tests, recuperação de carrinho e bundles.",
         icon: Receipt,
+        bullets: ["Stripe e MB WAY","Carrinho abandonado","Bundles","A/B tests"],
       },
       {
         title: "Affiliates & FastClub",
