@@ -6,6 +6,7 @@ import { useInvoicePayments, type InvoicePayment } from "@/hooks/useInvoicePayme
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { CreditCard, Euro } from "lucide-react";
+import { InvoicePaymentActions } from "./InvoicePaymentActions";
 
 interface InvoicePaymentsHistoryProps {
   invoiceId: string;
@@ -86,11 +87,14 @@ export function InvoicePaymentsHistory({
                     </p>
                   </div>
                 </div>
-                {payment.reference && (
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {payment.reference}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {payment.reference && (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {payment.reference}
+                    </span>
+                  )}
+                  <InvoicePaymentActions payment={{ ...payment, amount: Number(payment.amount), saft_import_id: (payment as any).saft_import_id }} />
+                </div>
               </div>
             ))}
           </div>
