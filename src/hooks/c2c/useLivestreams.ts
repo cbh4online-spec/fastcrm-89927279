@@ -152,7 +152,7 @@ export function useLivestreamMessages(livestreamId?: string) {
     queryFn: async () => {
       const { data, error } = await sb
         .from("c2c_livestream_messages")
-        .select("id, workspace_id, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, peak_viewers, total_views, product_ids, category, tags, replay_available, created_at, updated_at, workspace_slug, mux_stream_id, mux_playback_id, featured_product_id, livekit_room_name")
+        .select("*")
         .eq("livestream_id", livestreamId)
         .order("created_at", { ascending: true })
         .limit(200);
