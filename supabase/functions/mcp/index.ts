@@ -3,10 +3,10 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.25.0";
 
 // src/lib/mcp/tools/list-workspaces.ts
-import { defineTool } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool } from "npm:@lovable.dev/mcp-js@0.25.0";
 
 // src/lib/mcp/supabaseClient.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.90.1";
@@ -53,7 +53,7 @@ var list_workspaces_default = defineTool({
 });
 
 // src/lib/mcp/tools/search-contacts.ts
-import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z } from "npm:zod@^3.25.76";
 var search_contacts_default = defineTool2({
   name: "search_contacts",
@@ -80,7 +80,7 @@ var search_contacts_default = defineTool2({
 });
 
 // src/lib/mcp/tools/search-companies.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z2 } from "npm:zod@^3.25.76";
 var search_companies_default = defineTool3({
   name: "search_companies",
@@ -107,7 +107,7 @@ var search_companies_default = defineTool3({
 });
 
 // src/lib/mcp/tools/list-leads.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z3 } from "npm:zod@^3.25.76";
 var list_leads_default = defineTool4({
   name: "list_leads",
@@ -131,7 +131,7 @@ var list_leads_default = defineTool4({
 });
 
 // src/lib/mcp/tools/create-lead.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z4 } from "npm:zod@^3.25.76";
 var create_lead_default = defineTool5({
   name: "create_lead",
@@ -166,7 +166,7 @@ var create_lead_default = defineTool5({
 });
 
 // src/lib/mcp/tools/list-opportunities.ts
-import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z5 } from "npm:zod@^3.25.76";
 var list_opportunities_default = defineTool6({
   name: "list_opportunities",
@@ -190,7 +190,7 @@ var list_opportunities_default = defineTool6({
 });
 
 // src/lib/mcp/tools/list-invoices.ts
-import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z6 } from "npm:zod@^3.25.76";
 var list_invoices_default = defineTool7({
   name: "list_invoices",
@@ -226,7 +226,7 @@ var list_invoices_default = defineTool7({
 });
 
 // src/lib/mcp/tools/create-task.ts
-import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z7 } from "npm:zod@^3.25.76";
 var create_task_default = defineTool8({
   name: "create_task",
@@ -262,7 +262,7 @@ var create_task_default = defineTool8({
 });
 
 // src/lib/mcp/tools/send-whatsapp-text.ts
-import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z9 } from "npm:zod@^3.25.76";
 
 // src/lib/mcp/whatsapp/gateway.ts
@@ -837,7 +837,7 @@ var send_whatsapp_text_default = defineTool9({
 });
 
 // src/lib/mcp/tools/send-whatsapp-image.ts
-import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z10 } from "npm:zod@^3.25.76";
 var send_whatsapp_image_default = defineTool10({
   name: "send_whatsapp_image",
@@ -867,7 +867,7 @@ var send_whatsapp_image_default = defineTool10({
 });
 
 // src/lib/mcp/tools/send-whatsapp-video.ts
-import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z11 } from "npm:zod@^3.25.76";
 var send_whatsapp_video_default = defineTool11({
   name: "send_whatsapp_video",
@@ -897,7 +897,7 @@ var send_whatsapp_video_default = defineTool11({
 });
 
 // src/lib/mcp/tools/get-whatsapp-conversation.ts
-import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z12 } from "npm:zod@^3.25.76";
 var { purpose: _purpose, idempotency_key: _key, ...targetSchema } = whatsappTargetSchema;
 var get_whatsapp_conversation_default = defineTool12({
@@ -921,7 +921,7 @@ var get_whatsapp_conversation_default = defineTool12({
 });
 
 // src/lib/mcp/tools/schedule-whatsapp-message.ts
-import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.25.1";
+import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.25.0";
 import { z as z13 } from "npm:zod@^3.25.76";
 var schedule_whatsapp_message_default = defineTool13({
   name: "schedule_whatsapp_message",
@@ -973,5 +973,5 @@ var mcp_default = defineMcp({
 });
 
 // lovable-mcp-supabase-entry.ts
-import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.25.1/stacks/supabase";
+import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.25.0/stacks/supabase";
 Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));

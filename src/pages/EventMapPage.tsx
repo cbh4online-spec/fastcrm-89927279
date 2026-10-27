@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEventRegistry } from "@/hooks/useEventRegistry";
 import { useEventMapStats } from "@/hooks/useEventMapStats";
+import { CapabilityGuard } from '@/components/guards/CapabilityGuard';
 import { Radio, Search, BarChart3, ShieldCheck, AlertTriangle, BookOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -51,10 +52,14 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 export default function EventMapPage() {
+  return <CapabilityGuard need="workspace.manage"><EventMapContent /></CapabilityGuard>;
+}
+
+function EventMapContent() {
   const [tab, setTab] = useState("catalog");
   const [search, setSearch] = useState("");
 
-  const { data: registry, isLoading: regLoading } = useEventRegistry();
+  const { data: registry, isLoading: regLoading, isError: regError } = useEventRegistry();
   const { volume, liveEvents, failedEvents } = useEventMapStats();
 
   return (
@@ -67,7 +72,10 @@ export default function EventMapPage() {
         onTabChange={setTab}
       />
 
-      {tab === "catalog" && (
+      {regError && (tab === 'catalog' || tab === 'coverage') && (
+        <p role="alert" className="text-sm text-destructive">Não foi possível carregar o catálogo de eventos.</p>
+      )}
+      {tab === "catalog" && !regError && (
         <CatalogTab registry={registry ?? []} isLoading={regLoading} search={search} setSearch={setSearch} />
       )}
       {tab === "live" && (
@@ -76,7 +84,7 @@ export default function EventMapPage() {
       {tab === "volume" && (
         <VolumeTab events={volume.data ?? []} isLoading={volume.isLoading} />
       )}
-      {tab === "coverage" && (
+      {tab === "coverage" && !regError && (
         <CoverageTab registry={registry ?? []} emitted={volume.data ?? []} isLoading={regLoading || volume.isLoading} />
       )}
       {tab === "failed" && (
@@ -107,6 +115,7 @@ function CatalogTab({ registry, isLoading, search, setSearch }: { registry: any[
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Pesquisar eventos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
+      {Object.keys(grouped).length === 0 && <p className="text-sm text-muted-foreground">Sem eventos no catálogo.</p>}
       {Object.entries(grouped).sort().map(([domain, events]) => (
         <Card key={domain} className="border-border/50 bg-card/50">
           <CardHeader className="pb-2">

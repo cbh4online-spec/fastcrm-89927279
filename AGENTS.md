@@ -19,3 +19,5 @@
 - Dashboard invoice cards read all rows via paginated `useDashboardInvoices` (not `useInvoices`), because the API caps a single response at 1000 rows.
 - Public Meta store feed prices must match the public B2C base price without an extra tax multiplier, because the storefront and checkout charge that catalogue price.
 - Bulk sent-profile conversion uses `importSentProfile` after the outreach gate without prospecting follow-up scheduling, because conversion deliberately ends prospecting and cancels its pending queue.
+- FastMatch reputation is maintained by atomic review triggers with a protected rating sum/count; never aggregate RLS-filtered reviews or write reputation from the client.
+- EventMap reads only the admin-authorized `read_event_catalog` projection, falling back to the active live Kernel registry when the legacy catalogue is empty, without exposing payload schemas.
