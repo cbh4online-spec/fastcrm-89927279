@@ -93,6 +93,7 @@ const PublicWhatsAppConsentPage = lazy(() => import("@/pages/PublicWhatsAppConse
 const MarketingLayout = lazy(() => import("@/marketing/layout/MarketingLayout"));
 const MarketingPricingPage = lazy(() => import("@/marketing/pages/MarketingPricingPage"));
 const MarketingFeaturesIndexPage = lazy(() => import("@/marketing/pages/MarketingFeaturesIndexPage"));
+const MarketingPillarPage = lazy(() => import("@/marketing/pages/MarketingPillarPage"));
 const MarketingCasesPage = lazy(() => import("@/marketing/pages/MarketingCasesPage"));
 const MarketingAboutPage = lazy(() => import("@/marketing/pages/MarketingAboutPage"));
 const MarketingContactPage = lazy(() => import("@/marketing/pages/MarketingContactPage"));
@@ -265,6 +266,7 @@ const App = () => (
                 <Route element={<MarketingLayout />}>
                   <Route path="/precos" element={<MarketingPricingPage />} />
                   <Route path="/funcionalidades" element={<MarketingFeaturesIndexPage />} />
+                  <Route path="/funcionalidades/:slug" element={<MarketingPillarPage />} />
                   <Route path="/casos" element={<MarketingCasesPage />} />
                   <Route path="/sobre" element={<MarketingAboutPage />} />
                   <Route path="/contacto" element={<MarketingContactPage />} />
