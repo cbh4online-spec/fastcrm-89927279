@@ -126,26 +126,34 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
     queryFn: async (): Promise<WorkspaceFinancials> => {
       const invoices: FinancialsInvoice[] = [];
 
-      // A API pode limitar cada resposta a 1000 linhas; sem paginação só chegavam
-      // as faturas mais recentes, deixando 2024/2025 fora dos gráficos.
-      for (let page = 0; page < INVOICES_MAX_PAGES; page += 1) {
+      // A API limita cada resposta a 1000 linhas: pede a 1.ª página com contagem
+      // e depois as restantes em paralelo (antes eram pedidas uma a uma, em fila).
+      const fetchPage = (page: number, withCount = false) => {
         const from = page * INVOICES_PAGE_SIZE;
-        const to = from + INVOICES_PAGE_SIZE - 1;
-        const { data, error } = await supabase
+        return supabase
           .from("invoices")
-          .select(FINANCIALS_INVOICE_SELECT)
+          .select(FINANCIALS_INVOICE_SELECT, withCount ? { count: "exact" } : undefined)
           .eq("workspace_id", workspaceId!)
           .in("status", ACTIVE_STATUSES)
           .not("issue_date", "is", null)
           .order("issue_date", { ascending: false })
-          .range(from, to);
+          .order("id", { ascending: true })
+          .range(from, from + INVOICES_PAGE_SIZE - 1);
+      };
 
-        if (error) throw error;
-
-        const batch = (data || []) as FinancialsInvoice[];
-        invoices.push(...batch);
-
-        if (batch.length < INVOICES_PAGE_SIZE) break;
+      const first = await fetchPage(0, true);
+      if (first.error) throw first.error;
+      invoices.push(...((first.data || []) as FinancialsInvoice[]));
+      const total = first.count ?? invoices.length;
+      const pages = Math.min(INVOICES_MAX_PAGES, Math.ceil(total / INVOICES_PAGE_SIZE));
+      if (pages > 1) {
+        const rest = await Promise.all(
+          Array.from({ length: pages - 1 }, (_, i) => fetchPage(i + 1)),
+        );
+        for (const r of rest) {
+          if (r.error) throw r.error;
+          invoices.push(...((r.data || []) as FinancialsInvoice[]));
+        }
       }
 
       const today = startOfDay(new Date());
