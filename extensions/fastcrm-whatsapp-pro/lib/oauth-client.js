@@ -92,6 +92,10 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
     if (!isValidRedirectUri(redirectUri, extensionId)) return { status: await status(), error: "redirect_invalido" };
 
     const req = await buildAuthorizeRequest({ authorizeEndpoint: AUTHORIZE_ENDPOINT, clientId, redirectUri, scope: SCOPES });
+    // PKCE (digest) é assíncrono: logout/revogação durante a espera não pode abrir janela.
+    if (stale()) return { status: await status(), error: "sessao_alterada" };
+    if (!(await access())) return stale() ? { status: await status(), error: "sessao_alterada" } : await failAttempt("sem_permissao_servidor");
+    if (stale()) return { status: await status(), error: "sessao_alterada" }; // imediatamente antes do launch
     let callback;
     try {
       callback = await chromeApi.identity.launchWebAuthFlow({ url: req.url, interactive: true });
