@@ -38993,6 +38993,7 @@ export type Database = {
           member_id: string | null
           period_reset_date: string
           reputation_count: number
+          reputation_rating_sum: number
           reputation_score: number
           services_needed: string[] | null
           services_offered: string[] | null
@@ -39024,6 +39025,7 @@ export type Database = {
           member_id?: string | null
           period_reset_date?: string
           reputation_count?: number
+          reputation_rating_sum?: number
           reputation_score?: number
           services_needed?: string[] | null
           services_offered?: string[] | null
@@ -39055,6 +39057,7 @@ export type Database = {
           member_id?: string | null
           period_reset_date?: string
           reputation_count?: number
+          reputation_rating_sum?: number
           reputation_score?: number
           services_needed?: string[] | null
           services_offered?: string[] | null
@@ -108734,6 +108737,7 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      can_read_event_catalog: { Args: never; Returns: boolean }
       check_agent_rate_limit: {
         Args: {
           p_agent_type: string
