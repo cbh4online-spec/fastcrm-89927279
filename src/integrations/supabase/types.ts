@@ -108680,6 +108680,10 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: Json
       }
+      c2c_seller_follower_count: {
+        Args: { p_seller_id: string }
+        Returns: number
+      }
       calculate_conversation_score: {
         Args: { p_conversation_id: string }
         Returns: number

@@ -8,12 +8,9 @@ export function useSellerFollowerCount(sellerId: string | undefined) {
     queryKey: ["c2c-follower-count", sellerId],
     queryFn: async () => {
       if (!sellerId) return 0;
-      const { count, error } = await supabase
-        .from("c2c_seller_followers")
-        .select("*", { count: "exact", head: true })
-        .eq("seller_id", sellerId);
+      const { data, error } = await supabase.rpc("c2c_seller_follower_count", { p_seller_id: sellerId });
       if (error) throw error;
-      return count || 0;
+      return Number(data ?? 0);
     },
     enabled: !!sellerId,
   });
