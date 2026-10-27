@@ -162,7 +162,7 @@ export function MethodPareV2() {
       </div>
       <div className="mt-12 flex justify-center">
         <a
-          href="/metodo-pare"
+          href="/#metodo"
           className="inline-flex items-center gap-2 rounded-xl border border-navy-100 bg-white px-5 py-3 text-sm font-semibold text-navy transition-all hover:border-brand/40 hover:text-brand"
         >
           Conhecer o Método PARE →

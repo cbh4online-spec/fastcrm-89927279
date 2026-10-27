@@ -10,7 +10,7 @@ export default function MarketingCasesPage() {
       <Helmet>
         <title>Casos de sucesso · FastCRM</title>
         <meta name="description" content="Equipas que transformaram a sua operação comercial com FastCRM." />
-        <link rel="canonical" href="https://fastcrm.metodopare.ai/cases" />
+        <link rel="canonical" href="https://fastcrm.metodopare.ai/casos" />
         <meta property="og:title" content="Casos de sucesso · FastCRM" />
         <meta property="og:description" content="Equipas que transformaram a sua operação comercial com FastCRM." />
         <meta property="og:image" content="https://fastcrm.metodopare.ai/og/og-cases.jpg" />
