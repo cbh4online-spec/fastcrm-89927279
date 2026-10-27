@@ -311,12 +311,23 @@ export default function FastCRMWhatsAppSalesLanding() {
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-background text-foreground antialiased">
+      {/* `light`: landing pública usa sempre a paleta clara, como a página inicial. */}
+      <div className="light min-h-screen bg-background text-foreground antialiased">
         <HeaderV2 />
 
         <main>
           {/* HERO */}
-          <section className="relative overflow-hidden px-6 pt-32 pb-20 md:px-10 md:pt-40 md:pb-28">
+          <section className="relative overflow-hidden bg-[radial-gradient(ellipse_at_top,hsl(218_100%_54%/0.06),transparent_55%),linear-gradient(180deg,hsl(0_0%_100%),hsl(214_40%_97%))] px-6 pt-32 pb-20 md:px-10 md:pt-40 md:pb-28">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-[0.35]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(hsl(218 70% 14% / 0.04) 1px, transparent 1px), linear-gradient(90deg, hsl(218 70% 14% / 0.04) 1px, transparent 1px)",
+                backgroundSize: "56px 56px",
+                maskImage: "radial-gradient(ellipse at center top, black 0%, transparent 70%)",
+              }}
+            />
             <BrandGlow className="left-1/2 top-0 h-[520px] w-[820px] -translate-x-1/2" variant="mix" />
             <div className="relative mx-auto max-w-5xl text-center">
               <Reveal>
