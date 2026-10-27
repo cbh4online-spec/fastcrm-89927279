@@ -148,13 +148,27 @@ Deno.serve(async (req) => {
             for (const r of rows) {
               const externalId = String(r.doc_no);
               // Find existing invoice
-              const { data: existing } = await admin
+              const { data: existingArtsoft } = await admin
                 .from("invoices")
                 .select("id")
                 .eq("workspace_id", wsId)
                 .eq("external_provider", "artsoft")
                 .eq("external_id", externalId)
                 .maybeSingle();
+              // Reutiliza a fatura já existente (ex.: vinda do SAF-T) com o mesmo número, para não duplicar nem perder a ligação.
+              let existing = existingArtsoft;
+              if (!existing && (r.doc_third_no || r.doc_no)) {
+                const { data: byNumber } = await admin
+                  .from("invoices")
+                  .select("id")
+                  .eq("workspace_id", wsId)
+                  .eq("invoice_number", String(r.doc_third_no || r.doc_no))
+                  .in("document_type", ["invoice", "debit_note"])
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                existing = byNumber;
+              }
 
               const total = Number(r.total) || 0;
               const balance = Number(r.balance) || 0;
