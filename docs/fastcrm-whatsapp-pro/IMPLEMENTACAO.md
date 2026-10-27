@@ -117,3 +117,10 @@ Alterações limitadas à extensão, documentação, `src/pages/WhatsAppPro.tsx`
 - `host_permissions` removido; `optional_host_permissions` exato com o host atual. CSP e permissões nomeadas inalteradas.
 - `lib/server-permission.js`: pedido só no clique «Ligar» (e só com cliente OAuth configurado), verificação no SW antes de OAuth/token/API, revogação via `onRemoved`, migração que retira o host antigo apenas no estado seguro.
 - Detalhes, verificação pós-upgrade e checklist de loja: `DISTRIBUICAO-PRIVADA.md`. Domínio próprio para API: não configurado.
+
+### v0.4.3 — correções da revisão independente (antes da entrega)
+- OAuth: após `buildAuthorizeRequest` (PKCE/digest assíncrono) volta a verificar geração e permissão imediatamente antes de `launchWebAuthFlow`; logout/revogação durante o digest => zero janela, zero fetch, zero token.
+- Painel: época de autenticação (`authEpoch`) aberta no estado inicial, em cada «Ligar», logout e revogação; respostas antigas de permissão/AUTH_START/AUTH_LOGOUT/AUTH_STATUS/LIST_WORKSPACES são descartadas. O botão «Ligar» só é reativado pela tentativa dona (`loginOwner`). Listeners registados antes do estado inicial.
+- Migração: remove o host só com `clientId === ""` e `apiReady === false` estritos; qualquer override não vazio, malformado, `null` ou `undefined` explícito => skip.
+- `isServerOriginRemoval` mantém comparação exata com o padrão declarado (o mesmo usado em `permissions.request`); variantes não reconhecidas não ampliam hosts — o SW continua a verificar `contains()` antes de cada uso.
+- Testes com mocks Node (sem rede, sem Chrome real). Upgrade 0.4.2→0.4.3 no Chrome real **não testado**.
