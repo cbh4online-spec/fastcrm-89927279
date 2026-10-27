@@ -631,6 +631,13 @@
       "when": 1793133067528,
       "tag": "0089_read_official_event_catalog_for_workspace_admins",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1793135875015,
+      "tag": "0090_limit_public_c2c_and_funnel_steps",
+      "breakpoints": true
     }
   ]
 }
