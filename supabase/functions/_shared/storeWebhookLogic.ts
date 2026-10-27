@@ -32,7 +32,9 @@ export interface OrderFacts {
 export type WebhookAction = "mark_paid" | "keep_pending" | "mark_failed" | "ignore";
 
 export function decideAction(eventType: string, session: SessionFacts): WebhookAction {
-  if (session.mode && session.mode !== "payment") return "ignore";
+  // The initial paid checkout of a store subscription also settles its order.
+  // Recurring invoices and subscription lifecycle events remain out of scope.
+  if (session.mode && session.mode !== "payment" && session.mode !== "subscription") return "ignore";
   switch (eventType) {
     case "checkout.session.completed":
       return session.payment_status === "paid" ? "mark_paid" : "keep_pending";

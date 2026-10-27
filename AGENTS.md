@@ -17,3 +17,5 @@
 - Commercial sales reps without login live in `sales_reps` (workspace-scoped, assigned via `companies/contacts.sales_rep_id`, contacts inherit the company rep, cross-workspace blocked by trigger) and are chosen only through `SalesRepSelector`, so 'Gestor' (users) and 'Vendedor' (non-users) never mix.
 - Hot-table SELECT policies use `workspace_id IN (SELECT get_user_workspace_ids()) OR (SELECT is_super_admin(auth.uid()))` instead of per-row `is_workspace_member(...)`, because the per-row call made PHARLISS invoice reads take ~4.6 s instead of ~10 ms.
 - Dashboard invoice cards read all rows via paginated `useDashboardInvoices` (not `useInvoices`), because the API caps a single response at 1000 rows.
+- Public Meta store feed prices must match the public B2C base price without an extra tax multiplier, because the storefront and checkout charge that catalogue price.
+- Bulk sent-profile conversion uses `importSentProfile` after the outreach gate without prospecting follow-up scheduling, because conversion deliberately ends prospecting and cancels its pending queue.

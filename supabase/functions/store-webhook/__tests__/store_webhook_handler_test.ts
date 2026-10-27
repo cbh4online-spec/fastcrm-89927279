@@ -69,6 +69,25 @@ Deno.test("assinatura verdadeira (segredo fictício): completed paid → paid, s
   assertEquals(db.tables.store_webhook_events[0].outcome, "paid");
 });
 
+Deno.test("checkout inicial de subscrição pago e assinado → paid e efeitos uma vez", async () => {
+  seed();
+  const event = evt('evt_subscription', 'checkout.session.completed');
+  event.data.object.mode = 'subscription';
+  assertEquals((await send(event)).body.outcome, 'paid');
+  assertEquals(ord().status, 'paid');
+  assertEquals(stock(), 3);
+  assertEquals((await send(event)).body.duplicate, true);
+  assertEquals(stock(), 3);
+});
+
+Deno.test("sem segredo específico da loja continua a recusar eventos sem efeitos", async () => {
+  seed();
+  db.tables.workspace_stripe_config[0].store_webhook_secret_encrypted = null;
+  assertEquals((await send(evt('evt_missing_secret', 'checkout.session.completed'))).body.error, 'store_webhook_not_configured');
+  assertEquals(ord().status, 'pending');
+  assertEquals(stock(), 5);
+});
+
 Deno.test("completed unpaid → pending; async_payment_succeeded → paid; async_failed depois não sobrescreve", async () => {
   seed();
   assertEquals((await send(evt("evt_c", "checkout.session.completed", { paid: false }))).body.outcome, "pending");

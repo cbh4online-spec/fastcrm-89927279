@@ -32,7 +32,8 @@ import { OutreachMediaPicker } from "@/components/prospecting/OutreachMediaPicke
 import { composeMessageWithLink, sentMediaUrlFor } from "@/lib/prospecting/outreachMedia";
 import { buildFollowUpRows, buildInitialOutreachRow } from "@/lib/prospecting/cadence";
 import { confirmOutreachWithReview, REVIEW_CONFIRM_TEXT } from "@/lib/prospecting/outreachGate";
-import { checkProspectingIdentity, describeProspectingIdentity, importProspectingLead, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
+import { checkProspectingIdentity, describeProspectingIdentity, isSeparateProspectingInstance, PROSPECTING_INSTANCE_NOT_READY_MESSAGE, SEPARATE_PROSPECTING_INSTANCE_MESSAGE } from "@/lib/prospecting/identity";
+import { importSentProfile } from '@/lib/prospecting/importSentProfile';
 
 interface BulkProfile {
   id: string;
@@ -257,7 +258,8 @@ export function BulkOutreachDialog({
         mediaUrl: snapshot.url,
         message: msg?.message || null,
         messagePlain: msg?.message_plain || msg?.message || null,
-        scheduleFollowUps: true,
+        // Conversion transfers follow-up to the CRM; do not schedule rows that import cancels.
+        scheduleFollowUps: false,
         allowReview: reviewConfirmedIds.has(profile.id),
       }, () => window.confirm(REVIEW_CONFIRM_TEXT));
       void sentFields;
@@ -279,15 +281,7 @@ export function BulkOutreachDialog({
       toast.success(`${profile.profile_name || "Perfil"} marcado como enviado`);
       // Lead creation goes through the server-side duplicate recheck; existing clients are only reported.
       try {
-        const result = await importProspectingLead(supabase, wsId, {
-          name: profile.profile_name || "Sem nome",
-          source: "instagram_prospecting",
-          status: "new",
-          lead_type: "person",
-          phone: profile.phone || null,
-          profile_url: profile.profile_url,
-          instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
-        }, profile.id);
+        const result = await importSentProfile(supabase, wsId, profile, reviewConfirmedIds.has(profile.id));
         if (result.lead_id) {
           toast.success("Lead criado no CRM");
           queryClient.invalidateQueries({ queryKey: ["leads"] });

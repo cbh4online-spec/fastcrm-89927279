@@ -78,7 +78,7 @@ export function SalesRepSelector({ entityType, entityId, currentSalesRepId }: Pr
     setSearch('');
     toast.success(repId ? 'Vendedor atribuído' : 'Vendedor removido');
     queryClient.invalidateQueries({ queryKey: [entityType] });
-    queryClient.invalidateQueries({ queryKey: [`${entityType}s`] });
+    queryClient.invalidateQueries({ queryKey: [table] });
     queryClient.invalidateQueries({ queryKey: ['entity-for-insights'] });
   };
 
