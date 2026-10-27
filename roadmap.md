@@ -1,6 +1,14 @@
 
 - [x] Corrigir violação de `entity_activities_activity_type_check` (tipo `message_sent` no registo de mensagens WhatsApp) — constraint alargada na migration 0005.
 
+## Project monitoring (2026-10-27)
+- [ ] Verificar e corrigir reputação FastMatch calculada com avaliações parciais.
+- [ ] Verificar importação de leads após «Já enviei» e preservação da cadência.
+- [ ] Verificar webhook da loja, configuração segura e subscrições.
+- [ ] Verificar preços do catálogo Meta contra a loja.
+- [ ] Verificar acesso ao Mapa de Eventos pelos administradores.
+- [ ] Verificar atualização do vendedor atribuído na empresa.
+
 ## Faturação (pedido 2026-09-02)
 - [ ] Permitir editar datas das faturas (emissão / vencimento) na listagem e no detalhe.
 - [ ] Corrigir KPI "Recebido" — não reflete as faturas pagas.
