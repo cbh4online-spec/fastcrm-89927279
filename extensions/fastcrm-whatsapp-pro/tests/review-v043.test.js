@@ -156,7 +156,8 @@ for (const kind of ["revogacao", "logout"]) {
 // ---------- 3) migração estrita ----------
 function perms() {
   const calls = [];
-  return { calls, permissions: { contains: async () => { calls.push("contains"); return true; }, remove: async () => { calls.push("remove"); return true; } } };
+  let g = true;
+  return { calls, permissions: { contains: async () => { calls.push("contains"); return g; }, remove: async () => { calls.push("remove"); g = false; return true; } } };
 }
 test("migração: só clientId === \"\" e apiReady === false removem; tudo o resto falha fechado", async () => {
   const bad = [

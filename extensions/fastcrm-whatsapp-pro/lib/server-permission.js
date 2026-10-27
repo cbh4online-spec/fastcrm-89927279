@@ -3,7 +3,7 @@
  * O host é optional_host_permissions: o Chrome só o concede após o utilizador aceitar.
  * Todas as funções falham fechadas (API ausente, exceção ou rejeição => sem acesso).
  */
-import { AUTH_ORIGIN, isOAuthConfigured, PUBLIC_CLIENT_ID, API_READY } from "./oauth-config.js";
+import { AUTH_ORIGIN, PUBLIC_CLIENT_ID, API_READY } from "./oauth-config.js";
 
 export const SERVER_ORIGIN_PATTERN = AUTH_ORIGIN + "/*";
 const REQUEST = () => ({ origins: [SERVER_ORIGIN_PATTERN] });
