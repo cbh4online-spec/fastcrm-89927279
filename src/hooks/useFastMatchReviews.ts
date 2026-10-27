@@ -62,37 +62,19 @@ export function useSubmitReview() {
 
       if (error) throw error;
 
-      // Recalculate reputation for reviewed profile
-      const { data: allReviews } = await supabase
-        .from("fastmatch_reputation_reviews")
-        .select("rating")
-        .eq("reviewed_profile_id", reviewedProfileId);
-
-      let avg = 0;
-      if (allReviews && allReviews.length > 0) {
-        avg =
-          allReviews.reduce((sum, r) => sum + (r as any).rating, 0) /
-          allReviews.length;
-
-        await supabase
-          .from("fastmatch_profiles")
-          .update({
-            reputation_score: Math.round(avg * 10) / 10,
-            reputation_count: allReviews.length,
-          })
-          .eq("id", reviewedProfileId);
-
-        console.log(`[FASTMATCH] Reputation recalculated for ${reviewedProfileId}: score=${Math.round(avg * 10) / 10}`);
-      }
-
+      // The database updates the authoritative aggregate atomically with the review.
       return { data, connectionId, reviewedProfileId, rating };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-review"] });
       queryClient.invalidateQueries({ queryKey: ["fastmatch-connections"] });
+      queryClient.invalidateQueries({ queryKey: ["fastmatch-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["fastmatch-discovery"] });
+
+      if (!currentWorkspace) return;
 
       emitKernelEvent({
-        workspace_id: currentWorkspace!.id,
+        workspace_id: currentWorkspace.id,
         type: 'FASTMATCH.REVIEW_SUBMITTED',
         entity_kind: 'fastmatch_review',
         entity_id: result.data.id,
