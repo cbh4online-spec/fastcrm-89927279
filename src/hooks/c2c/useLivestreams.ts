@@ -188,7 +188,7 @@ export function useCreateLivestream() {
           product_ids: input.product_ids || [],
           replay_available: input.replay_available ?? true,
         })
-        .select()
+        .select("id, workspace_id, seller_id, title, status, scheduled_at, started_at, ended_at, mux_playback_id, livekit_room_name")
         .single();
       if (error) throw error;
       return data as Livestream;
