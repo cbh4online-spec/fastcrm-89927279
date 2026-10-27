@@ -610,6 +610,13 @@
       "when": 1793115368758,
       "tag": "0086_scope_kb_categories_kernel_registry_live_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1793116655154,
+      "tag": "0087_scope_endorsements_kernel_registry_loyalty_rewards",
+      "breakpoints": true
     }
   ]
 }
