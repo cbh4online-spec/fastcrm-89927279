@@ -221,11 +221,13 @@ function renderList(el, rows, kind, extraKey) {
 function setupPanelLookup() {
   $("btn-load-workspaces").addEventListener("click", async (e) => {
     const btn = e.currentTarget;
+    const epoch = state.authEpoch; // sessão de autenticação no momento do clique
     btn.disabled = true;
     const fb = $("workspace-feedback");
     setFeedback(fb, "A carregar…");
     const r = await send({ type: "LIST_WORKSPACES" });
     btn.disabled = false;
+    if (epoch !== state.authEpoch) return; // logout/revogação entretanto: não reabrir lista
     const sel = $("select-workspace");
     state.workspaceId = "";
     clearResults();
@@ -285,56 +287,91 @@ function renderAuth(status) {
   updateLookupButton();
 }
 
+/**
+ * Sessão de autenticação da UI (v0.4.3): cada estado inicial, clique «Ligar», logout e
+ * revogação abre uma nova época. Continuações assíncronas antigas são descartadas.
+ * `loginOwner` = época dona do botão «Ligar» (só essa o reativa).
+ */
+state.authEpoch = 0;
+state.loginOwner = 0;
+const newAuthEpoch = () => ++state.authEpoch;
+const isCurrentAuth = (epoch) => epoch === state.authEpoch;
+
+function releaseLoginButton() {
+  state.loginOwner = 0;
+  $("btn-auth-login").disabled = false;
+}
+
 async function setupAuth() {
   const fb = $("auth-feedback");
-  // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
-  renderAuth(isOAuthConfigured() ? (await sendAuth("AUTH_STATUS").catch(() => ({ status: "disconnected" }))).status : "config_pending");
+  // Listeners registados primeiro: um estado inicial lento/antiquado não os impede.
   $("btn-auth-login").addEventListener("click", (e) => {
     const btn = e.currentTarget; // guardado sincronamente: o Chrome limpa currentTarget após o dispatch
     if (!isOAuthConfigured()) {
       // Build atual (inativa): nada é pedido ao Chrome nem ao service worker.
+      newAuthEpoch();
       renderAuth("config_pending");
       setFeedback(fb, "A ligação ao FastCRM ainda não está disponível nesta versão. Use o fluxo manual.", "error");
       return;
     }
+    const epoch = newAuthEpoch();
+    state.loginOwner = epoch;
     btn.disabled = true;
     // Pedido de permissão DIRETAMENTE no gesto, antes de qualquer await ou mensagem.
     const granted = requestServerAccess(globalThis.chrome);
-    return finishLogin(btn, granted, fb);
+    return finishLogin(btn, granted, fb, epoch);
   });
   $("btn-auth-logout").addEventListener("click", async () => {
+    const epoch = newAuthEpoch();
+    releaseLoginButton();
     resetSession();
     try {
-      renderAuth((await sendAuth("AUTH_LOGOUT")).status);
+      const r = await sendAuth("AUTH_LOGOUT");
+      if (!isCurrentAuth(epoch)) return;
+      renderAuth(r.status);
       setFeedback(fb, "Ligação terminada.", "ok");
     } catch {
+      if (!isCurrentAuth(epoch)) return;
       renderAuth(isOAuthConfigured() ? "disconnected" : "config_pending");
       setFeedback(fb, "Não foi possível confirmar o fim da ligação. Tente novamente.", "error");
     }
   });
+  // Sem client_id público, o estado é sempre «configuração pendente» (não depende do SW).
+  if (!isOAuthConfigured()) { renderAuth("config_pending"); return; }
+  const epoch = newAuthEpoch();
+  renderAuth("disconnected");
+  let r;
+  try { r = await sendAuth("AUTH_STATUS"); } catch { r = { status: "disconnected" }; }
+  if (isCurrentAuth(epoch)) renderAuth(r.status);
 }
 
-async function finishLogin(btn, granted, fb) {
+async function finishLogin(btn, granted, fb, epoch) {
   try {
-    if (!(await granted)) {
+    const ok = await granted;
+    if (!isCurrentAuth(epoch)) return; // logout/revogação/nova tentativa durante o pedido
+    if (!ok) {
       renderAuth("disconnected");
       setFeedback(fb, AUTH_ERRORS.sem_permissao_servidor, "error");
       return;
     }
     const r = await sendAuth("AUTH_START");
+    if (!isCurrentAuth(epoch)) return; // resposta antiga: nunca reabre «connected»
     renderAuth(r.status);
     setFeedback(fb, r.status === "connected" ? "Ligação estabelecida." : AUTH_ERRORS[r.error] ?? "Não foi possível ligar.", r.status === "connected" ? "ok" : "error");
   } catch {
+    if (!isCurrentAuth(epoch)) return;
     renderAuth(isOAuthConfigured() ? "disconnected" : "config_pending");
     setFeedback(fb, "Não foi possível ligar. Tente novamente.", "error");
   } finally {
-    btn.disabled = false;
+    if (state.loginOwner === epoch) { state.loginOwner = 0; btn.disabled = false; }
   }
 }
 
-/** Revogação no Chrome: limpar telefone, resultados e workspaces; respostas atrasadas descartadas (nonce). */
+/** Revogação no Chrome: limpar telefone, resultados e workspaces; respostas atrasadas descartadas. */
 function onServerAccessRemoved(removed) {
   if (!isServerOriginRemoval(removed)) return;
+  newAuthEpoch();
+  releaseLoginButton();
   resetSession();
   state.authStatus = "";
   renderAuth(isOAuthConfigured() ? "disconnected" : "config_pending");
