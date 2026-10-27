@@ -14,9 +14,10 @@ type InvoiceRow = {
   status: string | null;
   amount_paid: number | null;
   due_date: string | null;
+  document_type: string | null;
 };
 
-const SELECT_COLS = 'id, total, status, amount_paid, due_date';
+const SELECT_COLS = 'id, total, status, amount_paid, due_date, document_type';
 
 export function useFinancialKPIs(entityType: 'contact' | 'company', entityId: string) {
   return useQuery({
@@ -87,11 +88,16 @@ export function useFinancialKPIs(entityType: 'contact' | 'company', entityId: st
 
       const result: FinancialKPIs = { totalInvoiced: 0, paid: 0, pending: 0, overdue: 0 };
       for (const inv of invoices) {
+        const docType = inv.document_type;
+        // Notas de crédito e recibos nunca são dívida do cliente.
+        const isReceivable = !docType || docType === 'invoice' || docType === 'debit_note';
+        if (!isReceivable) continue;
         const total = Number(inv.total) || 0;
-        // Cruzar histórico de pagamentos com o amount_paid da fatura (SAF-T)
-        const fromPayments = paidPerInvoice[inv.id] || 0;
-        const fromInvoice = Number(inv.amount_paid) || 0;
-        const actualPaid = Math.min(total, Math.max(fromPayments, fromInvoice));
+        // SAF-T pode trazer amount_paid negativo: nunca o tratar como dívida extra.
+        const fromPayments = Math.max(0, paidPerInvoice[inv.id] || 0);
+        const fromInvoice = Math.max(0, Number(inv.amount_paid) || 0);
+        const recorded = inv.status === 'paid' ? total : Math.max(fromPayments, fromInvoice);
+        const actualPaid = Math.min(total, recorded);
 
         result.totalInvoiced += total;
         result.paid += actualPaid;
