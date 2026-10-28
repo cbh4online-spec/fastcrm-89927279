@@ -652,6 +652,13 @@
       "when": 1793189078232,
       "tag": "0092_restrict_reactions_sponsored_field_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1793198797127,
+      "tag": "0093_scope_sensitive_storage_buckets",
+      "breakpoints": true
     }
   ]
 }
