@@ -46,6 +46,7 @@ const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBac
 const BlogDashboard = lazy(() => import("@/pages/dashboard/blog/index"));
 const CreditHistoryPage = lazy(() => import("@/pages/CreditHistoryPage"));
 const BillingIntegrationsPage = lazy(() => import("@/pages/settings/BillingIntegrationsPage"));
+const ReceiptPermissionsPage = lazy(() => import("@/pages/settings/ReceiptPermissionsPage"));
 const BillingSyncPage = lazy(() => import("@/pages/settings/BillingSyncPage"));
 
 export function DashboardCoreRoutes() {
@@ -107,6 +108,7 @@ export function DashboardCoreRoutes() {
       <Route path="/settings/data-model" element={<DataModelPage />} />
       <Route path="/settings/tags" element={<WorkspaceTagsPage />} />
       <Route path="/settings/billing-integrations" element={<BillingIntegrationsPage />} />
+      <Route path="/settings/receipt-permissions" element={<ReceiptPermissionsPage />} />
       <Route path="/dashboard/settings/billing-integrations" element={<BillingIntegrationsPage />} />
       <Route path="/settings/billing-integrations/sync" element={<BillingSyncPage />} />
       <Route path="/dashboard/settings/billing-integrations/sync" element={<BillingSyncPage />} />
