@@ -944,13 +944,162 @@ var schedule_whatsapp_message_default = defineTool13({
   }
 });
 
+// src/lib/mcp/tools/get-pipeline-summary.ts
+import { defineTool as defineTool14 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { z as z14 } from "npm:zod@^3.25.76";
+
+// src/lib/mcp/safeRead.ts
+async function isWorkspaceMember(supabase, workspaceId, userId) {
+  const { data, error } = await supabase.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).eq("user_id", userId).limit(1);
+  return !error && (data?.length ?? 0) > 0;
+}
+async function auditCall(supabase, ctx, tool, workspaceId, startedAt, ok) {
+  try {
+    await supabase.from("mcp_tool_audit").insert({
+      user_id: ctx.getUserId(),
+      workspace_id: workspaceId,
+      client_id: ctx.getClientId() ?? null,
+      tool_name: tool,
+      duration_ms: Date.now() - startedAt,
+      ok
+    });
+  } catch {
+  }
+}
+
+// src/lib/mcp/tools/get-pipeline-summary.ts
+var get_pipeline_summary_default = defineTool14({
+  name: "get_pipeline_summary",
+  title: "Resumo do pipeline",
+  description: "Contagens e valor total das oportunidades por estado num workspace, sem nomes nem contactos.",
+  inputSchema: {
+    workspace_id: z14.string().uuid().describe("ID do workspace (ver list_workspaces).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ workspace_id }, ctx) => {
+    if (!ctx.isAuthenticated()) return unauthenticated();
+    const t0 = Date.now();
+    const supabase = supabaseForUser(ctx);
+    if (!await isWorkspaceMember(supabase, workspace_id, ctx.getUserId())) {
+      await auditCall(supabase, ctx, "get_pipeline_summary", null, t0, false);
+      return errorResult("Sem acesso a este workspace.");
+    }
+    const { data, error } = await supabase.from("opportunities").select("status, value, currency").eq("workspace_id", workspace_id).limit(5e3);
+    if (error) {
+      await auditCall(supabase, ctx, "get_pipeline_summary", workspace_id, t0, false);
+      return errorResult("N\xE3o foi poss\xEDvel ler o pipeline.");
+    }
+    const byStatus = {};
+    for (const o of data ?? []) {
+      const k = o.status ?? "sem_estado";
+      byStatus[k] ??= { count: 0, total_value: 0 };
+      byStatus[k].count += 1;
+      byStatus[k].total_value += Number(o.value ?? 0);
+    }
+    const statuses = Object.entries(byStatus).map(([status, v]) => ({
+      status,
+      count: v.count,
+      total_value: Math.round(v.total_value * 100) / 100
+    }));
+    await auditCall(supabase, ctx, "get_pipeline_summary", workspace_id, t0, true);
+    return jsonResult({ total: data?.length ?? 0, statuses });
+  }
+});
+
+// src/lib/mcp/tools/list-my-open-tasks.ts
+import { defineTool as defineTool15 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { z as z15 } from "npm:zod@^3.25.76";
+var lisbonDay = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon" }).format(d);
+function daysUntilLisbon(dueAt, now = /* @__PURE__ */ new Date()) {
+  const a = Date.parse(lisbonDay(new Date(dueAt)));
+  const b = Date.parse(lisbonDay(now));
+  return Math.round((a - b) / 864e5);
+}
+var list_my_open_tasks_default = defineTool15({
+  name: "list_my_open_tasks",
+  title: "As minhas tarefas abertas",
+  description: "Lista as tarefas abertas atribu\xEDdas ao utilizador autenticado, sem dados de contacto.",
+  inputSchema: {
+    workspace_id: z15.string().uuid().describe("ID do workspace (ver list_workspaces)."),
+    limit: z15.number().int().min(1).max(50).default(20).describe("M\xE1ximo de tarefas.")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ workspace_id, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return unauthenticated();
+    const t0 = Date.now();
+    const userId = ctx.getUserId();
+    const supabase = supabaseForUser(ctx);
+    if (!await isWorkspaceMember(supabase, workspace_id, userId)) {
+      await auditCall(supabase, ctx, "list_my_open_tasks", null, t0, false);
+      return errorResult("Sem acesso a este workspace.");
+    }
+    const { data, error } = await supabase.from("tasks").select("id, title, due_at, priority, status, related_type").eq("workspace_id", workspace_id).eq("assigned_to", userId).not("status", "in", "(done,completed,cancelled)").order("due_at", { ascending: true, nullsFirst: false }).limit(limit ?? 20);
+    if (error) {
+      await auditCall(supabase, ctx, "list_my_open_tasks", workspace_id, t0, false);
+      return errorResult("N\xE3o foi poss\xEDvel ler as tarefas.");
+    }
+    const tasks = (data ?? []).map((t) => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      priority: t.priority ?? null,
+      entity_type: t.related_type ?? null,
+      due_at: t.due_at ?? null,
+      days_until_due: t.due_at ? daysUntilLisbon(t.due_at) : null
+    }));
+    await auditCall(supabase, ctx, "list_my_open_tasks", workspace_id, t0, true);
+    return jsonResult({ count: tasks.length, tasks });
+  }
+});
+
+// src/lib/mcp/tools/search-public-catalog.ts
+import { defineTool as defineTool16 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { z as z16 } from "npm:zod@^3.25.76";
+var search_public_catalog_default = defineTool16({
+  name: "search_public_catalog",
+  title: "Pesquisar cat\xE1logo p\xFAblico",
+  description: "Procura produtos publicados na loja do workspace (nome, SKU, pre\xE7o p\xFAblico, disponibilidade), sem custos nem margens.",
+  inputSchema: {
+    workspace_id: z16.string().uuid().describe("ID do workspace (ver list_workspaces)."),
+    query: z16.string().trim().min(2).max(80).describe("Nome ou SKU a procurar."),
+    limit: z16.number().int().min(1).max(50).default(20).describe("M\xE1ximo de produtos.")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ workspace_id, query, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return unauthenticated();
+    const t0 = Date.now();
+    const supabase = supabaseForUser(ctx);
+    if (!await isWorkspaceMember(supabase, workspace_id, ctx.getUserId())) {
+      await auditCall(supabase, ctx, "search_public_catalog", null, t0, false);
+      return errorResult("Sem acesso a este workspace.");
+    }
+    const term = query.replace(/[%_,()]/g, " ").trim();
+    const { data, error } = await supabase.from("products").select("id, name, sku, base_price, currency, stock_status, store_slug").eq("workspace_id", workspace_id).eq("store_published", true).eq("status", "active").or(`name.ilike.%${term}%,sku.ilike.%${term}%`).limit(limit ?? 20);
+    if (error) {
+      await auditCall(supabase, ctx, "search_public_catalog", workspace_id, t0, false);
+      return errorResult("N\xE3o foi poss\xEDvel pesquisar o cat\xE1logo.");
+    }
+    const products = (data ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      sku: p.sku ?? null,
+      public_price: p.base_price ?? null,
+      currency: p.currency ?? "EUR",
+      availability: p.stock_status ?? null,
+      slug: p.store_slug ?? null
+    }));
+    await auditCall(supabase, ctx, "search_public_catalog", workspace_id, t0, true);
+    return jsonResult({ count: products.length, products });
+  }
+});
+
 // src/lib/mcp/index.ts
 var projectRef = "eumnfkccyvlyoyjchiwe";
 var mcp_default = defineMcp({
   name: "fastcrm-mcp",
   title: "FastCRM",
-  version: "0.1.0",
-  instructions: "Ferramentas do FastCRM. Comece sempre por `list_workspaces` para obter o `workspace_id` do utilizador; todas as outras ferramentas exigem esse ID. Pode procurar contactos e empresas, listar leads, oportunidades e faturas, criar leads e tarefas, e usar o WhatsApp Pro (enviar texto/imagem/v\xEDdeo, ler conversas e agendar mensagens). Envios de marketing exigem consentimento expl\xEDcito; opt-outs bloqueiam sempre o envio. Os dados devolvidos respeitam as permiss\xF5es do utilizador autenticado.",
+  version: "0.2.0",
+  instructions: "Ferramentas do FastCRM. Comece sempre por `list_workspaces` para obter o `workspace_id` do utilizador; todas as outras ferramentas exigem esse ID. Pode procurar contactos e empresas, listar leads, oportunidades e faturas, ver um resumo do pipeline, as suas tarefas abertas e pesquisar o cat\xE1logo p\xFAblico, criar leads e tarefas, e usar o WhatsApp Pro (enviar texto/imagem/v\xEDdeo, ler conversas e agendar mensagens). Envios de marketing exigem consentimento expl\xEDcito; opt-outs bloqueiam sempre o envio. Os dados devolvidos respeitam as permiss\xF5es do utilizador autenticado.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
@@ -968,7 +1117,10 @@ var mcp_default = defineMcp({
     send_whatsapp_image_default,
     send_whatsapp_video_default,
     get_whatsapp_conversation_default,
-    schedule_whatsapp_message_default
+    schedule_whatsapp_message_default,
+    get_pipeline_summary_default,
+    list_my_open_tasks_default,
+    search_public_catalog_default
   ]
 });
 
