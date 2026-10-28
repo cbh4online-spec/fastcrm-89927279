@@ -52,8 +52,8 @@ export function ApplicationForm({ jobId, workspaceId, jobTitle }: ApplicationFor
         setUploading(false);
         return;
       }
-      const { data: urlData } = supabase.storage.from("hr-cvs").getPublicUrl(path);
-      cv_url = urlData.publicUrl;
+      // Private bucket: store the storage path; the team opens it via a signed URL.
+      cv_url = `hr-cvs/${path}`;
       setUploading(false);
     }
 

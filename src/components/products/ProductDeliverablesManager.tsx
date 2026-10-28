@@ -134,11 +134,11 @@ export function ProductDeliverablesManager({ productId }: ProductDeliverablesMan
             {/* Type-specific config fields */}
             {newType === "file" && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Caminho no Storage (ex: manuais/guia.pdf)</Label>
+                <Label className="text-xs">Caminho no Storage (começa pelo ID do espaço de trabalho, ex: id-workspace/manuais/guia.pdf)</Label>
                 <Input
                   value={newConfig.storage_path || ""}
                   onChange={(e) => setNewConfig({ ...newConfig, storage_path: e.target.value })}
-                  placeholder="pasta/ficheiro.pdf"
+                  placeholder="id-workspace/pasta/ficheiro.pdf"
                   className="h-9"
                 />
               </div>
