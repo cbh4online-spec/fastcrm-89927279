@@ -687,6 +687,13 @@
       "when": 1793203049963,
       "tag": "0097_invoice_payment_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1793209256080,
+      "tag": "0098_mcp_tool_audit",
+      "breakpoints": true
     }
   ]
 }
