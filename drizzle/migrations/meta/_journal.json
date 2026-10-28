@@ -666,6 +666,13 @@
       "when": 1793199001742,
       "tag": "0094_bind_storage_writes_and_scope_internal_data",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1793200575945,
+      "tag": "0095_scope_hr_rfq_deliverables_storage",
+      "breakpoints": true
     }
   ]
 }
