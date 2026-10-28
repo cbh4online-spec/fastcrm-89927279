@@ -60,7 +60,7 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
 
   return (
     <div className={cn("mb-2 md:mb-4", className)}>
-      <div className="grid grid-cols-2 gap-2 md:-mx-1 md:flex md:gap-3 md:overflow-x-auto md:px-1 md:pb-1">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-5">
         {items.map((kpi) => {
           const tone = kpi.tone ?? "neutral";
           const Icon = kpi.icon;
