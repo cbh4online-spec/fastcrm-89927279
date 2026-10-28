@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Calculator, FileText, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, Euro } from "lucide-react";
+import { TrendingUp, DollarSign, Calendar, BarChart3, ShoppingCart, Calculator, FileText, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle2, Euro, Search } from "lucide-react";
 import { Company } from "@/hooks/useCompanies";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
@@ -411,6 +411,8 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
   const [paymentMethod, setPaymentMethod] = useState<string>("transfer");
   const [paymentNotes, setPaymentNotes] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState("");
+  const normalizedSearch = search.toLowerCase().replace(/\s+/g, "");
   const queryClient = useQueryClient();
 
   const registerPayment = useCallback(async (inv: InvoiceRow, amount: number, date: string, method: string, notes: string) => {
@@ -475,15 +477,18 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
   }, [paymentInvoice, paymentAmount, paymentDate, paymentMethod, paymentNotes, registerPayment]);
 
   const filtered = useMemo(() => {
-    const list = yearFilter
+    const byYear = yearFilter
       ? invoices.filter(inv => inv.issue_date && new Date(inv.issue_date).getFullYear() === yearFilter)
       : invoices;
+    const list = normalizedSearch
+      ? byYear.filter(inv => String((inv as any).invoice_number ?? "").toLowerCase().replace(/\s+/g, "").includes(normalizedSearch))
+      : byYear;
     return [...list].sort((a, b) => {
       const da = a.issue_date ? new Date(a.issue_date).getTime() : 0;
       const db = b.issue_date ? new Date(b.issue_date).getTime() : 0;
       return db - da;
     });
-  }, [invoices, yearFilter]);
+  }, [invoices, yearFilter, normalizedSearch]);
 
   const totalItems = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -516,7 +521,11 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
   // Reset to page 1 when filter changes
   useMemo(() => {
     setCurrentPage(1);
-  }, [yearFilter]);
+  }, [yearFilter, normalizedSearch]);
+
+  useEffect(() => {
+    if (!open) setSearch("");
+  }, [open]);
 
   const startItem = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const endItem = Math.min(safePage * pageSize, totalItems);
@@ -552,6 +561,17 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
             </Button>
           ))}
 
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value.slice(0, 50))}
+              placeholder="Pesquisar nº fatura"
+              aria-label="Pesquisar por número de fatura"
+              className="h-8 pl-8 text-xs"
+            />
+          </div>
+
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-muted-foreground hidden sm:inline">Por página:</span>
             <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
@@ -586,7 +606,7 @@ function InvoicesDialog({ open, onOpenChange, invoices, yearFilter, onYearFilter
               {paginated.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                    Sem faturas para este filtro.
+                    {normalizedSearch ? "Nenhuma fatura com esse número." : "Sem faturas para este filtro."}
                   </TableCell>
                 </TableRow>
               ) : (
