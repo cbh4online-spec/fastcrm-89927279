@@ -104,7 +104,7 @@ export function ListKPIStrip({ items, isLoading, note, className }: ListKPIStrip
                   {kpi.value}
                 </span>
                 {kpi.hint && (
-                  <span className="block truncate text-[11px] text-muted-foreground">{kpi.hint}</span>
+                  <span className="block break-words text-[11px] text-muted-foreground">{kpi.hint}</span>
                 )}
               </span>
             </Tag>
