@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseSaftXml, type SaftParsed } from "../_shared/saft-parser.ts";
 import { collectSaftStream, decodeStream, detectEncoding } from "../_shared/saft-stream-parser.ts";
+import { buildMatchIndex, matchCustomer, normalizeNif, type MatchRow } from "../_shared/saftCustomerMatch.ts";
 
 
 const corsHeaders = {
@@ -104,35 +105,23 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   const customerMap = new Map<string, { contact_id: string | null; company_id: string | null }>();
 
   if (opts.create_customers !== false && parsed.customers.length) {
-    const allNifs = [...new Set(parsed.customers.map((c) => c.tax_id).filter(Boolean) as string[])];
-    const allEmails = [...new Set(parsed.customers.map((c) => c.email).filter(Boolean) as string[])];
-
-    const fetchExisting = async (table: string) => {
-      const byNif = new Map<string, string>();
-      const byEmail = new Map<string, string>();
-      const useDeletedFilter = table === "companies";
-      if (allNifs.length) {
-        for (const cnk of chunk(allNifs, 500)) {
-          let q = admin.from(table).select("id, tax_id").eq("workspace_id", ws).in("tax_id", cnk);
-          if (useDeletedFilter) q = q.is("deleted_at", null);
-          const { data } = await q;
-          for (const r of data ?? []) if (r.tax_id) byNif.set(r.tax_id, r.id);
+    const loadAll = async (table: string) => {
+      const rows: MatchRow[] = [];
+      for (let from = 0; ; from += 1000) {
+        let q = admin.from(table).select(table === "companies" ? "id, name, tax_id, email" : "id, tax_id, email, first_name, last_name")
+          .eq("workspace_id", ws).order("created_at", { ascending: true }).range(from, from + 999);
+        if (table === "companies") q = q.is("deleted_at", null);
+        const { data, error } = await q;
+        if (error) throw new Error(`Falha a ler ${table}: ${error.message}`);
+        for (const r of (data ?? []) as any[]) {
+          rows.push({ id: r.id, tax_id: r.tax_id, email: r.email,
+            name: r.name ?? [r.first_name, r.last_name].filter(Boolean).join(" ") });
         }
+        if (!data || data.length < 1000) break;
       }
-      if (allEmails.length) {
-        for (const cnk of chunk(allEmails, 500)) {
-          let q = admin.from(table).select("id, email").eq("workspace_id", ws).in("email", cnk);
-          if (useDeletedFilter) q = q.is("deleted_at", null);
-          const { data } = await q;
-          for (const r of data ?? []) if (r.email) byEmail.set(r.email, r.id);
-        }
-      }
-      return { byNif, byEmail };
+      return buildMatchIndex(rows);
     };
-    const [contactsIdx, companiesIdx] = await Promise.all([
-      fetchExisting("contacts"),
-      fetchExisting("companies"),
-    ]);
+    const [contactsIdx, companiesIdx] = await Promise.all([loadAll("contacts"), loadAll("companies")]);
 
     const newContacts: any[] = [];
     const newCompanies: any[] = [];
@@ -140,15 +129,11 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
     const newCompanyKeys: string[] = [];
 
     // Todos os clientes SAF-T são tratados como Empresas (inclui ENI com NIF 1/2/3).
-    // Mantém-se a deteção de particular apenas para enriquecimento futuro (tag/observação).
     for (const c of parsed.customers) {
       if (!c.customer_id) continue;
 
-      // 1) match por NIF/email em companies, 2) fallback: match em contacts já existentes (legado)
-      const existingCompanyId =
-        (c.tax_id && companiesIdx.byNif.get(c.tax_id)) ||
-        (c.email && companiesIdx.byEmail.get(c.email)) ||
-        null;
+      // NIF normalizado → nome igual → email único (ou desempate por nome)
+      const existingCompanyId = matchCustomer(companiesIdx, c);
 
       if (existingCompanyId) {
         customerMap.set(c.customer_id, { contact_id: null, company_id: existingCompanyId });
@@ -156,11 +141,10 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
         continue;
       }
 
-      // Reaproveita contacto legado (de imports antigos) para não duplicar entidades comerciais
-      const legacyContactId =
-        (c.tax_id && contactsIdx.byNif.get(c.tax_id)) ||
-        (c.email && contactsIdx.byEmail.get(c.email)) ||
-        null;
+      // Contacto legado: só por NIF normalizado (nunca por email partilhado)
+      const nifKey = normalizeNif(c.tax_id);
+      const legacyHits = nifKey ? contactsIdx.byNif.get(nifKey) : undefined;
+      const legacyContactId = legacyHits?.length === 1 ? legacyHits[0].id : null;
       if (legacyContactId) {
         customerMap.set(c.customer_id, { contact_id: legacyContactId, company_id: null });
         pushLog({ entity_type: "customer", source_key: c.customer_id, action: "skipped_duplicate", target_id: legacyContactId });
