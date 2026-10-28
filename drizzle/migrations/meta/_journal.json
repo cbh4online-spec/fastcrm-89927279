@@ -659,6 +659,13 @@
       "when": 1793198797127,
       "tag": "0093_scope_sensitive_storage_buckets",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1793199001742,
+      "tag": "0094_bind_storage_writes_and_scope_internal_data",
+      "breakpoints": true
     }
   ]
 }
