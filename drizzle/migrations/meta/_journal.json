@@ -680,6 +680,13 @@
       "when": 1793202413432,
       "tag": "0096_workspace_member_capability_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1793203049963,
+      "tag": "0097_invoice_payment_audit",
+      "breakpoints": true
     }
   ]
 }

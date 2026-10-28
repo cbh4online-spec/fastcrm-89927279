@@ -49813,6 +49813,45 @@ export type Database = {
           },
         ]
       }
+      invoice_payment_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          invoice_id: string | null
+          new_data: Json | null
+          old_data: Json | null
+          payment_id: string
+          reason: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          payment_id: string
+          reason?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          payment_id?: string
+          reason?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       invoice_payments: {
         Row: {
           amount: number
@@ -110703,6 +110742,18 @@ export type Database = {
         Args: { p_payload: Json; p_view_id: string }
         Returns: undefined
       }
+      update_invoice_payment: {
+        Args: {
+          _amount: number
+          _id: string
+          _notes: string
+          _payment_date: string
+          _payment_method: string
+          _reason: string
+          _reference: string
+        }
+        Returns: undefined
+      }
       update_user_status_admin: {
         Args: { p_status: string; p_user_id: string }
         Returns: Json
@@ -110813,6 +110864,10 @@ export type Database = {
       verify_builder_domain: {
         Args: { _domain_id: string; _resolved_token: string }
         Returns: boolean
+      }
+      void_invoice_payment: {
+        Args: { _id: string; _reason: string }
+        Returns: undefined
       }
       wa_evaluate_auto_pause: { Args: { _workspace_id: string }; Returns: Json }
       wa_get_throttle_status: {

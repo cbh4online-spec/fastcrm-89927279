@@ -456,6 +456,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("credits-history",       "Histórico de Créditos", "/dashboard/credits",     Coins,        "administracao"),
   e("settings-integrations", "Integrações & API",     "/settings/integrations",      Plug,         "administracao", { menuKey: "integrations" }),
   e("settings-billing-integrations", "Programas de Faturação", "/settings/billing-integrations", Receipt, "administracao", { menuKey: "integrations" }),
+  e("settings-receipt-permissions", "Permissões de recibos", "/settings/receipt-permissions", ShieldCheck, "administracao", { menuKey: "billing" }),
   e("settings-payment-gateways", "Gateways de Pagamento", "/settings/payment-gateways", CreditCard, "administracao", { menuKey: "billing" }),
   e("settings-workspace",    "Workspace",       "/settings/workspace",         FolderCog,    "administracao"),
   e("settings-roles",        "Papéis",          "/settings/roles",             ShieldCheck,  "administracao"),

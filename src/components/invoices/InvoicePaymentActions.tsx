@@ -16,6 +16,7 @@ import { MoreHorizontal, Pencil, Undo2, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDeleteInvoicePayment, useUpdateInvoicePayment } from "@/hooks/useInvoicePayments";
 import { useCapability } from "@/hooks/useCapability";
+import { isValidChangeReason } from "@/lib/invoices/paymentChangeReason";
 
 export interface EditablePayment {
   id: string;
@@ -115,7 +116,9 @@ function InvoicePaymentActionsInner({ payment, showOpenInvoice = false }: { paym
                 payment_method: form.payment_method || null,
                 reference: form.reference || null,
                 notes: form.notes || null,
+                reason,
               });
+              setReason("");
               setEditOpen(false);
             }}
           >
@@ -150,12 +153,17 @@ function InvoicePaymentActionsInner({ payment, showOpenInvoice = false }: { paym
               <Textarea id="ep-notes" maxLength={1000} rows={2} value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ep-reason">Motivo da correção *</Label>
+              <Input id="ep-reason" maxLength={500} required value={reason}
+                onChange={(e) => setReason(e.target.value)} placeholder="Ex.: valor digitado errado" />
+            </div>
             {payment.saft_import_id && (
               <p className="text-xs text-muted-foreground">Este recibo veio do SAF-T. Uma nova importação do mesmo ficheiro não o duplica.</p>
             )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={update.isPending}>{update.isPending ? "A guardar…" : "Guardar"}</Button>
+              <Button type="submit" disabled={update.isPending || !isValidChangeReason(reason)}>{update.isPending ? "A guardar…" : "Guardar"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -170,14 +178,14 @@ function InvoicePaymentActionsInner({ payment, showOpenInvoice = false }: { paym
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-1.5">
-            <Label htmlFor="void-reason">Motivo (opcional)</Label>
-            <Input id="void-reason" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: registado na fatura errada" />
+            <Label htmlFor="void-reason">Motivo *</Label>
+            <Input id="void-reason" maxLength={500} required value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: registado na fatura errada" />
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={remove.isPending}
+              disabled={remove.isPending || !isValidChangeReason(reason)}
               onClick={async () => {
                 await remove.mutateAsync({ id: payment.id, invoice_id: payment.invoice_id, reason });
                 setReason("");
