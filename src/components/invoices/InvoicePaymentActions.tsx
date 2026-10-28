@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { MoreHorizontal, Pencil, Undo2, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDeleteInvoicePayment, useUpdateInvoicePayment } from "@/hooks/useInvoicePayments";
+import { useCapability } from "@/hooks/useCapability";
 
 export interface EditablePayment {
   id: string;
@@ -41,7 +42,13 @@ export const PAYMENT_METHODS: Record<string, string> = {
 
 const fmt = (v: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
 
-export function InvoicePaymentActions({ payment, showOpenInvoice = false }: { payment: EditablePayment; showOpenInvoice?: boolean }) {
+export function InvoicePaymentActions(props: { payment: EditablePayment; showOpenInvoice?: boolean }) {
+  const canManage = useCapability("finance.manage");
+  if (!canManage) return null;
+  return <InvoicePaymentActionsInner {...props} />;
+}
+
+function InvoicePaymentActionsInner({ payment, showOpenInvoice = false }: { payment: EditablePayment; showOpenInvoice?: boolean }) {
   const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);

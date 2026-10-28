@@ -673,6 +673,13 @@
       "when": 1793200575945,
       "tag": "0095_scope_hr_rfq_deliverables_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1793202413432,
+      "tag": "0096_workspace_member_capability_grants",
+      "breakpoints": true
     }
   ]
 }
