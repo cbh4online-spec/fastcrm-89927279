@@ -54,7 +54,14 @@ export function matchCustomer(idx: MatchIndex, c: { tax_id?: string | null; name
   const nif = normalizeNif(c.tax_id);
   if (nif) {
     const hit = idx.byNif.get(nif);
-    if (hit?.length) return pick(hit, name) ?? hit[0].id;
+    if (hit?.length) {
+      const sameName = hit.find((h) => normalizeName(h.name) === name);
+      if (sameName) return sameName.id;
+      // NIF partilhado (ex.: pessoa e a sua empresa): se outra ficha tem exatamente o nome do documento, ganha essa.
+      const named = name ? idx.byName.get(name) : undefined;
+      if (named?.length) return named[0].id;
+      return hit[0].id;
+    }
   }
   if (name) {
     const hit = idx.byName.get(name);
