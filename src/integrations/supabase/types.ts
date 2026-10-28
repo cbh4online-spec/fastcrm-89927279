@@ -57907,6 +57907,39 @@ export type Database = {
           },
         ]
       }
+      mcp_tool_audit: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          duration_ms: number | null
+          id: string
+          ok: boolean
+          tool_name: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          ok?: boolean
+          tool_name: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          ok?: boolean
+          tool_name?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       meeting_ai_analysis: {
         Row: {
           buying_signals: Json | null
