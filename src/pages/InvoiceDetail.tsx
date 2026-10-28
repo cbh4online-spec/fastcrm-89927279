@@ -32,6 +32,7 @@ import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
 import { InvoicePaymentsHistory } from "@/components/invoices/InvoicePaymentsHistory";
+import { InvoicePaymentAuditCard } from "@/components/invoices/InvoicePaymentAuditCard";
 import { PaymentActionsCard } from "@/components/invoices/PaymentActionsCard";
 import { InvoiceWhatsAppHistoryCard } from "@/components/invoices/InvoiceWhatsAppHistoryCard";
 import { PushToInvoiceXpressButton } from "@/components/invoices/PushToInvoiceXpressButton";
@@ -393,6 +394,8 @@ export default function InvoiceDetail() {
               amountPaid={invoice.amount_paid || 0}
               currency={invoice.currency}
             />
+            <InvoicePaymentAuditCard invoiceId={invoice.id} />
+
 
             {/* Super Admin: Force Status */}
             {isSuperAdmin && (
