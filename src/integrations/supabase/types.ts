@@ -104479,6 +104479,62 @@ export type Database = {
           },
         ]
       }
+      workspace_member_capability_grants: {
+        Row: {
+          capability: string
+          created_at: string
+          granted_by: string | null
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          capability: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          capability?: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_member_capability_grants_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_member_capability_grants_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_member_capability_grants_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_member_capability_grants_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           commercial_profile: Database["public"]["Enums"]["commercial_profile"]
@@ -109752,6 +109808,10 @@ export type Database = {
       }
       has_whatsapp_consent: {
         Args: { _phone: string; _workspace_id: string }
+        Returns: boolean
+      }
+      has_workspace_capability: {
+        Args: { _cap: string; _user_id: string; _workspace_id: string }
         Returns: boolean
       }
       has_workspace_role:
