@@ -29,3 +29,12 @@ Deno.test("email partilhado sem nome igual não associa", () => {
 Deno.test("nome igual antes de email", () => {
   assertEquals(matchCustomer(idx, { name: "adelcia maria monteiro garcia", email: "x@y.pt" }), "adelcia");
 });
+
+Deno.test("NIF/email partilhado entre pessoa e empresa: nome do documento decide", () => {
+  const idx = buildMatchIndex([
+    { id: "pessoa", name: "Adelcia Maria Monteiro Garcia", tax_id: "LU 34823971", email: "a@h.com" },
+    { id: "empresa", name: "Trico Spa Cabo Verde, Sociedade Unipessoal Lda", tax_id: null, email: "a@h.com" },
+  ]);
+  if (matchCustomer(idx, { tax_id: "LU34823971", name: "Trico Spa Cabo Verde, Sociedade Unipessoal Lda", email: "a@h.com" }) !== "empresa") throw new Error("empresa");
+  if (matchCustomer(idx, { tax_id: "LU34823971", name: "Adelcia Maria Monteiro Garcia", email: "a@h.com" }) !== "pessoa") throw new Error("pessoa");
+});
