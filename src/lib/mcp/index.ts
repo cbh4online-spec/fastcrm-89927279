@@ -7,11 +7,11 @@ import createLead from "./tools/create-lead";
 import listOpportunities from "./tools/list-opportunities";
 import listInvoices from "./tools/list-invoices";
 import createTask from "./tools/create-task";
-import sendWhatsAppText from "./tools/send-whatsapp-text";
-import sendWhatsAppImage from "./tools/send-whatsapp-image";
-import sendWhatsAppVideo from "./tools/send-whatsapp-video";
+// oculto: import {n} from "./tools/send-whatsapp-text";
+// oculto: import {n} from "./tools/send-whatsapp-image";
+// oculto: import {n} from "./tools/send-whatsapp-video";
 import getWhatsAppConversation from "./tools/get-whatsapp-conversation";
-import scheduleWhatsAppMessage from "./tools/schedule-whatsapp-message";
+// oculto: import {n} from "./tools/schedule-whatsapp-message";
 import getPipelineSummary from "./tools/get-pipeline-summary";
 import listMyOpenTasks from "./tools/list-my-open-tasks";
 import searchPublicCatalog from "./tools/search-public-catalog";
@@ -21,9 +21,9 @@ const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unse
 export default defineMcp({
   name: "fastcrm-mcp",
   title: "FastCRM",
-  version: "0.2.0",
+  version: "0.3.0",
   instructions:
-    "Ferramentas do FastCRM. Comece sempre por `list_workspaces` para obter o `workspace_id` do utilizador; todas as outras ferramentas exigem esse ID. Pode procurar contactos e empresas, listar leads, oportunidades e faturas, ver um resumo do pipeline, as suas tarefas abertas e pesquisar o catálogo público, criar leads e tarefas, e usar o WhatsApp Pro (enviar texto/imagem/vídeo, ler conversas e agendar mensagens). Envios de marketing exigem consentimento explícito; opt-outs bloqueiam sempre o envio. Os dados devolvidos respeitam as permissões do utilizador autenticado.",
+    "Ferramentas do FastCRM. Comece sempre por `list_workspaces` para obter o `workspace_id` do utilizador; todas as outras ferramentas exigem esse ID. Pode procurar contactos e empresas, listar leads, oportunidades e faturas, ver um resumo do pipeline, as suas tarefas abertas e pesquisar o catálogo público, criar leads e tarefas, e ler conversas do WhatsApp Pro. Os envios de WhatsApp não estão disponíveis por esta via. Os dados devolvidos respeitam as permissões do utilizador autenticado.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
@@ -37,11 +37,7 @@ export default defineMcp({
     listInvoices,
     createLead,
     createTask,
-    sendWhatsAppText,
-    sendWhatsAppImage,
-    sendWhatsAppVideo,
     getWhatsAppConversation,
-    scheduleWhatsAppMessage,
     getPipelineSummary,
     listMyOpenTasks,
     searchPublicCatalog,
