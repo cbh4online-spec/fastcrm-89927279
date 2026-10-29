@@ -754,6 +754,7 @@ export function CompanyDetailWithSidebar() {
       </div>
 
       {/* Horizontal Tabs */}
+      <div id="company-section-content" className="scroll-mt-4" aria-hidden="true" />
       <EntityHorizontalTabs
         entityType="company"
         activeSection={activeSection}
