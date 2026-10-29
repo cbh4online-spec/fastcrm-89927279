@@ -141,21 +141,28 @@ export function AgingChart({
   aging,
   loading,
 }: {
-  aging: Array<{ label: string; recebido: number; naoVencido: number; vencido: number }>;
+  aging: Array<{ label: string; year: number; month: number; recebido: number; naoVencido: number; vencido: number }>;
   loading?: boolean;
 }) {
   const hasValues = aging.some((a) => a.recebido || a.naoVencido || a.vencido);
+  const navigate = useNavigate();
+  const open = (index: number, due: string) => {
+    const row = aging[index];
+    if (!row) return;
+    const { from, to } = monthRange(row.year, row.month);
+    navigate(`/dashboard/invoices?from=${from}&to=${to}&due=${due}`);
+  };
   return (
     <ChartFrame loading={loading} empty={!hasValues} emptyLabel="Sem movimentos nos últimos meses.">
       <BarChart data={aging}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
         <XAxis dataKey="label" {...AXIS} />
         <YAxis {...AXIS} tickFormatter={euroTick} />
-        <Tooltip formatter={(v: number) => formatEUR(v)} contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+        <Tooltip formatter={(v: number) => formatEUR(v)} labelFormatter={(l) => `${l} · clique para ver as faturas`} contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
         <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="recebido" name="Recebido" stackId="a" fill={IX_SERIES.received} />
-        <Bar dataKey="naoVencido" name="Não vencido" stackId="a" fill={IX_SERIES.notDue} />
-        <Bar dataKey="vencido" name="Vencido" stackId="a" fill={IX_SERIES.overdue} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="recebido" name="Recebido" stackId="a" fill={IX_SERIES.received} cursor="pointer" onClick={(_: unknown, i: number) => open(i, "paid")} />
+        <Bar dataKey="naoVencido" name="Não vencido" stackId="a" fill={IX_SERIES.notDue} cursor="pointer" onClick={(_: unknown, i: number) => open(i, "not_due")} />
+        <Bar dataKey="vencido" name="Vencido" stackId="a" fill={IX_SERIES.overdue} radius={[4, 4, 0, 0]} cursor="pointer" onClick={(_: unknown, i: number) => open(i, "overdue")} />
       </BarChart>
     </ChartFrame>
   );

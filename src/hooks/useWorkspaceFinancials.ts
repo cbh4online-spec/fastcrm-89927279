@@ -74,7 +74,7 @@ export interface WorkspaceFinancials {
     overdue: number; // vencido
     received: number; // recebido (últimos 7 meses agregado)
     /** Envelhecimento por mês (últimos 7 meses): {label, recebido, naoVencido, vencido} */
-    aging: Array<{ label: string; recebido: number; naoVencido: number; vencido: number }>;
+    aging: Array<{ label: string; year: number; month: number; recebido: number; naoVencido: number; vencido: number }>;
     /** Top devedores ordenados por (vencido desc, notDue desc) */
     topDebtors: DebtorRow[];
   };
@@ -214,12 +214,14 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
       const debtorMap = new Map<string, DebtorRow>();
 
       // aging buckets últimos 7 meses
-      const agingMap = new Map<string, { label: string; recebido: number; naoVencido: number; vencido: number; sortKey: number }>();
+      const agingMap = new Map<string, { label: string; year: number; month: number; recebido: number; naoVencido: number; vencido: number; sortKey: number }>();
       for (let i = 6; i >= 0; i--) {
         const d = new Date(currentYear, currentMonth - i, 1);
         const key = monthKey(d);
         agingMap.set(key, {
           label: fmtMonthLabel(d),
+          year: d.getFullYear(),
+          month: d.getMonth() + 1,
           recebido: 0,
           naoVencido: 0,
           vencido: 0,
@@ -264,7 +266,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
         }
 
         // aging by issue_date
-        if (inv.issue_date) {
+        if (inv.issue_date && isReceivable) {
           const d = new Date(inv.issue_date);
           const key = monthKey(d);
           const bucket = agingMap.get(key);
