@@ -189,7 +189,8 @@ export default function Invoices() {
 
   // --- Summary card aggregates (apenas faturas ativas: exclui draft/cancelled)
   const summary = useMemo(() => {
-    const active = (invoices || []).filter(
+    const scope = filteredInvoices || [];
+    const active = scope.filter(
       (i) => i.status !== "draft" && i.status !== "cancelled",
     );
     let notDue = 0;
@@ -214,8 +215,8 @@ export default function Invoices() {
         else notDue += outstanding;
       }
     });
-    const drafts = (invoices || []).filter((i) => i.status === "draft");
-    const cancelled = (invoices || []).filter((i) => i.status === "cancelled");
+    const drafts = scope.filter((i) => i.status === "draft");
+    const cancelled = scope.filter((i) => i.status === "cancelled");
     const draftsGross = drafts.reduce((s, i) => s + (i.total || 0), 0);
     const draftsNet = drafts.reduce((s, i) => s + ((i as any).subtotal || 0), 0);
     const cancelledGross = cancelled.reduce((s, i) => s + (i.total || 0), 0);
@@ -233,7 +234,7 @@ export default function Invoices() {
       cancelledGross,
       cancelledNet,
     };
-  }, [invoices]);
+  }, [filteredInvoices]);
 
   const summaryItems: SummaryItem[] = [
     { label: "Não Vencido", value: formatCurrency(summary.notDue), tone: "default" },
