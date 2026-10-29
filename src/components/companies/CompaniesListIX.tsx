@@ -8,7 +8,8 @@ import { EntityStatusBadges } from "@/components/entity/EntityStatusBadges";
 import { EntityArchiveBlockActions, EntityArchiveBlockDialogs, type EntityActionRequest } from "@/components/entity/EntityArchiveBlockActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RenameEntityDialog, type RenameEntityTarget } from "@/components/entity/RenameEntityDialog";
-import { MoreHorizontal, Pencil } from "lucide-react";
+import { MoreHorizontal, Pencil, X } from "lucide-react";
+import { isInCurrentMonth } from "@/lib/dates/currentMonth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -309,9 +310,8 @@ export function CompaniesListIX() {
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const initialSortRecent = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("sort") === "recent";
-  const [sortBy, setSortBy] = useState<SortKey>(initialSortRecent ? "created_at" : "name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">(initialSortRecent ? "desc" : "asc");
+  const [sortBy, setSortBy] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
@@ -397,6 +397,8 @@ export function CompaniesListIX() {
         if (quick === "paid") return f.paid_total > 0.01;
         if (quick === "revenue" || quick === "ticket") return f.invoice_count > 0;
         if (quick === "active") return !!f.last_invoice_date && new Date(f.last_invoice_date).getTime() >= yearAgo;
+        if (quick === "active_month") return isInCurrentMonth(f.last_invoice_date);
+        if (quick === "new_month") return isInCurrentMonth(f.first_invoice_date);
         if (quick === "cycle_late") return f.cadence.status === "late";
         if (quick === "cycle_due") return f.cadence.status === "due";
         if (quick === "value_drop") return f.cadence.valueDrop;
@@ -536,6 +538,17 @@ export function CompaniesListIX() {
           countLabel="Empresas"
           extra={
             <div className="flex items-center gap-2">
+              {(quick === "active_month" || quick === "new_month") && (
+                <button
+                  type="button"
+                  onClick={() => { setQuick(null); setPage(0); }}
+                  aria-label="Remover filtro"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {quick === "active_month" ? "Faturados este mês" : "Novos clientes este mês"}
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
               <EntityFacetFilters facets={facets} />
               <select
