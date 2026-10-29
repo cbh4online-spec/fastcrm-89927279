@@ -9,7 +9,7 @@ import { EntityArchiveBlockActions, EntityArchiveBlockDialogs, type EntityAction
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RenameEntityDialog, type RenameEntityTarget } from "@/components/entity/RenameEntityDialog";
 import { MoreHorizontal, Pencil } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -314,7 +314,8 @@ export function CompaniesListIX() {
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
-  const [quick, setQuick] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const [quick, setQuick] = useState<string | null>(() => searchParams.get("quick"));
   const onlyOverdue = quick === "overdue";
   const toggleQuick = (k: string) => { setQuick((q) => (q === k ? null : k)); setPage(0); };
   const [mergeOpen, setMergeOpen] = useState(false);

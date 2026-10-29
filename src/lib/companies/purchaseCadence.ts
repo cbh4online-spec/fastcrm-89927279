@@ -51,3 +51,36 @@ export function computePurchaseCadence(input: {
     delayDays: Math.max(0, daysSinceLast - avgIntervalDays), valueDrop,
   };
 }
+
+const eur = (v: number) => v.toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
+
+/** Converte o perfil de recompra num alerta (ou null se não houver desvio). */
+export function cadenceAlert(name: string, c: PurchaseCadence):
+  { title: string; message: string; severity: "critical" | "warning"; rank: number } | null {
+  const cycle = c.avgIntervalDays ?? 0;
+  if (c.status === "late") {
+    return {
+      title: `${name} — fora do ciclo`,
+      message: `Compra a cada ~${cycle} dias (média ${eur(c.avgTicket ?? 0)}). Está há ${c.daysSinceLast} dias sem comprar.`,
+      severity: (c.daysSinceLast ?? 0) > cycle * 2 ? "critical" : "warning",
+      rank: 2000 + c.delayDays,
+    };
+  }
+  if (c.valueDrop) {
+    return {
+      title: `${name} — queda no valor`,
+      message: `Última compra ${eur(c.lastValue ?? 0)} contra média de ${eur(c.avgTicket ?? 0)}.`,
+      severity: "warning",
+      rank: 1000,
+    };
+  }
+  if (c.status === "due") {
+    return {
+      title: `${name} — janela de recompra`,
+      message: `Atingiu o ciclo habitual de ${cycle} dias. Bom momento para contactar.`,
+      severity: "warning",
+      rank: c.delayDays,
+    };
+  }
+  return null;
+}

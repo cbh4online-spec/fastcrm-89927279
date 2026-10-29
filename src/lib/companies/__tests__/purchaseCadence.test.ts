@@ -23,3 +23,15 @@ describe("computePurchaseCadence", () => {
     expect(r.status).toBe("single");
   });
 });
+
+import { cadenceAlert } from "../purchaseCadence";
+describe("cadenceAlert", () => {
+  it("atraso acima do dobro do ciclo → crítico", () => {
+    const c = computePurchaseCadence({ first: "2026-06-01", last: "2026-08-01", purchaseDays: 3, netTotal: 900, lastValue: 300, today });
+    expect(cadenceAlert("X", c)?.severity).toBe("critical");
+  });
+  it("cliente no ciclo não gera alerta", () => {
+    const c = computePurchaseCadence({ first: "2026-08-29", last: "2026-10-28", purchaseDays: 3, netTotal: 900, lastValue: 300, today });
+    expect(cadenceAlert("X", c)).toBeNull();
+  });
+});
