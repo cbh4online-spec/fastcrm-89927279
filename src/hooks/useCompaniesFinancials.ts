@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { computePurchaseCadence, type PurchaseCadence } from "@/lib/companies/purchaseCadence";
 
 export interface CompanyFinancials {
   company_id: string;
@@ -15,6 +16,7 @@ export interface CompanyFinancials {
   sales_2025: number;
   sales_2026: number;
   last_invoice_date: string | null;
+  cadence: PurchaseCadence;
 }
 
 const num = (v: unknown) => Number(v) || 0;
@@ -52,6 +54,13 @@ export function useCompaniesFinancials() {
           sales_2025: num(row.sales_2025),
           sales_2026: num(row.sales_2026),
           last_invoice_date: (row.last_invoice_date as string) ?? null,
+          cadence: computePurchaseCadence({
+            first: (row.first_invoice_date as string) ?? null,
+            last: (row.last_invoice_date as string) ?? null,
+            purchaseDays: num(row.purchase_days),
+            netTotal: num(row.net_total),
+            lastValue: row.last_invoice_net == null ? null : num(row.last_invoice_net),
+          }),
         });
       }
       return map;
