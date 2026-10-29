@@ -208,7 +208,7 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
       if (filters?.smartFilter) {
         switch (filters.smartFilter) {
           case "call_worthy":
-            query = query.eq("call_worthy" as any, true);
+            query = (query as any).eq("call_worthy", true);
             break;
           case "hot":
             query = query.eq("ai_temperature", "hot");
