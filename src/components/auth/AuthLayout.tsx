@@ -90,7 +90,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </div>
 
           {/* Retículo */}
-          <div className="absolute left-[42%] top-[20%] h-80 w-80 rounded-full border border-[hsl(var(--auth-accent)/0.5)] shadow-[0_0_60px_hsl(var(--auth-accent)/0.35)]">
+          <div className="absolute left-[28%] top-[12%] h-72 w-72 rounded-full border border-[hsl(var(--auth-accent)/0.5)] shadow-[0_0_60px_hsl(var(--auth-accent)/0.35)]">
             <div className="absolute inset-6 rounded-full border border-dashed border-border/50" />
             <div className="absolute left-1/2 top-0 h-full w-px bg-border/50" />
             <div className="absolute top-1/2 left-0 w-full h-px bg-border/50" />
