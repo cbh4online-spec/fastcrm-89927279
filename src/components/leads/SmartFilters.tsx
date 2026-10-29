@@ -32,6 +32,7 @@ export function SmartFilters({ filters, onFiltersChange, showAdvanced, onToggleA
   const { t } = useTranslation('crm');
 
   const smartFilters: Array<{ key: SmartFilterType; label: string; icon: React.ReactNode }> = [
+    { key: "call_worthy", label: "Vale uma ligação", icon: <Phone className="w-3 h-3" /> },
     { key: "hot", label: t('smartFilterHotLeads'), icon: <Flame className="w-3 h-3" /> },
     { key: "no_response", label: t('smartFilterNoResponse'), icon: <Clock className="w-3 h-3" /> },
     { key: "high_intent", label: t('smartFilterHighIntent'), icon: <TrendingUp className="w-3 h-3" /> },
