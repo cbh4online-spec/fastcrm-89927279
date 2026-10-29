@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -141,10 +142,10 @@ export function useOpportunitiesModule(): OpportunitiesModuleState {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       list = list.filter((opp) =>
-        opp.title.toLowerCase().includes(query) ||
-        opp.lead?.name?.toLowerCase().includes(query) ||
-        opp.contact?.name?.toLowerCase().includes(query) ||
-        opp.company?.name?.toLowerCase().includes(query)
+        opp.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        opp.lead?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        opp.contact?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        opp.company?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     }
 

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,8 +101,8 @@ export function AutomationTemplatesPanel({ onEditRule }: Props) {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       templates = templates.filter(t => 
-        t.name.toLowerCase().includes(query) ||
-        t.description.toLowerCase().includes(query)
+        t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        t.description.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     }
 

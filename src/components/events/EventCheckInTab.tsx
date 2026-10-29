@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ export function EventCheckInTab({ rsvps, eventId }: EventCheckInTabProps) {
   const filtered = rsvps.filter((r) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (r.name?.toLowerCase().includes(q) || r.email?.toLowerCase().includes(q));
+    return (r.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || r.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
   });
 
   const checkedIn = filtered.filter((r) => r.status === "attended");

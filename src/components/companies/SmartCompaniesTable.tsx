@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
@@ -230,7 +231,7 @@ export function SmartCompaniesTable() {
     if (!companies) return [];
     if (!searchValue) return companies;
     const lower = searchValue.toLowerCase();
-    return companies.filter(c => c.name?.toLowerCase().includes(lower) || c.email?.toLowerCase().includes(lower) || c.phone?.toLowerCase().includes(lower) || c.industry?.toLowerCase().includes(lower));
+    return companies.filter(c => c.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) || c.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) || c.phone?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) || c.industry?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)));
   }, [companies, searchValue]);
 
   const totalCompanies = filteredCompanies.length;

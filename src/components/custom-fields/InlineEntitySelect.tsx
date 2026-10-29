@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,8 +51,8 @@ export function InlineEntitySelect({
     const lowerSearch = search.toLowerCase();
     return options.filter(
       (opt) =>
-        opt.name.toLowerCase().includes(lowerSearch) ||
-        opt.email?.toLowerCase().includes(lowerSearch) ||
+        opt.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerSearch)) ||
+        opt.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerSearch)) ||
         opt.phone?.includes(search)
     );
   }, [options, search]);

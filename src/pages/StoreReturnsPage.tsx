@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -47,11 +48,11 @@ export default function StoreReturnsPage() {
     const q = search.toLowerCase();
     const order = rr.store_orders as any;
     return (
-      rr.request_number?.toLowerCase().includes(q) ||
-      rr.reason?.toLowerCase().includes(q) ||
-      order?.order_number?.toLowerCase().includes(q) ||
-      order?.customer_name?.toLowerCase().includes(q) ||
-      order?.customer_email?.toLowerCase().includes(q)
+      rr.request_number?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+      rr.reason?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+      order?.order_number?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+      order?.customer_name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+      order?.customer_email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
     );
   });
 

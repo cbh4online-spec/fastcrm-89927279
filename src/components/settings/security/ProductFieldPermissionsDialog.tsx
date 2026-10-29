@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -186,8 +187,8 @@ export function ProductFieldPermissionsDialog({ open, onOpenChange }: Props) {
       if (section !== "all" && f.section !== section) return false;
       if (!q) return true;
       return (
-        f.label.toLowerCase().includes(q) ||
-        f.key.toLowerCase().includes(q)
+        f.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        f.key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     });
   }, [search, section]);

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +63,7 @@ export function KeywordPagesDashboard() {
   const filtered = useMemo(() => {
     if (!search) return keywordData;
     const q = search.toLowerCase();
-    return keywordData.filter(k => k.keyword.toLowerCase().includes(q));
+    return keywordData.filter(k => k.keyword.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
   }, [keywordData, search]);
 
   if (isLoading) return <Skeleton className="h-[400px]" />;

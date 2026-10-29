@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -35,10 +36,10 @@ export function SalesInboxColumns({ conversations, selectedId, onSelect, search 
     if (search) {
       const s = search.toLowerCase();
       filtered = filtered.filter(c =>
-        c.contact?.name?.toLowerCase().includes(s) ||
-        c.lead?.name?.toLowerCase().includes(s) ||
-        c.lead?.email?.toLowerCase().includes(s) ||
-        c.last_message_preview?.toLowerCase().includes(s)
+        c.contact?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(s)) ||
+        c.lead?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(s)) ||
+        c.lead?.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(s)) ||
+        c.last_message_preview?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(s))
       );
     }
 

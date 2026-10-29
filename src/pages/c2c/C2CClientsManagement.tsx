@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -81,8 +82,8 @@ export default function C2CClientsManagement() {
     const term = search.trim().toLowerCase();
     if (!term) return buyers;
     return buyers.filter((b) =>
-      (b.display_name || "").toLowerCase().includes(term) ||
-      (b.phone || "").toLowerCase().includes(term)
+      (b.display_name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term)) ||
+      (b.phone || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term))
     );
   }, [buyers, search]);
 

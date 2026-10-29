@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -63,7 +64,7 @@ export function SalesRepSelector({ entityType, entityId, currentSalesRepId }: Pr
   const current = reps.find((r) => r.id === currentSalesRepId);
   const q = search.trim().toLowerCase();
   const filtered = reps.filter(
-    (r) => r.is_active && (!q || r.name.toLowerCase().includes(q) || (r.code ?? '').toLowerCase().includes(q)),
+    (r) => r.is_active && (!q || r.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || (r.code ?? '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))),
   );
 
   const assign = async (repId: string | null) => {

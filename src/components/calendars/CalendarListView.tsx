@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from 'react';
 import { format, parseISO, isAfter, isBefore, isSameDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -82,9 +83,9 @@ export function CalendarListView({
     if (filters.search) {
       const search = filters.search.toLowerCase();
       result = result.filter(e => 
-        e.title.toLowerCase().includes(search) ||
-        e.description?.toLowerCase().includes(search) ||
-        e.location?.toLowerCase().includes(search)
+        e.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(search)) ||
+        e.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(search)) ||
+        e.location?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(search))
       );
     }
 

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useNavigate } from "react-router-dom";
@@ -45,9 +46,9 @@ export default function RFQsPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter((r: any) =>
-        r.title?.toLowerCase().includes(q) ||
-        r.rfq_number?.toLowerCase().includes(q) ||
-        r.procurement_projects?.name?.toLowerCase().includes(q)
+        r.title?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        r.rfq_number?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        r.procurement_projects?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     }
 

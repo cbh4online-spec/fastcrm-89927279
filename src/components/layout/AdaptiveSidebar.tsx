@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -214,9 +215,9 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
     const q = menuFilter.toLowerCase();
     return topSections
       .map((tg) => {
-        const items = tg.items.filter((i) => i.label.toLowerCase().includes(q));
+        const items = tg.items.filter((i) => i.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
         const subSections = tg.subSections
-          .map((s) => ({ ...s, items: s.items.filter((i) => i.label.toLowerCase().includes(q)) }))
+          .map((s) => ({ ...s, items: s.items.filter((i) => i.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) }))
           .filter((s) => s.items.length > 0);
         return { ...tg, items, subSections };
       })

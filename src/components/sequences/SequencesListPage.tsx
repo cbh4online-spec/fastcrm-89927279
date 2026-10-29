@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,7 +59,7 @@ export function SequencesListPage() {
     if (searchValue) {
       const q = searchValue.toLowerCase();
       result = result.filter(
-        (s) => s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q)
+        (s) => s.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || s.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     }
     result.sort((a, b) => {

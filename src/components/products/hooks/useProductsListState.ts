@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -405,9 +406,9 @@ export function useProductsListState() {
       const lower = searchValue.toLowerCase();
       result = result.filter(
         (p) =>
-          p.name?.toLowerCase().includes(lower) ||
-          p.sku?.toLowerCase().includes(lower) ||
-          p.category?.toLowerCase().includes(lower)
+          p.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+          p.sku?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+          p.category?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower))
       );
     }
 

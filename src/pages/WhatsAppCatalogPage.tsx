@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -119,9 +120,9 @@ export default function WhatsAppCatalogPage() {
       if (category !== "__all__" && p.category !== category) return false;
       if (!q) return true;
       return (
-        p.name.toLowerCase().includes(q) ||
-        (p.short_description ?? "").toLowerCase().includes(q) ||
-        (p.category ?? "").toLowerCase().includes(q)
+        p.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (p.short_description ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (p.category ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     });
   }, [products, search, category]);

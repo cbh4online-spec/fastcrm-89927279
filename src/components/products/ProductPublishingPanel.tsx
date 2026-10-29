@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -252,8 +253,8 @@ export function ProductPublishingPanel({
     return (catalogsQuery.data ?? []).filter((c) => {
       if (!q) return true;
       return (
-        c.title.toLowerCase().includes(q) ||
-        (c.subtitle ?? "").toLowerCase().includes(q)
+        c.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (c.subtitle ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     });
   }, [catalogsQuery.data, search]);

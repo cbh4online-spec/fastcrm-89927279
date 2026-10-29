@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { displayLabel } from "@/lib/crm/displayLabels";
 import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
@@ -248,7 +249,7 @@ export function ContactsListIX() {
       arr = arr.filter((c) =>
         [c.name, c.email, c.tax_id, c.company, c.phone]
           .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q)),
+          .some((v) => String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))),
       );
     }
     arr = arr.filter(

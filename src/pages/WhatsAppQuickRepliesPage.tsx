@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -77,9 +78,9 @@ export default function WhatsAppQuickRepliesPage() {
     if (!q) return snippets;
     return snippets.filter(
       (s) =>
-        s.shortcut.toLowerCase().includes(q) ||
-        s.title.toLowerCase().includes(q) ||
-        s.content.toLowerCase().includes(q),
+        s.shortcut.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        s.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        s.content.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)),
     );
   }, [snippets, search]);
 

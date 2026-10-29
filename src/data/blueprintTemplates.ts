@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { CrmBlueprint } from '@/types/blueprint';
 
 export interface BlueprintTemplate {
@@ -454,9 +455,9 @@ export function getTemplateById(id: string): BlueprintTemplate | undefined {
 export function searchTemplates(query: string): BlueprintTemplate[] {
   const lowerQuery = query.toLowerCase();
   return blueprintTemplates.filter(t =>
-    t.name.toLowerCase().includes(lowerQuery) ||
-    t.description.toLowerCase().includes(lowerQuery) ||
-    t.industry.toLowerCase().includes(lowerQuery) ||
-    t.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+    t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerQuery)) ||
+    t.description.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerQuery)) ||
+    t.industry.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerQuery)) ||
+    t.tags.some(tag => tag.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerQuery)))
   );
 }

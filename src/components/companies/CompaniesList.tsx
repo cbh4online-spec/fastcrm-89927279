@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCompanies, Company } from "@/hooks/useCompanies";
@@ -73,9 +74,9 @@ export function CompaniesList() {
   const filteredCompanies = companies.filter((company) => {
     const query = searchQuery.toLowerCase();
     return (
-      company.name.toLowerCase().includes(query) ||
-      company.industry?.toLowerCase().includes(query) ||
-      company.website?.toLowerCase().includes(query)
+      company.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+      company.industry?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+      company.website?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
     );
   });
 

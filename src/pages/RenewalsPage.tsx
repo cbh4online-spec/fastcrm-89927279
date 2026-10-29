@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -118,7 +119,7 @@ export default function RenewalsPage() {
         const q = search.toLowerCase();
         const companyName = c.company?.name || "";
         const contactName = c.contact?.name || "";
-        if (!companyName.toLowerCase().includes(q) && !contactName.toLowerCase().includes(q))
+        if (!companyName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) && !contactName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)))
           return false;
       }
       if (riskFilter !== "all") {

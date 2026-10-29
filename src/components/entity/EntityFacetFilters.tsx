@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ function FacetSection({ facet }: { facet: FacetDef }) {
   const options = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = q
-      ? facet.options.filter((o) => o.label.toLowerCase().includes(q))
+      ? facet.options.filter((o) => o.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)))
       : facet.options;
     return list.slice(0, 200);
   }, [facet.options, query]);

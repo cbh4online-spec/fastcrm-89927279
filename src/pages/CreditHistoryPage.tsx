@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -214,11 +215,11 @@ export default function CreditHistoryPage() {
       const u = r.user_id ? users[r.user_id] : null;
       return (
         label.includes(q) ||
-        r.action_key.toLowerCase().includes(q) ||
-        (r.description ?? "").toLowerCase().includes(q) ||
-        (r.reference_id ?? "").toLowerCase().includes(q) ||
-        (u?.full_name ?? "").toLowerCase().includes(q) ||
-        (u?.email ?? "").toLowerCase().includes(q)
+        r.action_key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (r.description ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (r.reference_id ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (u?.full_name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (u?.email ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     });
   }, [rows, search, actionLabel, users]);

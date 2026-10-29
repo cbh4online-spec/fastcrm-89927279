@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import React, { useState, useMemo } from 'react';
 import {
   Sheet,
@@ -201,9 +202,9 @@ export function TemplateSelector({
     const searchLower = search.toLowerCase();
     return recommendations.filter(
       r =>
-        r.template.name.toLowerCase().includes(searchLower) ||
-        r.template.description?.toLowerCase().includes(searchLower) ||
-        r.template.tags?.some(t => t.toLowerCase().includes(searchLower))
+        r.template.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        r.template.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        r.template.tags?.some(t => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)))
     );
   }, [recommendations, search]);
   

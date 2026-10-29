@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useC2CSellers, useUpdateSellerStatus } from "@/hooks/useC2CSellers";
@@ -487,7 +488,7 @@ export default function C2CSellersAdmin() {
       if (filterStatus !== "all" && s.status !== filterStatus) return false;
       if (search) {
         const q = search.toLowerCase();
-        return s.display_name.toLowerCase().includes(q) || s.nif?.includes(q) || s.phone?.includes(q);
+        return s.display_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || s.nif?.includes(q) || s.phone?.includes(q);
       }
       return true;
     });

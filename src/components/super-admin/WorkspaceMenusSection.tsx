@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -145,12 +146,12 @@ export function WorkspaceMenusSection() {
           navGroup,
           label: NAV_GROUPS.find((g) => g.key === navGroup)?.label ?? navGroup,
           items: items.filter(
-            (r) => !q || r.label.toLowerCase().includes(q) || r.key.toLowerCase().includes(q),
+            (r) => !q || r.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || r.key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)),
           ),
         }))
         .filter((sg) => sg.items.length > 0);
 
-      const matchesGroup = !q || tg.label.toLowerCase().includes(q);
+      const matchesGroup = !q || tg.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q));
       return { tg, subGroups, visible: matchesGroup || subGroups.length > 0 };
     }).filter((n) => n.visible);
   }, [search]);

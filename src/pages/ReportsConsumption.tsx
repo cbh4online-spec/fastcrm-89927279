@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -82,7 +83,7 @@ export default function ReportsConsumption() {
     
     const query = searchValue.toLowerCase();
     return products.filter(p => 
-      p.productName.toLowerCase().includes(query)
+      p.productName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
     );
   }, [products, searchValue]);
 

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -158,8 +159,8 @@ export function BulkEditDialog({
     
     Object.entries(fieldsBySection).forEach(([section, sectionFields]) => {
       const matchingFields = sectionFields.filter((field) => 
-        field.label.toLowerCase().includes(term) || 
-        field.key.toLowerCase().includes(term)
+        field.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term)) || 
+        field.key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term))
       );
       if (matchingFields.length > 0) {
         filtered[section] = matchingFields;

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConversations, useDeleteConversations, ConversationChannel, ConversationStatus, Conversation } from "@/hooks/useConversations";
@@ -361,10 +362,10 @@ export function ConversationList({
     if (search) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter(conv =>
-        conv.contact?.name?.toLowerCase().includes(searchLower) ||
-        conv.lead?.name?.toLowerCase().includes(searchLower) ||
-        conv.lead?.email?.toLowerCase().includes(searchLower) ||
-        conv.last_message_preview?.toLowerCase().includes(searchLower)
+        conv.contact?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        conv.lead?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        conv.lead?.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        conv.last_message_preview?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower))
       );
     }
 

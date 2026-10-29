@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
@@ -112,8 +113,8 @@ export function UnifiedCrmView() {
       const query = searchQuery.toLowerCase();
       const companyName = contact.company?.toLowerCase() || "";
       const matchesSearch = 
-        contact.name.toLowerCase().includes(query) ||
-        contact.email?.toLowerCase().includes(query) ||
+        contact.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        contact.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
         companyName.includes(query) ||
         contact.phone?.includes(query);
       
@@ -151,8 +152,8 @@ export function UnifiedCrmView() {
       // Text search
       const query = searchQuery.toLowerCase();
       const matchesSearch = 
-        opp.title.toLowerCase().includes(query) ||
-        opp.lead?.name.toLowerCase().includes(query);
+        opp.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        opp.lead?.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query));
       
       if (!matchesSearch) return false;
 

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback } from "react";
 import { useConfetti } from "@/hooks/useConfetti";
 import { formatEUR } from "@/lib/currency";
@@ -206,8 +207,8 @@ export function OpportunitiesBoard() {
     if (!searchValue) return opportunities;
     const lower = searchValue.toLowerCase();
     return opportunities.filter(opp => 
-      opp.title?.toLowerCase().includes(lower) ||
-      opp.lead?.name?.toLowerCase().includes(lower)
+      opp.title?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+      opp.lead?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower))
     );
   }, [opportunities, searchValue]);
 

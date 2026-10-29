@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -115,10 +116,10 @@ export default function BackofficeWorkspacesV2() {
       if (status !== "all" && (w.status ?? "inactive") !== status) return false;
       if (!q) return true;
       return (
-        w.name.toLowerCase().includes(q) ||
-        (w.slug ?? "").toLowerCase().includes(q) ||
-        (w.company_name ?? "").toLowerCase().includes(q) ||
-        (w.billing_email ?? "").toLowerCase().includes(q)
+        w.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (w.slug ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (w.company_name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (w.billing_email ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     });
   }, [data?.rows, search, status]);

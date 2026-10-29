@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,8 +84,8 @@ export function SDRProspectActions({
       const q = search.toLowerCase();
       list = list.filter(
         (e) =>
-          (e.prospect_name || "").toLowerCase().includes(q) ||
-          (e.prospect_email || "").toLowerCase().includes(q)
+          (e.prospect_name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+          (e.prospect_email || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     }
     return list;

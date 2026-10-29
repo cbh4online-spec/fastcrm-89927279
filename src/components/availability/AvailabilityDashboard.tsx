@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -109,8 +110,8 @@ export function AvailabilityDashboard() {
     if (searchValue) {
       const query = searchValue.toLowerCase();
       result = result.filter(a =>
-        a.name.toLowerCase().includes(query) ||
-        a.timezone?.toLowerCase().includes(query)
+        a.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        a.timezone?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     }
 

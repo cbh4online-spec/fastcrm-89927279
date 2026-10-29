@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useEffect, useMemo } from "react";
 import { matchesGlobalSearch } from "@/lib/search/globalSearchMatch";
 import { useNavigate } from "react-router-dom";
@@ -149,8 +150,8 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
     return opportunities
       .filter(
         (opp) =>
-          opp.title.toLowerCase().includes(query) ||
-          opp.lead?.name?.toLowerCase().includes(query)
+          opp.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+          opp.lead?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       )
       .slice(0, 5);
   }, [opportunities, search]);
@@ -188,8 +189,8 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
       const gk = getTopLevelGroupForRoute(r);
       const groupLabel = gk ? (groupLabelByKey.get(gk) ?? "") : "";
       return (
-        r.label.toLowerCase().includes(query) ||
-        groupLabel.toLowerCase().includes(query)
+        r.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        groupLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     });
 

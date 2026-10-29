@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { Phone, Send, Loader2, Search, Users, User, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import {
@@ -52,7 +53,7 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
     if (!groupSearch) return groups;
     const q = groupSearch.toLowerCase();
     return groups.filter((g) =>
-      (g.name ?? "").toLowerCase().includes(q) || g.group_id.toLowerCase().includes(q),
+      (g.name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || g.group_id.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)),
     );
   }, [groups, groupSearch]);
 

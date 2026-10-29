@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { emitAndPersist } from './eventBus';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -444,9 +445,9 @@ export function getFilteredActions(
     if (a.requires?.activeBlock && !ctx.activeBlockId) return false;
     if (!q) return true;
     return (
-      a.title.toLowerCase().includes(q) ||
+      a.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
       a.keywords.some((k) => k.includes(q)) ||
-      a.group.toLowerCase().includes(q)
+      a.group.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
     );
   });
 }

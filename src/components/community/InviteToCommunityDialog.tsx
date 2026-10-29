@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ export function InviteToCommunityDialog({ open, onOpenChange }: InviteToCommunit
     if (!search) return contactsWithEmail;
     const lower = search.toLowerCase();
     return contactsWithEmail.filter(
-      (c) => c.name.toLowerCase().includes(lower) || c.email?.toLowerCase().includes(lower)
+      (c) => c.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) || c.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower))
     );
   }, [contactsWithEmail, search]);
 

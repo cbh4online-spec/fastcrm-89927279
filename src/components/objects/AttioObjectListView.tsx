@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useObjectRecords, useCreateObjectRecord, useDeleteObjectRecord, ObjectRecord } from "@/hooks/useCustomObjects";
@@ -75,7 +76,7 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
       result = result.filter((r) => {
         const data = r.data as Record<string, unknown>;
         return Object.values(data).some((v) =>
-          v?.toString().toLowerCase().includes(lower)
+          v?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower))
         );
       });
     }

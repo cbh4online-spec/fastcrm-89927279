@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -122,8 +123,8 @@ export default function Invoices() {
       const lower = searchValue.toLowerCase();
       result = result.filter(
         (inv) =>
-          inv.client_name.toLowerCase().includes(lower) ||
-          inv.invoice_number.toLowerCase().includes(lower),
+          inv.client_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+          inv.invoice_number.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)),
       );
     }
     // Sort

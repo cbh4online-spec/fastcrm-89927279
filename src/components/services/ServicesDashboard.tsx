@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -152,8 +153,8 @@ export function ServicesDashboard() {
       const query = searchValue.toLowerCase();
       result = result.filter(
         (service) =>
-          service.name.toLowerCase().includes(query) ||
-          service.description?.toLowerCase().includes(query)
+          service.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+          service.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     }
 

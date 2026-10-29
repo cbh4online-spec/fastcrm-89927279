@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -122,10 +123,10 @@ export function useWhatsAppInbox(filters: WhatsAppInboxFilters = {}) {
         const s = filters.search.toLowerCase();
         rows = rows.filter(
           (c) =>
-            (c.contact?.name || "").toLowerCase().includes(s) ||
+            (c.contact?.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(s)) ||
             (c.contact?.phone || "").includes(s) ||
-            (c.lead?.name || "").toLowerCase().includes(s) ||
-            (c.last_message_preview || "").toLowerCase().includes(s)
+            (c.lead?.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(s)) ||
+            (c.last_message_preview || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(s))
         );
       }
 

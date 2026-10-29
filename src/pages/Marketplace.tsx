@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -60,9 +61,9 @@ export default function Marketplace() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       modules = modules.filter(m =>
-        m.name.toLowerCase().includes(query) ||
-        m.tagline.toLowerCase().includes(query) ||
-        m.description.toLowerCase().includes(query)
+        m.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        m.tagline.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        m.description.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     }
 

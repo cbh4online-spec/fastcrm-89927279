@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -191,9 +192,9 @@ export function InboxTemplatePanel({
       if (t.type !== currentChannel.templateType && t.type !== "email") return false;
       if (query) {
         return (
-          t.name.toLowerCase().includes(query) ||
-          t.content.toLowerCase().includes(query) ||
-          (t.subject?.toLowerCase().includes(query))
+          t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+          t.content.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+          (t.subject?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)))
         );
       }
       return true;
@@ -205,9 +206,9 @@ export function InboxTemplatePanel({
       .filter(ct => {
         if (query) {
           return (
-            ct.name.toLowerCase().includes(query) ||
-            ct.body.toLowerCase().includes(query) ||
-            (ct.subject?.toLowerCase().includes(query))
+            ct.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+            ct.body.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+            (ct.subject?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)))
           );
         }
         return true;

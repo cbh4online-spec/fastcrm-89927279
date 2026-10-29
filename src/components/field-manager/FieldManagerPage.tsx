@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,9 +54,9 @@ export function FieldManagerPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       if (
-        !field.name.toLowerCase().includes(query) &&
-        !field.label.toLowerCase().includes(query) &&
-        !field.internal_name.toLowerCase().includes(query)
+        !field.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) &&
+        !field.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) &&
+        !field.internal_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       ) {
         return false;
       }

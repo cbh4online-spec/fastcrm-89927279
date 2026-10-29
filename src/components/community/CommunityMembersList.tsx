@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useCommunityMembers, useResendCommunityInvite } from "@/hooks/useCommunityMembers";
 import { useCommunitySettings } from "@/hooks/useCommunitySettings";
@@ -33,7 +34,7 @@ export function CommunityMembersList() {
   const filterFn = (name: string, email: string) => {
     if (!search) return true;
     const lower = search.toLowerCase();
-    return name.toLowerCase().includes(lower) || email.toLowerCase().includes(lower);
+    return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) || email.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower));
   };
 
   const filteredWs = workspaceMembers.filter(m =>

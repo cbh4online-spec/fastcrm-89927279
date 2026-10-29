@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ export function BulkInviteDialog({ open, onOpenChange, eventId, eventTitle, even
   const filtered = contacts.filter((c) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
+    return c.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || c.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q));
   });
 
   const toggleContact = (id: string) => {

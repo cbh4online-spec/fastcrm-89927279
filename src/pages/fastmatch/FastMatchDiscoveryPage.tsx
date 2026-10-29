@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { motion } from "framer-motion";
@@ -52,9 +53,9 @@ export default function FastMatchDiscoveryPage() {
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
       return (
-        p.company_name?.toLowerCase().includes(term) ||
-        p.industry?.toLowerCase().includes(term) ||
-        p.target_audience?.toLowerCase().includes(term)
+        p.company_name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term)) ||
+        p.industry?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term)) ||
+        p.target_audience?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term))
       );
     });
 

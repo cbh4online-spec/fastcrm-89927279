@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -56,7 +57,7 @@ export function WhatsAppTemplatePicker({
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(
-        (t) => t.name.toLowerCase().includes(q) || t.body.toLowerCase().includes(q),
+        (t) => t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || t.body.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)),
       );
     }
     return list;

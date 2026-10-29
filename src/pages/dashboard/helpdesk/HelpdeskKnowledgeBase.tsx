@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,7 +54,7 @@ export default function HelpdeskKnowledgeBase() {
     if (filterType !== "all") items = items.filter((a) => a.article_type === filterType);
     if (search.trim()) {
       const q = search.toLowerCase();
-      items = items.filter((a) => a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q));
+      items = items.filter((a) => a.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || a.summary.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
     }
     return items;
   }, [articles, filterCategory, filterType, search]);

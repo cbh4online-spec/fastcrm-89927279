@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -167,9 +168,9 @@ export default function BackofficeSubscriptionsV2() {
       if (planFilter !== "all" && r.plan !== planFilter) return false;
       if (!q) return true;
       return (
-        r.workspace_name.toLowerCase().includes(q) ||
-        (r.workspace_slug ?? "").toLowerCase().includes(q) ||
-        (r.stripe_customer_id ?? "").toLowerCase().includes(q)
+        r.workspace_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (r.workspace_slug ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (r.stripe_customer_id ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     });
   }, [data?.rows, search, status, planFilter]);

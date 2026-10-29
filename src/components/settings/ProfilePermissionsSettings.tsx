@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -323,7 +324,7 @@ export function ProfilePermissionsSettings() {
       .map((g) => ({
         ...g,
         items: g.items.filter(
-          (i) => i.label.toLowerCase().includes(q) || i.key.toLowerCase().includes(q)
+          (i) => i.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || i.key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
         ),
       }))
       .filter((g) => g.items.length > 0);

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Plus, Mail, Phone, Instagram, Facebook, Globe, MessageSquare, Send, Loader2, CheckCircle2, AlertCircle, Search, User, Users, X, ChevronDown, ChevronUp, FileSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -73,8 +74,8 @@ function RecipientAutocomplete({
     (contacts || []).forEach((c) => {
       if (
         c.email &&
-        (c.name?.toLowerCase().includes(lowerSearch) ||
-          c.email?.toLowerCase().includes(lowerSearch))
+        (c.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerSearch)) ||
+          c.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerSearch)))
       ) {
         results.push({ id: c.id, name: c.name, email: c.email, type: "contact" });
       }
@@ -83,8 +84,8 @@ function RecipientAutocomplete({
     (leads || []).forEach((l) => {
       if (
         l.email &&
-        (l.name?.toLowerCase().includes(lowerSearch) ||
-          l.email?.toLowerCase().includes(lowerSearch))
+        (l.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerSearch)) ||
+          l.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lowerSearch)))
       ) {
         results.push({ id: l.id, name: l.name, email: l.email, type: "lead" });
       }

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -732,8 +733,8 @@ export default function GoogleLocalProspecting() {
     if (!locationSearch) return LOCATIONS;
     const search = locationSearch.toLowerCase();
     return LOCATIONS.filter(loc => 
-      loc.label.toLowerCase().includes(search) || 
-      loc.value.toLowerCase().includes(search)
+      loc.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(search)) || 
+      loc.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(search))
     );
   }, [locationSearch]);
 

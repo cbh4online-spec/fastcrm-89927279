@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams } from "react-router-dom";
@@ -37,7 +38,7 @@ export default function StockCountModePage() {
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
     const base = q
-      ? items.filter((i) => i.product_name.toLowerCase().includes(q) || (i.sku || "").toLowerCase().includes(q))
+      ? items.filter((i) => i.product_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || (i.sku || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)))
       : pendingItems;
     return base.slice(0, 40);
   }, [items, pendingItems, search]);

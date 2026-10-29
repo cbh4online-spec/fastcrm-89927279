@@ -2,6 +2,7 @@
  * Lista os templates da biblioteca comercial (playbook) do Conversion Engine.
  * Permite copiar qualquer template do playbook para os templates do workspace.
  */
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +39,9 @@ export function PlaybookTemplatesList() {
       if (family !== "all" && t.family !== family) return false;
       if (!q) return true;
       return (
-        t.name.toLowerCase().includes(q) ||
-        t.code.toLowerCase().includes(q) ||
-        t.message_body.toLowerCase().includes(q)
+        t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        t.code.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        t.message_body.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     });
   }, [playbook, search, family]);

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ export default function EventsManagementPage() {
     return events.filter((ev) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        if (!ev.title.toLowerCase().includes(q) && !ev.location?.toLowerCase().includes(q)) return false;
+        if (!ev.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) && !ev.location?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) return false;
       }
       if (categoryFilter !== "all" && ev.event_category !== categoryFilter) return false;
       return true;
