@@ -111,6 +111,8 @@ export function useInvoices(filters?: {
   company_id?: string;
   contact_id?: string;
   lead_id?: string;
+  from?: string;
+  to?: string;
 }) {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
@@ -143,6 +145,8 @@ export function useInvoices(filters?: {
       if (filters?.lead_id) {
         query = query.eq("lead_id", filters.lead_id);
       }
+      if (filters?.from) query = query.gte("issue_date", filters.from);
+      if (filters?.to) query = query.lte("issue_date", filters.to);
 
       const { data, error } = await query;
       if (error) throw error;

@@ -98,6 +98,17 @@ export default function Invoices() {
     setSearchParams(next, { replace: true });
   };
 
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const urlFrom = searchParams.get("from");
+  const urlTo = searchParams.get("to");
+  const dateFrom = urlFrom && DATE_RE.test(urlFrom) ? urlFrom : undefined;
+  const dateTo = urlTo && DATE_RE.test(urlTo) ? urlTo : undefined;
+  const clearPeriod = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("from"); next.delete("to");
+    setSearchParams(next, { replace: true });
+  };
+
   const statusLabel: Record<InvoiceStatus, string> = useMemo(() => ({
     draft: t("statusDraft"),
     sent: t("statusSent"),
@@ -116,9 +127,14 @@ export default function Invoices() {
     { value: "number_asc", label: t("sortNumberAsc") },
   ], [t]);
 
-  const { data: invoices, isLoading } = useInvoices(
-    statusFilter !== "all" ? { status: statusFilter as InvoiceStatus } : undefined,
-  );
+  const invoiceFilters = useMemo(() => {
+    const f: { status?: InvoiceStatus; from?: string; to?: string } = {};
+    if (statusFilter !== "all") f.status = statusFilter as InvoiceStatus;
+    if (dateFrom) f.from = dateFrom;
+    if (dateTo) f.to = dateTo;
+    return Object.keys(f).length ? f : undefined;
+  }, [statusFilter, dateFrom, dateTo]);
+  const { data: invoices, isLoading } = useInvoices(invoiceFilters);
   const stats = useInvoiceStats();
   const markPaid = useMarkInvoicePaid();
   const sendInvoice = useSendInvoice();
@@ -216,7 +232,7 @@ export default function Invoices() {
   ];
   const summarySeparators: Array<"+" | "=" | null> = ["+", "+", "+", "=", "+", "="];
 
-  const filtersActive = statusFilter !== "all" || !!searchValue;
+  const filtersActive = statusFilter !== "all" || !!searchValue || !!dateFrom || !!dateTo;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) setSelectedIds(paginatedInvoices.map((inv) => inv.id));
