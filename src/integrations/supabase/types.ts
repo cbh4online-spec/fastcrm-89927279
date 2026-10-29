@@ -109237,6 +109237,7 @@ export type Database = {
       dm_start: { Args: { _other_user: string }; Returns: string }
       dm_unread_count: { Args: never; Returns: number }
       email_process_unsubscribe: { Args: { p_token: string }; Returns: Json }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       emit_executive_workflow_event: {
         Args: { p_event_name: string; p_payload: Json; p_workspace_id: string }
         Returns: undefined
