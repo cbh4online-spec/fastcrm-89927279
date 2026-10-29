@@ -39,7 +39,7 @@ export const LEAD_COLUMNS: LeadColumnDef[] = [
   { key: "country", label: "País", defaultVisible: false },
 ];
 
-const STORAGE_KEY = "leads-list-columns-v2";
+const STORAGE_KEY = "leads-list-columns-v3";
 
 export function getDefaultLeadColumns(): string[] {
   return LEAD_COLUMNS.filter((c) => c.required || c.defaultVisible).map(
