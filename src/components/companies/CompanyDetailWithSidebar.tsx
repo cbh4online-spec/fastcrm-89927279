@@ -55,6 +55,7 @@ import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { FinancialKPIStrip } from "@/components/shared/FinancialKPIStrip";
+import { RelatedDebtCard } from "@/components/companies/RelatedDebtCard";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { MenuSection } from "@/types/entity";
 import { InsightsSidebar } from "@/components/insights";
@@ -751,6 +752,7 @@ export function CompanyDetailWithSidebar() {
             );
           }}
         />
+        <RelatedDebtCard companyId={id!} name={company.name} email={company.email} />
       </div>
 
       {/* Horizontal Tabs */}
