@@ -10,6 +10,8 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatEUR } from "@/lib/currency";
+import { useNavigate } from "react-router-dom";
+import { monthRange } from "@/lib/dates/monthRange";
 
 const MONTH_LABELS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 
@@ -102,6 +104,11 @@ export function FaturacaoYearChart({
   const years = [...yearly].sort((a, b) => a.year - b.year);
   const colors = [IX_SERIES.prev2, IX_SERIES.prev1, IX_SERIES.current];
   const hasValues = years.some((y) => y.months.some((v) => v > 0));
+  const navigate = useNavigate();
+  const openMonth = (year: number, monthIndex: number) => {
+    const { from, to } = monthRange(year, monthIndex + 1);
+    navigate(`/dashboard/invoices?from=${from}&to=${to}`);
+  };
 
   return (
     <ChartFrame height={300} loading={loading} empty={!hasValues} emptyLabel="Sem faturação registada.">
@@ -109,7 +116,7 @@ export function FaturacaoYearChart({
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
         <XAxis dataKey="month" {...AXIS} />
         <YAxis {...AXIS} tickFormatter={euroTick} />
-        <Tooltip formatter={(v: number) => formatEUR(v)} contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+        <Tooltip formatter={(v: number) => formatEUR(v)} labelFormatter={(l) => `${l} · clique para ver as faturas`} contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
         <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
         {years.map((y, i) => (
           <Bar
@@ -119,6 +126,8 @@ export function FaturacaoYearChart({
             fill={colors[i] ?? IX_SERIES.current}
             radius={[4, 4, 0, 0]}
             maxBarSize={18}
+            cursor="pointer"
+            onClick={(_: unknown, index: number) => openMonth(y.year, index)}
           />
         ))}
       </BarChart>

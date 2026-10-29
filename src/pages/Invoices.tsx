@@ -1,3 +1,4 @@
+import { periodLabel } from "@/lib/dates/monthRange";
 import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -244,7 +245,9 @@ export default function Invoices() {
   };
 
   const clearFilters = () => {
-    setStatusFilter("all");
+    const next = new URLSearchParams(searchParams);
+    ["status", "from", "to"].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
     setSearchValue("");
   };
 
@@ -274,6 +277,18 @@ export default function Invoices() {
         }
         chips={
           <>
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={clearPeriod}
+                aria-label="Remover filtro de período"
+                title="O gráfico do painel considera só faturas e recibos, sem IVA"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Período: {periodLabel(dateFrom, dateTo)}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
             <DocumentFilterChip
               label="Estado"
               value={statusFilter === "all" ? "Todos" : statusLabel[statusFilter]}
