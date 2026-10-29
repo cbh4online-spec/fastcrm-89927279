@@ -1,6 +1,6 @@
 import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageElementGate } from "@/components/shared/PageElementGate";
@@ -88,7 +88,15 @@ export default function Invoices() {
   const { isElementVisible } = usePageElementVisibility("invoices");
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("date_desc");
-  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const VALID_STATUSES = ["draft", "sent", "paid", "partially_paid", "overdue", "cancelled"];
+  const urlStatus = searchParams.get("status");
+  const statusFilter = (urlStatus && VALID_STATUSES.includes(urlStatus) ? urlStatus : "all") as InvoiceStatus | "all";
+  const setStatusFilter = (s: InvoiceStatus | "all") => {
+    const next = new URLSearchParams(searchParams);
+    if (s === "all") next.delete("status"); else next.set("status", s);
+    setSearchParams(next, { replace: true });
+  };
 
   const statusLabel: Record<InvoiceStatus, string> = useMemo(() => ({
     draft: t("statusDraft"),

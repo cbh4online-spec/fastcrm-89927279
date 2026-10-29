@@ -282,17 +282,23 @@ export default function IXDashboard() {
               >
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   {[
-                    { l: "Rascunho", n: stats.totalDraft, v: stats.amountDraft },
-                    { l: "Enviadas", n: stats.totalSent, v: stats.amountSent },
-                    { l: "Pagas", n: stats.totalPaid, v: stats.amountPaid },
-                    { l: "Parcial", n: stats.totalPartiallyPaid, v: stats.amountPartiallyPaid },
-                    { l: "Vencidas", n: stats.totalOverdue, v: stats.amountOverdue },
+                    { l: "Rascunho", s: "draft", n: stats.totalDraft, v: stats.amountDraft },
+                    { l: "Enviadas", s: "sent", n: stats.totalSent, v: stats.amountSent },
+                    { l: "Pagas", s: "paid", n: stats.totalPaid, v: stats.amountPaid },
+                    { l: "Parcial", s: "partially_paid", n: stats.totalPartiallyPaid, v: stats.amountPartiallyPaid },
+                    { l: "Vencidas", s: "overdue", n: stats.totalOverdue, v: stats.amountOverdue },
                   ].map((s) => (
-                    <div key={s.l} className="rounded-lg border border-border p-3">
+                    <button
+                      type="button"
+                      key={s.l}
+                      onClick={() => navigate(`/dashboard/invoices?status=${s.s}`)}
+                      aria-label={`Ver faturas: ${s.l}`}
+                      className="rounded-lg border border-border p-3 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
                       <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{s.l}</p>
                       <p className="mt-1 text-lg font-semibold">{s.n}</p>
                       <p className="text-xs text-muted-foreground">{formatEUR(s.v)}</p>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 {invLoading && <p className="mt-3 text-xs text-muted-foreground">A carregar…</p>}
