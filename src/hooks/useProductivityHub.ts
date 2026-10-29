@@ -5,7 +5,7 @@ import { computePurchaseCadence, cadenceAlert } from '@/lib/companies/purchaseCa
 
 export interface UnifiedItem {
   id: string;
-  category: 'alert' | 'notification' | 'task' | 'followup' | 'deal' | 'purchase';
+  category: 'alert' | 'notification' | 'task' | 'followup' | 'deal' | 'purchase' | 'call_lead';
   title: string;
   message: string | null;
   severity: 'critical' | 'warning' | 'info' | 'success';
@@ -248,6 +248,33 @@ export function useProductivityHub() {
           related_name: entityName,
         });
       });
+
+      // 4b. Leads novas que valem uma ligação (encaixe com o cliente ideal ≥ 70, últimos 14 dias)
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+      const { data: callLeads } = await supabase
+        .from('leads')
+        .select('id, name, company_name, icp_fit_score, icp_summary, icp_scored_at, created_at')
+        .eq('workspace_id', wsId)
+        .eq('call_worthy', true)
+        .is('archived_at', null)
+        .in('status', ['new', 'in_progress'])
+        .gte('created_at', fourteenDaysAgo)
+        .order('icp_fit_score', { ascending: false })
+        .limit(20);
+      callLeads?.forEach(l => items.push({
+        id: `call-${l.id}`,
+        category: 'call_lead',
+        title: `${l.name}${l.company_name ? ` (${l.company_name})` : ''} — encaixe ${l.icp_fit_score}/100`,
+        message: l.icp_summary,
+        severity: (l.icp_fit_score ?? 0) >= 85 ? 'critical' : 'warning',
+        status: 'open',
+        created_at: l.icp_scored_at || l.created_at,
+        source_table: 'leads',
+        actionUrl: `/dashboard/leads/${l.id}`,
+        related_type: 'lead',
+        related_id: l.id,
+        related_name: l.name,
+      }));
 
       // 5. Stalled deals (>5 days no update)
       const fiveDaysAgo = new Date();
