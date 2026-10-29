@@ -10,7 +10,7 @@ export type LeadTemperature = "cold" | "warm" | "hot";
 export type LeadStatus = "new" | "in_progress" | "completed";
 export type NextActionType = "reply_manual" | "send_template" | "create_opportunity" | "activate_automation" | "archive" | "follow_up";
 export type LeadType = "lead" | "client" | "supplier" | "spam" | "unknown";
-export type SmartFilterType = "hot" | "no_response" | "high_intent" | "automation_active" | "today" | "this_week";
+export type SmartFilterType = "call_worthy" | "hot" | "no_response" | "high_intent" | "automation_active" | "today" | "this_week";
 
 export interface SmartLead {
   id: string;
@@ -137,7 +137,7 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
         const [rawCol, rawDir] = sortBy.split(":");
         const ALLOWED_SORT_COLUMNS = [
           "name", "created_at", "updated_at", "lead_score", "estimated_value",
-          "last_contact_at", "status", "source", "ai_temperature", "city",
+          "last_contact_at", "status", "source", "ai_temperature", "city", "icp_fit_score",
         ];
         sortColumn = ALLOWED_SORT_COLUMNS.includes(rawCol) ? rawCol : "lead_score";
         sortAscending = rawDir !== "desc";
@@ -147,6 +147,7 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
           case "created_asc": sortColumn = "created_at"; sortAscending = true; break;
           case "score_desc": sortColumn = "lead_score"; sortAscending = false; break;
           case "score_asc": sortColumn = "lead_score"; sortAscending = true; break;
+          case "icp_desc": sortColumn = "icp_fit_score"; sortAscending = false; break;
           case "value_desc": sortColumn = "estimated_value"; sortAscending = false; break;
           case "last_contact_desc": sortColumn = "last_contact_at"; sortAscending = false; break;
           default: sortColumn = "lead_score"; sortAscending = false;
@@ -206,6 +207,9 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
       // Apply smart filters at SQL level
       if (filters?.smartFilter) {
         switch (filters.smartFilter) {
+          case "call_worthy":
+            query = (query as any).eq("call_worthy", true);
+            break;
           case "hot":
             query = query.eq("ai_temperature", "hot");
             break;

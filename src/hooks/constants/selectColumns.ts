@@ -3,6 +3,7 @@
 
 export const LEADS_SELECT_COLUMNS = `
   id, workspace_id, name, email, phone, source, status, tags,
+  icp_fit_score, icp_summary, icp_reasons, icp_score_status, call_worthy,
   created_at, updated_at, last_contact_at,
   ai_temperature, lead_score, ai_next_action, ai_next_action_type,
   ai_insight, ai_lead_type, estimated_value, conversion_probability,

@@ -180,3 +180,6 @@ verify_jwt = false
 
 [functions.store-webhook]
 verify_jwt = false
+
+[functions.score-leads-icp]
+verify_jwt = false
