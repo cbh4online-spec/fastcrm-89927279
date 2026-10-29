@@ -489,7 +489,7 @@ export function CompanyDetailWithSidebar() {
                     return (
                       <div className="grid gap-4 lg:grid-cols-2">
                         <AcquiredProductsSection companyId={id!} />
-                        <InvoiceHistorySection companyId={id!} />
+                        <InvoiceHistorySection companyId={id!} companyName={company.name} />
                       </div>
                     );
                   case 'orders':
