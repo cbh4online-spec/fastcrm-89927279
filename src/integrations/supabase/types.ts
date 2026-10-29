@@ -111023,6 +111023,10 @@ export type Database = {
         Returns: undefined
       }
       wake_lead_icp_scorer: { Args: never; Returns: undefined }
+      wake_lead_icp_scorer_depth: {
+        Args: { _depth: number }
+        Returns: undefined
+      }
       whatsapp_ops_dashboard: {
         Args: {
           p_from?: string
