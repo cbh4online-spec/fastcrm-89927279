@@ -189,9 +189,9 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
         query = query.eq("assigned_to", filters.assignedTo);
       }
       if (filters?.search) {
-        query = query.or(
-          `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,source.ilike.%${filters.search}%`
-        );
+        // Pesquisa sem acentos nem maiúsculas (coluna gerada search_norm).
+        const term = normalizeSearchTerm(filters.search).replace(/[,()%_*\\]/g, " ").trim();
+        if (term) query = query.ilike("search_norm" as any, `%${term}%`);
       }
 
       // Apply column presence filters
