@@ -22,6 +22,7 @@ import {
   CheckSquare,
   MessageCircle,
   TrendingDown,
+  ShoppingCart,
   CheckCircle2,
   User,
   Building2,
@@ -32,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
 import { pt } from "date-fns/locale";
 
-type CategoryFilter = "all" | "alert" | "notification" | "task" | "followup" | "deal";
+type CategoryFilter = "all" | "alert" | "notification" | "task" | "followup" | "deal" | "purchase";
 type SortKey = "created_at" | "severity";
 
 const CATEGORY_CONFIG: Record<
@@ -44,6 +45,7 @@ const CATEGORY_CONFIG: Record<
   task: { icon: CheckSquare, label: "Tarefas", color: "text-emerald-500", bg: "bg-emerald-500/10" },
   followup: { icon: MessageCircle, label: "Acompanhamentos", color: "text-primary", bg: "bg-primary/10" },
   deal: { icon: TrendingDown, label: "Negócios sem atividade", color: "text-destructive", bg: "bg-destructive/10" },
+  purchase: { icon: ShoppingCart, label: "Ciclo de compra", color: "text-warning", bg: "bg-warning/10" },
 };
 
 const SEVERITY_BADGE: Record<string, { label: string; className: string }> = {

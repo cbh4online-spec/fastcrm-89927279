@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { computePurchaseCadence, cadenceAlert } from '@/lib/companies/purchaseCadence';
 
 export interface UnifiedItem {
   id: string;
-  category: 'alert' | 'notification' | 'task' | 'followup' | 'deal';
+  category: 'alert' | 'notification' | 'task' | 'followup' | 'deal' | 'purchase';
   title: string;
   message: string | null;
   severity: 'critical' | 'warning' | 'info' | 'success';
@@ -296,6 +297,55 @@ export function useProductivityHub() {
         source_table: 'account_brief_change_alerts',
         actionUrl: '/dashboard/account-brief',
       }));
+
+      // 7. Purchase cadence deviations (companies out of their buying profile)
+      try {
+        const { data: fin } = await supabase.rpc('get_companies_financials', { _workspace_id: wsId });
+        const rows = ((fin ?? []) as Record<string, unknown>[]);
+        const candidates: { id: string; cad: ReturnType<typeof computePurchaseCadence>; last: string }[] = [];
+        for (const r of rows) {
+          const cad = computePurchaseCadence({
+            first: (r.first_invoice_date as string) ?? null,
+            last: (r.last_invoice_date as string) ?? null,
+            purchaseDays: Number(r.purchase_days) || 0,
+            netTotal: Number(r.net_total) || 0,
+            lastValue: r.last_invoice_net == null ? null : Number(r.last_invoice_net),
+          });
+          if (cad.status === 'late' || cad.status === 'due' || cad.valueDrop) {
+            candidates.push({ id: String(r.company_id), cad, last: String(r.last_invoice_date) });
+          }
+        }
+        const ids = candidates.map(c => c.id);
+        const names = new Map<string, string>();
+        for (let i = 0; i < ids.length; i += 200) {
+          const { data: comps } = await supabase
+            .from('companies').select('id, name')
+            .in('id', ids.slice(i, i + 200))
+            .is('archived_at', null).is('deleted_at', null);
+          comps?.forEach(c => names.set(c.id, c.name));
+        }
+        candidates
+          .filter(c => names.has(c.id))
+          .map(c => ({ c, a: cadenceAlert(names.get(c.id)!, c.cad)! }))
+          .filter(x => x.a)
+          .sort((x, y) => y.a.rank - x.a.rank)
+          .slice(0, 50)
+          .forEach(({ c, a }) => items.push({
+            id: `purchase-${c.id}`,
+            category: 'purchase',
+            title: a.title,
+            message: a.message,
+            severity: a.severity,
+            status: c.cad.status,
+            created_at: c.last,
+            source_table: 'companies',
+            related_type: 'company',
+            related_id: c.id,
+            actionUrl: `/dashboard/companies/${c.id}`,
+          }));
+      } catch (e) {
+        console.warn('purchase cadence alerts unavailable', e);
+      }
 
       // Sort: critical first, then by date
       items.sort((a, b) => {
