@@ -13,6 +13,8 @@ interface FinancialKPIStripProps {
   className?: string;
   /** Contacto ligado a empresa: valores financeiros pertencem à empresa */
   belongsToCompany?: boolean;
+  /** Torna cada KPI clicável (abre o detalhe das faturas) */
+  onItemClick?: (key: 'totalInvoiced' | 'paid' | 'pending' | 'overdue') => void;
 }
 
 const HEADER_ITEMS = [
@@ -22,7 +24,7 @@ const HEADER_ITEMS = [
   { key: 'overdue', label: 'Vencido', icon: AlertTriangle, tone: 'text-destructive' },
 ] as const;
 
-export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', className, belongsToCompany = false }: FinancialKPIStripProps) {
+export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', className, belongsToCompany = false, onItemClick }: FinancialKPIStripProps) {
   const { data, isLoading } = useFinancialKPIs(entityType, entityId);
   const kpis = data ?? { totalInvoiced: 0, paid: 0, pending: 0, overdue: 0 };
 
@@ -55,10 +57,16 @@ export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', cla
         )}
         aria-label="Resumo financeiro"
       >
-        {items.map(({ key, label, icon: Icon, tone }) => (
-          <div
+        {items.map(({ key, label, icon: Icon, tone }) => {
+          const Tag = onItemClick ? 'button' : 'div';
+          return (
+          <Tag
             key={key}
-            className="flex min-w-0 flex-col justify-center rounded-md bg-background px-3 py-2 shadow-sm"
+            {...(onItemClick ? { type: 'button' as const, onClick: () => onItemClick(key), 'aria-label': `${label}: ver detalhe das faturas` } : {})}
+            className={cn(
+              'flex min-w-0 flex-col justify-center rounded-md bg-background px-3 py-2 text-left shadow-sm',
+              onItemClick && 'cursor-pointer transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            )}
           >
             <span className="flex min-w-0 items-center gap-1.5 truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               <Icon className={cn('h-3.5 w-3.5', tone)} aria-hidden="true" />
@@ -71,8 +79,9 @@ export function FinancialKPIStrip({ entityType, entityId, variant = 'cards', cla
                 {formatCurrency(kpis[key])}
               </span>
             )}
-          </div>
-        ))}
+          </Tag>
+          );
+        })}
         {orderView && (
           <p className="col-span-2 px-2 py-1 text-xs text-muted-foreground lg:col-span-2 lg:self-center">
             Dívida e cobrança são geridas na ficha da empresa.
