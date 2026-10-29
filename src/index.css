@@ -623,3 +623,12 @@
   }
 }
 
+
+/* Ecrã de entrada (estilo cinematográfico) */
+:root {
+  --auth-surface: 196 45% 11%;
+  --auth-surface-2: 196 40% 15%;
+  --auth-accent: 195 90% 55%;
+  --auth-glow: 0 10px 40px -8px hsl(195 90% 55% / 0.55);
+}
+.auth-serif { font-family: "Cormorant Garamond", Georgia, serif; }
