@@ -16,6 +16,7 @@ export interface CompanyFinancials {
   sales_2025: number;
   sales_2026: number;
   last_invoice_date: string | null;
+  first_invoice_date: string | null;
   cadence: PurchaseCadence;
 }
 
@@ -54,6 +55,7 @@ export function useCompaniesFinancials() {
           sales_2025: num(row.sales_2025),
           sales_2026: num(row.sales_2026),
           last_invoice_date: (row.last_invoice_date as string) ?? null,
+          first_invoice_date: (row.first_invoice_date as string) ?? null,
           cadence: computePurchaseCadence({
             first: (row.first_invoice_date as string) ?? null,
             last: (row.last_invoice_date as string) ?? null,

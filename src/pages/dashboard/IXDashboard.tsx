@@ -398,10 +398,10 @@ export default function IXDashboard() {
                   <ActiveClientsChart monthly={financials?.clients.monthly ?? []} loading={finLoading} />
                 </IXCard>
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                  <KpiTile icon={Users} accent="primary" label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} onClick={() => navigate("/dashboard/companies")} />
-                  <KpiTile icon={UserPlus} accent="success" label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} onClick={() => navigate("/dashboard/companies?sort=recent")} />
-                  <KpiTile icon={Euro} accent="info" label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} onClick={() => navigate("/dashboard/companies")} />
-                  <KpiTile icon={Euro} accent="warning" label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} onClick={() => navigate("/dashboard/companies?sort=recent")} />
+                  <KpiTile icon={Users} accent="primary" label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} onClick={() => navigate("/dashboard/companies?quick=active_month")} />
+                  <KpiTile icon={UserPlus} accent="success" label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} onClick={() => navigate("/dashboard/companies?quick=new_month")} />
+                  <KpiTile icon={Euro} accent="info" label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} onClick={() => navigate("/dashboard/companies?quick=active_month")} />
+                  <KpiTile icon={Euro} accent="warning" label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} onClick={() => navigate("/dashboard/companies?quick=new_month")} />
                 </div>
               </div>
 
