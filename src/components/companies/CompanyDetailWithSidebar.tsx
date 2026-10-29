@@ -140,6 +140,7 @@ export function CompanyDetailWithSidebar() {
   const { data: entityProfile } = useEntityActivityProfile('company', id);
   
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
+  const [financialTab, setFinancialTab] = useState<string>('profile');
   const [enrichDialogOpen, setEnrichDialogOpen] = useState(false);
   const [linkContactDialogOpen, setLinkContactDialogOpen] = useState(false);
   const [prefillContactData, setPrefillContactData] = useState<SuggestedContact | null>(null);
@@ -470,6 +471,8 @@ export function CompanyDetailWithSidebar() {
         return (
           <div className="space-y-4">
             <EntitySubTabs
+              activeTab={financialTab}
+              onTabChange={setFinancialTab}
               tabs={[
                 { id: 'profile', label: 'Perfil' },
                 { id: 'payments', label: 'Pagamentos' },
@@ -735,10 +738,23 @@ export function CompanyDetailWithSidebar() {
         </div>
 
         {/* Resumo financeiro sempre visível no cabeçalho */}
-        <FinancialKPIStrip entityType="company" entityId={id!} variant="header" className="mt-4" />
+        <FinancialKPIStrip
+          entityType="company"
+          entityId={id!}
+          variant="header"
+          className="mt-4"
+          onItemClick={() => {
+            setFinancialTab('payments');
+            setActiveSection('financial');
+            requestAnimationFrame(() =>
+              document.getElementById('company-section-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+            );
+          }}
+        />
       </div>
 
       {/* Horizontal Tabs */}
+      <div id="company-section-content" className="scroll-mt-4" aria-hidden="true" />
       <EntityHorizontalTabs
         entityType="company"
         activeSection={activeSection}

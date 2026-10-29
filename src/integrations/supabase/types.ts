@@ -54793,6 +54793,7 @@ export type Database = {
           region: string | null
           reviews: Json | null
           reviews_count: number | null
+          search_norm: string | null
           services: string[] | null
           source: string | null
           status: string
@@ -54912,6 +54913,7 @@ export type Database = {
           region?: string | null
           reviews?: Json | null
           reviews_count?: number | null
+          search_norm?: string | null
           services?: string[] | null
           source?: string | null
           status?: string
@@ -55031,6 +55033,7 @@ export type Database = {
           region?: string | null
           reviews?: Json | null
           reviews_count?: number | null
+          search_norm?: string | null
           services?: string[] | null
           source?: string | null
           status?: string
