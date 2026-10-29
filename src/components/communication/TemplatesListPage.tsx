@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -231,9 +232,9 @@ export function TemplatesListPage() {
     if (searchValue) {
       const query = searchValue.toLowerCase();
       result = result.filter(t => 
-        t.name.toLowerCase().includes(query) ||
-        t.body.toLowerCase().includes(query) ||
-        t.tags?.some(tag => tag.toLowerCase().includes(query))
+        t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        t.body.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        t.tags?.some(tag => tag.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)))
       );
     }
 

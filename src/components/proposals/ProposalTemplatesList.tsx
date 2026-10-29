@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -56,8 +57,8 @@ export function ProposalTemplatesList() {
       const lower = searchValue.toLowerCase();
       result = result.filter(
         (t) =>
-          t.name.toLowerCase().includes(lower) ||
-          t.description?.toLowerCase().includes(lower)
+          t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+          t.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower))
       );
     }
 

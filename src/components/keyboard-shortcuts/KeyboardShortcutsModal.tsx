@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -39,9 +40,9 @@ export function KeyboardShortcutsModal({ open, onOpenChange }: KeyboardShortcuts
     const q = search.toLowerCase();
     return ALL_SHORTCUTS.filter(
       (s) =>
-        s.label.toLowerCase().includes(q) ||
-        s.description?.toLowerCase().includes(q) ||
-        s.groupTitle.toLowerCase().includes(q)
+        s.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        s.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        s.groupTitle.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
     );
   }, [search]);
 

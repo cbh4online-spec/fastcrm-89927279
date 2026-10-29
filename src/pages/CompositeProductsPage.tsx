@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -83,7 +84,7 @@ export default function CompositeProductsPage() {
     else if (tab === "risk") list = list.filter((k) => k.margin_guard_level === "danger" || k.margin_guard_level === "not_recommended");
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter((k) => k.name.toLowerCase().includes(q) || (k.sku ?? "").toLowerCase().includes(q));
+      list = list.filter((k) => k.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || (k.sku ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
     }
     return list;
   }, [kits, tab, search]);

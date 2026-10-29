@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -66,8 +67,8 @@ export function FormBuilderPage() {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
-      form.name.toLowerCase().includes(query) ||
-      form.description?.toLowerCase().includes(query)
+      form.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+      form.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
     );
   });
 

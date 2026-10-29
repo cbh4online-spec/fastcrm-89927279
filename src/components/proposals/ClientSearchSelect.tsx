@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Check, ChevronsUpDown, Building2, User, Plus, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -87,9 +88,9 @@ export function ClientSearchSelect({
     const searchLower = search.toLowerCase();
     return options.filter(
       (opt) =>
-        opt.name.toLowerCase().includes(searchLower) ||
-        opt.email?.toLowerCase().includes(searchLower) ||
-        opt.tax_id?.toLowerCase().includes(searchLower)
+        opt.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        opt.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        opt.tax_id?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower))
     );
   }, [options, search]);
 

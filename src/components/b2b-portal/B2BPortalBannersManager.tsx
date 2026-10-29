@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useAllPartnerSlides,
@@ -339,9 +340,9 @@ export function B2BPortalBannersManager({ workspaceId }: Props) {
       if (search.trim()) {
         const q = search.toLowerCase();
         return (
-          s.title?.toLowerCase().includes(q) ||
-          s.subtitle?.toLowerCase().includes(q) ||
-          s.eyebrow?.toLowerCase().includes(q)
+          s.title?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+          s.subtitle?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+          s.eyebrow?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
         );
       }
       return true;

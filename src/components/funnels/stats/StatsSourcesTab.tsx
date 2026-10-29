@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ export function StatsSourcesTab({ sources }: Props) {
   const filtered = useMemo(() => {
     if (!search) return sources;
     const q = search.toLowerCase();
-    return sources.filter(s => s.name.toLowerCase().includes(q));
+    return sources.filter(s => s.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
   }, [sources, search]);
 
   const sorted = useMemo(() => [...filtered].sort((a, b) => b.rate - a.rate), [filtered]);

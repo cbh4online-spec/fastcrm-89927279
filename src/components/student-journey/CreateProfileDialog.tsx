@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,8 +48,8 @@ export function CreateProfileDialog({ open, onOpenChange }: CreateProfileDialogP
     const searchLower = contactSearch.toLowerCase();
     return contacts.filter(
       (c) =>
-        c.name.toLowerCase().includes(searchLower) ||
-        c.email?.toLowerCase().includes(searchLower) ||
+        c.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        c.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
         c.phone?.includes(searchLower)
     );
   }, [contacts, contactSearch]);

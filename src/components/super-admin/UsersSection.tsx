@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -460,9 +461,9 @@ export function UsersSection() {
   const filteredUsers = enrichedUsers.filter((user) => {
     const searchLower = search.toLowerCase();
     const matchesSearch = 
-      user.profile?.email?.toLowerCase().includes(searchLower) ||
-      user.profile?.full_name?.toLowerCase().includes(searchLower) ||
-      user.memberships.some(m => m.workspace_name.toLowerCase().includes(searchLower));
+      user.profile?.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+      user.profile?.full_name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+      user.memberships.some(m => m.workspace_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)));
     
     const matchesRole = 
       roleFilter === "all" || 

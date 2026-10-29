@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { NeedsBoardHeader } from "@/components/procurement/needs/NeedsBoardHeader";
@@ -51,8 +52,8 @@ export default function ProcurementNeedsBoardPage() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(n =>
-        (n.products?.name || "").toLowerCase().includes(q) ||
-        (n.products?.sku || "").toLowerCase().includes(q)
+        (n.products?.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (n.products?.sku || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     }
 

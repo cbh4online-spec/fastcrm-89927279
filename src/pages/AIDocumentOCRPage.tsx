@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -655,9 +656,9 @@ export default function AIDocumentOCRPage() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
-        job.file_name.toLowerCase().includes(q) ||
-        job.document_type?.toLowerCase().includes(q) ||
-        job.ocr_text?.toLowerCase().includes(q)
+        job.file_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        job.document_type?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        job.ocr_text?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     }
     return true;

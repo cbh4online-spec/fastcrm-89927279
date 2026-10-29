@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
 import { useMemo, useState } from "react";
@@ -358,7 +359,7 @@ export function CompaniesListIX() {
       arr = arr.filter((c) =>
         [c.name, c.email, c.tax_id, c.website, c.phone]
           .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q)),
+          .some((v) => String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))),
       );
     }
     if (quick) {

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEnrichmentProcessor } from "@/contexts/EnrichmentProcessorContext";
@@ -148,7 +149,7 @@ export default function LeadEnricher() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter((l) =>
-        l.name.toLowerCase().includes(q) || l.company_name?.toLowerCase().includes(q) || l.email?.toLowerCase().includes(q)
+        l.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || l.company_name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || l.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     }
     return filtered;

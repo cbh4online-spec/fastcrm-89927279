@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import {
@@ -189,7 +190,7 @@ function WhatsAppGroupsContent() {
       if (!term) return true;
       return [g.name, g.group_id, g.description, g.category, ...(g.tags ?? [])]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(term));
+        .some((v) => String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term)));
     });
   }, [groups, filter, search]);
 

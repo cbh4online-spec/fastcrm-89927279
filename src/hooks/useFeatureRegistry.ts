@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useCallback, useMemo, useState } from "react";
 import { FEATURE_REGISTRY, MODULE_CATEGORIES, type FeatureModule, type ModuleCategory } from "@/types/featureRegistry";
 
@@ -23,10 +24,10 @@ export function useFeatureRegistry() {
       const q = searchQuery.toLowerCase();
       modules = modules.filter(
         (m) =>
-          m.name.toLowerCase().includes(q) ||
-          m.description.toLowerCase().includes(q) ||
-          m.features.some((f) => f.name.toLowerCase().includes(q)) ||
-          m.edgeFunctions.some((ef) => ef.toLowerCase().includes(q))
+          m.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+          m.description.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+          m.features.some((f) => f.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+          m.edgeFunctions.some((ef) => ef.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)))
       );
     }
 

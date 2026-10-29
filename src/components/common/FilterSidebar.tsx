@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -75,12 +76,12 @@ export function FilterSidebar({
   const filteredGroups = filterGroups.map((group) => ({
     ...group,
     items: (group.items || []).filter((item) =>
-      String(item?.label ?? "").toLowerCase().includes(term)
+      String(item?.label ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term))
     ),
   })).filter((group) => group.items.length > 0 || searchTerm === "");
 
   const filteredSaved = savedFilters.filter((item) =>
-    String(item?.label ?? "").toLowerCase().includes(term)
+    String(item?.label ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term))
   );
 
   if (!isOpen) return null;

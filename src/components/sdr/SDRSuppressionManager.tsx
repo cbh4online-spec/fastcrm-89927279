@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,7 +107,7 @@ export function SDRSuppressionManager() {
     if (reasonFilter !== "all" && s.reason !== reasonFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
-      return s.email.toLowerCase().includes(q) || (s.notes || "").toLowerCase().includes(q);
+      return s.email.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || (s.notes || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q));
     }
     return true;
   });

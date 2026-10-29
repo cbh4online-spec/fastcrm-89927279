@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ export default function WhatsAppQuickTemplatesPage() {
     const q = search.trim().toLowerCase();
     if (!q) return quickTemplates;
     return quickTemplates.filter(
-      (t) => t.name.toLowerCase().includes(q) || t.body.toLowerCase().includes(q),
+      (t) => t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || t.body.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)),
     );
   }, [quickTemplates, search]);
 

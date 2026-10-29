@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams } from "react-router-dom";
@@ -43,7 +44,7 @@ export default function StockCountDetailPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items.filter((i) => {
-      if (q && !(i.product_name.toLowerCase().includes(q) || (i.sku || "").toLowerCase().includes(q))) return false;
+      if (q && !(i.product_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || (i.sku || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)))) return false;
       if (filter === "pending" && i.counted_qty !== null) return false;
       if (filter === "counted" && i.counted_qty === null) return false;
       if (filter === "variance" && (i.counted_qty === null || i.counted_qty === i.expected_qty)) return false;

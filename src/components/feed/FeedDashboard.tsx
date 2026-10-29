@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from 'react';
 import {
   Plus,
@@ -133,8 +134,8 @@ export function FeedDashboard() {
     if (q) {
       arr = arr.filter(
         (p) =>
-          p.content?.toLowerCase().includes(q) ||
-          p.author?.full_name?.toLowerCase().includes(q),
+          p.content?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+          p.author?.full_name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)),
       );
     }
     arr = [...arr].sort((a, b) => {

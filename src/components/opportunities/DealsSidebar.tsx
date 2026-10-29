@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { applyFilters, FilterCondition } from "@/hooks/useFilterEngine";
 import { useNavigate } from "react-router-dom";
@@ -149,7 +150,7 @@ export function DealsSidebar({
     const source = localOrder || allViews;
     if (!searchQuery) return source;
     const q = searchQuery.toLowerCase();
-    return source.filter((v) => v.name.toLowerCase().includes(q));
+    return source.filter((v) => v.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
   }, [localOrder, allViews, searchQuery]);
 
   const handleDragStart = useCallback((id: string) => {

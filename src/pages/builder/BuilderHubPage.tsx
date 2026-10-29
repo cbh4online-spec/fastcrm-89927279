@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -53,9 +54,9 @@ export default function BuilderHubPage() {
     if (!q) return assets;
     return assets.filter(
       (a) =>
-        a.name.toLowerCase().includes(q) ||
-        a.slug.toLowerCase().includes(q) ||
-        (a.description ?? "").toLowerCase().includes(q),
+        a.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        a.slug.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (a.description ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)),
     );
   }, [assets, search]);
 

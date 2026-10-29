@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -147,9 +148,9 @@ export function BuilderClonedSiteWorkspace({ assetId, workspaceId }: Props) {
     if (!q) return pages;
     return pages.filter(
       (p) =>
-        p.path.toLowerCase().includes(q) ||
-        p.slug.toLowerCase().includes(q) ||
-        (p.title ?? "").toLowerCase().includes(q),
+        p.path.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        p.slug.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (p.title ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)),
     );
   }, [pages, filter]);
 

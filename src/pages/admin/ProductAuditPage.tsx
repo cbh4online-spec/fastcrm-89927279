@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -340,7 +341,7 @@ export default function ProductAuditPage() {
       if (statusFilter !== "all" && effectiveStatus(m) !== statusFilter) return false;
       if (!q) return true;
       return [m.module, ...m.routes, ...m.tables, ...m.components, ...m.edgeFunctions]
-        .join(" ").toLowerCase().includes(q);
+        .join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q));
     });
   }, [search, statusFilter, validations]);
 

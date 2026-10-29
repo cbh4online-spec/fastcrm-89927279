@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from 'react';
 import { useFormSubmissions } from '@/hooks/useSmartForms';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,7 +54,7 @@ export function FormSubmissionsPanel({ form, onBack }: FormSubmissionsPanelProps
     const searchLower = search.toLowerCase();
     const rawData = sub.raw_data as Record<string, unknown>;
     return Object.values(rawData).some(val => 
-      String(val).toLowerCase().includes(searchLower)
+      String(val).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower))
     );
   }) || [];
 

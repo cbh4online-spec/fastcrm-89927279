@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProposalWonProcurementModal } from "@/components/procurement/ProposalWonProcurementModal";
@@ -221,9 +222,9 @@ export function ProposalsList() {
       const lower = searchValue.toLowerCase();
       result = result.filter(
         (p) =>
-          p.title.toLowerCase().includes(lower) ||
-          p.opportunity?.title?.toLowerCase().includes(lower) ||
-          p.opportunity?.lead?.name?.toLowerCase().includes(lower),
+          p.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+          p.opportunity?.title?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+          p.opportunity?.lead?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)),
       );
     }
 

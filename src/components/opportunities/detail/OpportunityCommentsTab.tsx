@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MessageSquare, Reply, Trash2, Send } from "lucide-react";
@@ -49,8 +50,8 @@ function MentionInput({
     const lower = mentionFilter.toLowerCase();
     return members.filter(
       (m) =>
-        m.profile?.full_name?.toLowerCase().includes(lower) ||
-        m.profile?.email?.toLowerCase().includes(lower)
+        m.profile?.full_name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+        m.profile?.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower))
     );
   }, [members, mentionFilter]);
 

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -208,9 +209,9 @@ function SocialChannelsViaGHL() {
     if (!searchQuery.trim()) return allChannels;
     const q = searchQuery.toLowerCase();
     return allChannels.filter(ch =>
-      ch.account_name.toLowerCase().includes(q) ||
-      ch.channel_type.toLowerCase().includes(q) ||
-      ch.ghl_account_id.toLowerCase().includes(q)
+      ch.account_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+      ch.channel_type.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+      ch.ghl_account_id.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
     );
   }, [allChannels, searchQuery]);
 

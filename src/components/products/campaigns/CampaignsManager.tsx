@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Plus, Search, Calendar, Tag, Users, Gift, Percent, Truck, Sparkles, Zap, Flame, Crown, Cake, Share2, Award, Layers, ShoppingCart, Clock, Pause, Play, Archive, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,7 @@ export function CampaignsManager() {
     if (tab !== "all") list = list.filter(c => c.status === tab);
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(c => c.name.toLowerCase().includes(q) || c.internal_code?.toLowerCase().includes(q));
+      list = list.filter(c => c.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || c.internal_code?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
     }
     return list;
   }, [campaigns, tab, search]);

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -128,9 +129,9 @@ export function PackagesList({
     const searchLower = search.toLowerCase();
     const matchesSearch =
       !search ||
-      pkg.product?.name?.toLowerCase().includes(searchLower) ||
-      pkg.contact?.name?.toLowerCase().includes(searchLower) ||
-      pkg.company?.name?.toLowerCase().includes(searchLower);
+      pkg.product?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+      pkg.contact?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+      pkg.company?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower));
 
     // Status filter
     const matchesStatus = statusFilter === "all" || pkg.status === statusFilter;

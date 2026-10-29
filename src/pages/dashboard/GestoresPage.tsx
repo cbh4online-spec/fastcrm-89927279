@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { displayLabel } from "@/lib/crm/displayLabels";
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -148,7 +149,7 @@ export default function GestoresPage() {
     if (!managerStats) return [];
     if (!search.trim()) return managerStats;
     const q = search.toLowerCase();
-    return managerStats.filter(m => m.name.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q));
+    return managerStats.filter(m => m.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || m.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
   }, [managerStats, search]);
 
   const totals = useMemo(() => {
@@ -247,7 +248,7 @@ export default function GestoresPage() {
     }
     if (detailEntitySearch.trim()) {
       const q = detailEntitySearch.toLowerCase();
-      list = list.filter(e => e.name?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q));
+      list = list.filter(e => e.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || e.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
     }
     return list;
   }, [selectedEntities, entityFilter, detailEntitySearch]);
@@ -883,7 +884,7 @@ function BulkAssignDialog({ open, onOpenChange, members, workspaceId, workspaceC
     if (!unassignedEntities) return [];
     if (!entitySearch.trim()) return unassignedEntities;
     const q = entitySearch.toLowerCase();
-    return unassignedEntities.filter((e: any) => e.name?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q));
+    return unassignedEntities.filter((e: any) => e.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || e.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
   }, [unassignedEntities, entitySearch]);
 
   const handleAssign = async () => {

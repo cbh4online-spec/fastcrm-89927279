@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCheckoutFunnels } from "@/hooks/useCheckoutFunnels";
@@ -36,7 +37,7 @@ export default function CheckoutFunnelsPage() {
       if (filter === "active" && !f.is_active) return false;
       if (filter === "inactive" && f.is_active) return false;
       if (!term) return true;
-      return f.name?.toLowerCase().includes(term) || f.slug?.toLowerCase().includes(term);
+      return f.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term)) || f.slug?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term));
     });
   }, [funnels.data, search, filter]);
 

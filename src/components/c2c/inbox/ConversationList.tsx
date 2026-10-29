@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,7 @@ export function ConversationList({ conversations, isLoading, selectedKey, onSele
     let list = conversations;
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter(c => c.listing_title.toLowerCase().includes(q) || c.last_message.toLowerCase().includes(q));
+      list = list.filter(c => c.listing_title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || c.last_message.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)));
     }
     switch (filter) {
       case "unread": list = list.filter(c => c.unread_count > 0); break;

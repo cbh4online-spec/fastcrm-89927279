@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback } from "react";
 import { LinkedConversationsCard } from "./LinkedConversationsCard";
 import { EntityMessageHistory } from "./EntityMessageHistory";
@@ -186,8 +187,8 @@ export function ContactMessagesSection({
     if (templateSearch) {
       const query = templateSearch.toLowerCase();
       filtered = filtered.filter(t => 
-        t.name.toLowerCase().includes(query) || 
-        t.content.toLowerCase().includes(query)
+        t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) || 
+        t.content.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     }
     

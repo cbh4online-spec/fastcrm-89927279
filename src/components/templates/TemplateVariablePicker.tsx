@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import React, { useState } from 'react';
 import {
   Popover,
@@ -78,9 +79,9 @@ export function TemplateVariablePicker({
     const searchLower = search.toLowerCase();
     return variables.filter(
       v =>
-        v.label.toLowerCase().includes(searchLower) ||
-        v.key.toLowerCase().includes(searchLower) ||
-        v.description.toLowerCase().includes(searchLower)
+        v.label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        v.key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+        v.description.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower))
     );
   };
   

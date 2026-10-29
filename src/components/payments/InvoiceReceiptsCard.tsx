@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,9 +87,9 @@ export function InvoiceReceiptsCard() {
       if (year !== "all" && !(r.payment_date || "").startsWith(year)) return false;
       if (!q) return true;
       return (
-        (r.invoice_no ?? "").toLowerCase().includes(q) ||
-        (r.customer_name ?? "").toLowerCase().includes(q) ||
-        (r.reference ?? "").toLowerCase().includes(q)
+        (r.invoice_no ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (r.customer_name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (r.reference ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     });
   }, [rows, search, onlySaft, year]);

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import React, { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -546,10 +547,10 @@ function JobsTab({ statusFilter, searchQuery }: { statusFilter?: string; searchQ
     if (!searchQuery.trim()) return jobs;
     const q = searchQuery.toLowerCase();
     return jobs.filter(j =>
-      (j.name?.toLowerCase().includes(q)) ||
-      (j.task?.toLowerCase().includes(q)) ||
-      (j.agent_type?.toLowerCase().includes(q)) ||
-      (j.entity_type?.toLowerCase().includes(q))
+      (j.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+      (j.task?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+      (j.agent_type?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+      (j.entity_type?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)))
     );
   }, [jobs, searchQuery]);
 

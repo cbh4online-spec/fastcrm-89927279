@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -244,7 +245,7 @@ export function TemplateLibraryPage() {
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
-        (t) => t.name.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
+        (t) => t.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) || t.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     }
     if (categoryFilter !== 'all') {

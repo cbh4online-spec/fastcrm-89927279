@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageElementGate } from "@/components/shared/PageElementGate";
@@ -48,9 +49,9 @@ export default function Payments() {
       if (search) {
         const q = search.toLowerCase();
         return (
-          p.opportunity_id?.toLowerCase().includes(q) ||
-          p.stripe_payment_id?.toLowerCase().includes(q) ||
-          p.id.toLowerCase().includes(q)
+          p.opportunity_id?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+          p.stripe_payment_id?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+          p.id.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
         );
       }
       return true;

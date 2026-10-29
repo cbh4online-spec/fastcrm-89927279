@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartContactsFilters, SmartContact } from "@/hooks/useSmartContacts";
@@ -175,8 +176,8 @@ export function AttioContactsTable() {
       const lower = searchValue.toLowerCase();
       result = result.filter(c => {
         return [c.name, c.email, c.phone, c.company, c.job_title, c.source, c.ai_insight, c.ai_next_action]
-          .some(field => field?.toString().toLowerCase().includes(lower))
-          || (c.tags || []).some((tag: string) => tag?.toLowerCase().includes(lower));
+          .some(field => field?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)))
+          || (c.tags || []).some((tag: string) => tag?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)));
       });
     }
     result = [...result].sort((a, b) => {

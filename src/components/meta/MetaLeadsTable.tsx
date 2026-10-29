@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,8 +33,8 @@ export function MetaLeadsTable() {
     const norm = lead.normalized_payload_json || {};
     const searchLower = search.toLowerCase();
     return (
-      (norm.name || "").toLowerCase().includes(searchLower) ||
-      (norm.email || "").toLowerCase().includes(searchLower) ||
+      (norm.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
+      (norm.email || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
       (lead.lead_id_external || "").includes(searchLower)
     );
   });

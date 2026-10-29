@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,9 +65,9 @@ export default function SecurityPartnerRequestsPage() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((r: any) =>
-        r.raw_text?.toLowerCase().includes(q) ||
-        r.security_partners?.name?.toLowerCase().includes(q) ||
-        (r.parsed_payload_json as any)?.client_name?.toLowerCase().includes(q)
+        r.raw_text?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        r.security_partners?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (r.parsed_payload_json as any)?.client_name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
       );
     }
     return result;

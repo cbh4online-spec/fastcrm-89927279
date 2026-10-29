@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,9 +68,9 @@ export function useCannedShortcut({
   const filtered = responses.filter(
     (r) =>
       !search ||
-      r.shortcut.toLowerCase().includes(search) ||
-      r.title.toLowerCase().includes(search) ||
-      r.content.toLowerCase().includes(search),
+      r.shortcut.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(search)) ||
+      r.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(search)) ||
+      r.content.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(search)),
   );
 
   const handleSelect = useCallback(

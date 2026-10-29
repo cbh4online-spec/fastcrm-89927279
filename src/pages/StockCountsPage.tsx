@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
@@ -34,7 +35,7 @@ export default function StockCountsPage() {
     const q = search.trim().toLowerCase();
     return counts.filter((c) => {
       if (status !== "all" && c.status !== status) return false;
-      if (q && !c.name.toLowerCase().includes(q)) return false;
+      if (q && !c.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) return false;
       return true;
     });
   }, [counts, search, status]);

@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Check, Search, Sparkles, X } from 'lucide-react';
@@ -82,9 +83,9 @@ export default function PitchComparePage() {
       if (category !== 'all' && m.category !== category) return false;
       if (!q) return true;
       return (
-        m.title.toLowerCase().includes(q) ||
-        m.note.toLowerCase().includes(q) ||
-        m.tags.some((t) => t.toLowerCase().includes(q))
+        m.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        m.note.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        m.tags.some((t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)))
       );
     });
   }, [search, category]);

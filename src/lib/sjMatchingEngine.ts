@@ -1,5 +1,6 @@
 // Student Journey AI Matching Engine - Core Algorithm
 
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { differenceInDays } from "date-fns";
 import type { SJEnrollment } from "@/types/studentJourney";
 import type {
@@ -276,7 +277,7 @@ function calculateProfileFit(
   if (recommendedFor.length > 0 && profile.role) {
     const profileRole = profile.role.toLowerCase();
     const matchedRole = recommendedFor.find(r => 
-      r.toLowerCase().includes(profileRole) || profileRole.includes(r.toLowerCase())
+      r.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(profileRole)) || profileRole.includes(r.toLowerCase())
     );
     
     if (matchedRole) {

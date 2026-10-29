@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useMemo, useState } from 'react';
 import {
   Dialog,
@@ -42,9 +43,9 @@ export function SegmentMembersDialog({ open, onOpenChange, segment }: SegmentMem
 
     return members.filter((member) => {
       return (
-        member.name.toLowerCase().includes(query) ||
-        (member.email ?? '').toLowerCase().includes(query) ||
-        TYPE_LABELS[member.type].toLowerCase().includes(query)
+        member.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        (member.email ?? '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        TYPE_LABELS[member.type].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     });
   }, [members, searchQuery]);

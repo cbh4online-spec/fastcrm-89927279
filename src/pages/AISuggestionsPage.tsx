@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { FeatureGate } from '@/components/subscription/FeatureGate';
@@ -466,12 +467,12 @@ export default function AISuggestionsPage() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(s =>
-        (s.tag_value?.toLowerCase().includes(q)) ||
-        (s.field_name?.toLowerCase().includes(q)) ||
-        (s.automation_title?.toLowerCase().includes(q)) ||
-        (s.automation_description?.toLowerCase().includes(q)) ||
-        (s.reasoning?.toLowerCase().includes(q)) ||
-        (s.explanation?.toLowerCase().includes(q))
+        (s.tag_value?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+        (s.field_name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+        (s.automation_title?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+        (s.automation_description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+        (s.reasoning?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))) ||
+        (s.explanation?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)))
       );
     }
 

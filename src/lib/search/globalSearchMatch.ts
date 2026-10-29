@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "./normalize";
 /**
  * Correspondência da pesquisa global (lupa): texto, telefone e NIF normalizados.
  * "913 428 951", "+351 913 428 951" e "00351913428951" encontram "+351913428951".
@@ -18,9 +19,9 @@ export interface SearchFields {
 }
 
 export function matchesGlobalSearch(rawQuery: string, fields: SearchFields): boolean {
-  const q = rawQuery.trim().toLowerCase();
+  const q = normalizeSearchTerm(rawQuery);
   if (!q) return true;
-  if ((fields.text ?? []).some((t) => t && t.toLowerCase().includes(q))) return true;
+  if ((fields.text ?? []).some((t) => t && normalizeSearchTerm(t).includes(q))) return true;
 
   const qd = corePhoneDigits(q);
   // Só tratar como número se a pesquisa for essencialmente numérica.

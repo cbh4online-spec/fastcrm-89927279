@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,10 +135,10 @@ export function LinkContactDialog({
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       filtered = contacts.filter(contact => 
-        contact.name.toLowerCase().includes(term) ||
-        contact.email?.toLowerCase().includes(term) ||
+        contact.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term)) ||
+        contact.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term)) ||
         contact.phone?.includes(term) ||
-        contact.job_title?.toLowerCase().includes(term)
+        contact.job_title?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(term))
       );
     }
 

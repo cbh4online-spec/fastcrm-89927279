@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -475,8 +476,8 @@ export function SmartContactsTable() {
         ];
         const tags = (c as any).tags || [];
         return searchableFields.some(field => 
-          field?.toString().toLowerCase().includes(lower)
-        ) || tags.some((tag: string) => tag?.toLowerCase().includes(lower));
+          field?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower))
+        ) || tags.some((tag: string) => tag?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)));
       });
     }
     

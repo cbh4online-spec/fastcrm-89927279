@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -116,10 +117,10 @@ export function GHLRoutingAuditPanel() {
     const q = search.toLowerCase();
     return rows.filter(
       (r) =>
-        r.ghl_conversation_id?.toLowerCase().includes(q) ||
-        r.ghl_account_id?.toLowerCase().includes(q) ||
-        r.ghl_location_id?.toLowerCase().includes(q) ||
-        r.reason?.toLowerCase().includes(q)
+        r.ghl_conversation_id?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        r.ghl_account_id?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        r.ghl_location_id?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        r.reason?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
     );
   }, [rows, search]);
 

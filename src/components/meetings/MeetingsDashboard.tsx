@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from 'react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, isToday, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -159,11 +160,11 @@ export function MeetingsDashboard() {
     if (searchValue) {
       const query = searchValue.toLowerCase();
       result = result.filter(m =>
-        m.title.toLowerCase().includes(query) ||
-        m.description?.toLowerCase().includes(query) ||
-        m.location?.toLowerCase().includes(query) ||
-        m.contact?.name?.toLowerCase().includes(query) ||
-        m.company?.name?.toLowerCase().includes(query)
+        m.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        m.description?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        m.location?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        m.contact?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query)) ||
+        m.company?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(query))
       );
     }
     

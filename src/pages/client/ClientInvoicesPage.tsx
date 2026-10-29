@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { useClientPermissions } from "@/hooks/client-portal/useClientPermissions";
 import { useClientInvoices } from "@/hooks/client-portal/useClientInvoices";
@@ -34,8 +35,8 @@ export default function ClientInvoicesPage() {
     const q = search.toLowerCase();
     return invoices.filter(
       (inv) =>
-        inv.invoice_number.toLowerCase().includes(q) ||
-        inv.client_name.toLowerCase().includes(q)
+        inv.invoice_number.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        inv.client_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
     );
   }, [invoices, search]);
 

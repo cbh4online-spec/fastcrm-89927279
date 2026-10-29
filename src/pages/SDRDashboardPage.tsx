@@ -1,3 +1,4 @@
+import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -92,8 +93,8 @@ export default function SDRDashboardPage() {
     const q = campaignSearch.toLowerCase();
     return campaigns.filter(
       (c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.description || "").toLowerCase().includes(q)
+        c.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q)) ||
+        (c.description || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))
     );
   }, [campaigns, campaignSearch]);
 
