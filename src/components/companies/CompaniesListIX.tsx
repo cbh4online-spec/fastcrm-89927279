@@ -520,6 +520,7 @@ export function CompaniesListIX() {
             { value: "pending_total", label: "Valor pendente" },
             { value: "overdue_total", label: "Valor vencido" },
             { value: "last_purchase", label: "Última compra" },
+            { value: "cycle_delay", label: "Atraso no ciclo de compra" },
             { value: "pare_score", label: "Score PARE" },
           ]}
           sortValue={sortBy}
@@ -535,6 +536,18 @@ export function CompaniesListIX() {
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
               <EntityFacetFilters facets={facets} />
+              <select
+                aria-label="Sem compras há"
+                value={quick?.startsWith("idle_") ? quick : ""}
+                onChange={(e) => { setQuick(e.target.value || null); setPage(0); }}
+                className="h-9 rounded-full border border-border bg-background px-3 text-sm text-foreground"
+              >
+                <option value="">Sem compras há…</option>
+                <option value="idle_30">+30 dias</option>
+                <option value="idle_60">+60 dias</option>
+                <option value="idle_90">+90 dias</option>
+                <option value="idle_180">+180 dias</option>
+              </select>
               <div className="hidden md:block"><ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} /></div>
             </div>
           }
