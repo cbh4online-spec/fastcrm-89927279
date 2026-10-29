@@ -69,6 +69,7 @@ type SortKey =
   | "pending_total"
   | "overdue_total"
   | "last_purchase"
+  | "cycle_delay"
   | "pare_score";
 
 const COLUMNS: ListColumnDef[] = [
@@ -95,6 +96,9 @@ const COLUMNS: ListColumnDef[] = [
   { key: "overdue_total", label: "Vencido (c/IVA)", defaultVisible: false },
   { key: "invoice_count", label: "Nº faturas", defaultVisible: false },
   { key: "last_purchase_date", label: "Última compra", defaultVisible: false },
+  { key: "last_purchase_value", label: "Valor última compra (s/IVA)", defaultVisible: false },
+  { key: "days_since_purchase", label: "Dias sem comprar", defaultVisible: false },
+  { key: "purchase_cycle", label: "Ciclo de compra", defaultVisible: true },
   { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "tags", label: "Tags", defaultVisible: false },
 ];
@@ -124,6 +128,9 @@ const COLUMN_WIDTH: Record<string, string> = {
   overdue_total: "w-[120px] shrink-0",
   invoice_count: "w-[90px] shrink-0",
   last_purchase_date: "w-[130px] shrink-0",
+  last_purchase_value: "w-[130px] shrink-0",
+  days_since_purchase: "w-[110px] shrink-0",
+  purchase_cycle: "w-[130px] shrink-0",
 
   created_at: "w-[120px] shrink-0",
   tags: "min-w-[140px] flex-1",
@@ -133,7 +140,7 @@ const NUMERIC_COLUMNS = [
   "pare_score", "icp_fit_score", "total_revenue", "average_ticket",
   "sales_2026", "sales_2025", "sales_2024", "payment_status",
   "paid_total", "pending_total", "overdue_total", "invoice_count",
-  "last_purchase_date", "created_at",
+  "last_purchase_date", "last_purchase_value", "days_since_purchase", "purchase_cycle", "created_at",
 ];
 
 function formatCurrency(value: number) {
@@ -261,6 +268,22 @@ function renderCell(col: string, c: Company, fin: CompanyFinancials | undefined)
       return <div className="w-full text-right"><span className={cn("text-sm font-semibold tabular-nums", (fin?.invoice_count ?? 0) > 0 ? "text-foreground" : "text-muted-foreground/60")}>{fin?.invoice_count ?? 0}</span></div>;
     case "last_purchase_date":
       return <div className="w-full text-right text-sm text-foreground">{formatDate(fin?.last_invoice_date ?? c.last_purchase_date)}</div>;
+    case "last_purchase_value":
+      return moneyCell("revenue", fin?.cadence.lastValue ?? 0);
+    case "days_since_purchase":
+      return <div className="w-full text-right text-sm tabular-nums text-foreground">{fin?.cadence.daysSinceLast != null ? `${fin.cadence.daysSinceLast} d` : "—"}</div>;
+    case "purchase_cycle": {
+      const cd = fin?.cadence;
+      if (!cd || cd.avgIntervalDays == null) return <span className="text-sm text-muted-foreground/60">—</span>;
+      const tone = cd.status === "late" ? "bg-destructive/10 text-destructive" : cd.status === "due" ? "bg-warning/15 text-warning-foreground" : "bg-muted text-foreground";
+      const label = cd.status === "late" ? `Atraso ${cd.delayDays} d` : cd.status === "due" ? "Recomprar" : "No ciclo";
+      return (
+        <div className="flex w-full flex-col items-end gap-0.5" title={`Compra a cada ~${cd.avgIntervalDays} dias`}>
+          <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", tone)}>{label}</span>
+          <span className="text-[11px] text-muted-foreground">a cada {cd.avgIntervalDays} d{cd.valueDrop ? " · valor ↓" : ""}</span>
+        </div>
+      );
+    }
 
     case "created_at":
       return <div className="w-full text-right text-sm text-muted-foreground">{formatDate(c.created_at)}</div>;
@@ -372,6 +395,10 @@ export function CompaniesListIX() {
         if (quick === "paid") return f.paid_total > 0.01;
         if (quick === "revenue" || quick === "ticket") return f.invoice_count > 0;
         if (quick === "active") return !!f.last_invoice_date && new Date(f.last_invoice_date).getTime() >= yearAgo;
+        if (quick === "cycle_late") return f.cadence.status === "late";
+        if (quick === "cycle_due") return f.cadence.status === "due";
+        if (quick === "value_drop") return f.cadence.valueDrop;
+        if (quick.startsWith("idle_")) return (f.cadence.daysSinceLast ?? -1) > Number(quick.slice(5));
         return true;
       });
     }
@@ -397,6 +424,8 @@ export function CompaniesListIX() {
       else if (sortBy === "last_purchase")
         cmp = time(financialsById.get(a.id)?.last_invoice_date ?? a.last_purchase_date)
           - time(financialsById.get(b.id)?.last_invoice_date ?? b.last_purchase_date);
+      else if (sortBy === "cycle_delay")
+        cmp = (financialsById.get(a.id)?.cadence.delayDays ?? -1) - (financialsById.get(b.id)?.cadence.delayDays ?? -1);
       else if (sortBy === "pare_score") cmp = (a.pare_score || 0) - (b.pare_score || 0);
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -419,7 +448,7 @@ export function CompaniesListIX() {
 
 
   const kpis = useMemo<ListKPI[]>(() => {
-    let revenue = 0, paid = 0, pending = 0, overdue = 0, invoices = 0, active = 0;
+    let revenue = 0, paid = 0, pending = 0, overdue = 0, invoices = 0, active = 0, late = 0, due = 0, drop = 0;
     const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
     for (const c of filtered) {
       const f = financialsById.get(c.id);
@@ -431,6 +460,9 @@ export function CompaniesListIX() {
       invoices += f.invoice_count;
       const last = f.last_invoice_date ? new Date(f.last_invoice_date).getTime() : 0;
       if (last >= cutoff) active += 1;
+      if (f.cadence.status === "late") late += 1;
+      if (f.cadence.status === "due") due += 1;
+      if (f.cadence.valueDrop) drop += 1;
     }
     const ticket = invoices > 0 ? revenue / invoices : 0;
     return [
@@ -447,6 +479,9 @@ export function CompaniesListIX() {
       },
       { key: "ticket", label: "Ticket médio (s/IVA)", value: formatCurrency(ticket), icon: Receipt, tone: "neutral", hint: "Faturação s/IVA ÷ nº de faturas" },
       { key: "active", label: "Clientes ativos", value: String(active), icon: Users, tone: "neutral", hint: "com faturação a 12 meses" },
+      { key: "cycle_late", label: "Fora do ciclo de compra", value: String(late), icon: AlertTriangle, tone: late > 0 ? "danger" : "neutral", hint: "Sem comprar há mais de 30% do seu ciclo habitual" },
+      { key: "cycle_due", label: "Em janela de recompra", value: String(due), icon: Clock, tone: due > 0 ? "warning" : "neutral", hint: "Já atingiram o ciclo médio" },
+      { key: "value_drop", label: "Queda no valor", value: String(drop), icon: Receipt, tone: drop > 0 ? "warning" : "neutral", hint: "Última compra < 50% do ticket médio" },
     ].map((k) => ({ ...k, active: quick === k.key, onClick: () => toggleQuick(k.key) })) as ListKPI[];
   }, [filtered, financialsById, onlyOverdue, quick]);
 
@@ -485,6 +520,7 @@ export function CompaniesListIX() {
             { value: "pending_total", label: "Valor pendente" },
             { value: "overdue_total", label: "Valor vencido" },
             { value: "last_purchase", label: "Última compra" },
+            { value: "cycle_delay", label: "Atraso no ciclo de compra" },
             { value: "pare_score", label: "Score PARE" },
           ]}
           sortValue={sortBy}
@@ -500,6 +536,18 @@ export function CompaniesListIX() {
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
               <EntityFacetFilters facets={facets} />
+              <select
+                aria-label="Sem compras há"
+                value={quick?.startsWith("idle_") ? quick : ""}
+                onChange={(e) => { setQuick(e.target.value || null); setPage(0); }}
+                className="h-9 rounded-full border border-border bg-background px-3 text-sm text-foreground"
+              >
+                <option value="">Sem compras há…</option>
+                <option value="idle_30">+30 dias</option>
+                <option value="idle_60">+60 dias</option>
+                <option value="idle_90">+90 dias</option>
+                <option value="idle_180">+180 dias</option>
+              </select>
               <div className="hidden md:block"><ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} /></div>
             </div>
           }

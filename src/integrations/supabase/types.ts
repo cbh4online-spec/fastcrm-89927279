@@ -109567,13 +109567,16 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: {
           company_id: string
+          first_invoice_date: string
           gross_total: number
           invoice_count: number
           last_invoice_date: string
+          last_invoice_net: number
           net_total: number
           overdue_total: number
           paid_total: number
           pending_total: number
+          purchase_days: number
           sales_2023: number
           sales_2024: number
           sales_2025: number
