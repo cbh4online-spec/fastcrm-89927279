@@ -54365,6 +54365,63 @@ export type Database = {
           },
         ]
       }
+      lead_icp_job_state: {
+        Row: {
+          key: string
+          locked_until: string | null
+          pause_reason: string | null
+          paused: boolean
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          key: string
+          locked_until?: string | null
+          pause_reason?: string | null
+          paused?: boolean
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          key?: string
+          locked_until?: string | null
+          pause_reason?: string | null
+          paused?: boolean
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      lead_icp_score_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          last_error: string | null
+          lead_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          last_error?: string | null
+          lead_id: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          last_error?: string | null
+          lead_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       lead_linkedin_data: {
         Row: {
           analysis_status: string | null
@@ -54715,6 +54772,7 @@ export type Database = {
           business_hours: Json | null
           cae_codes: string[] | null
           cae_description: string | null
+          call_worthy: boolean | null
           capital_social: string | null
           city: string | null
           company_name: string | null
@@ -54746,6 +54804,10 @@ export type Database = {
           ghl_synced_at: string | null
           google_place_id: string | null
           icp_fit_score: number | null
+          icp_reasons: Json | null
+          icp_score_status: string | null
+          icp_scored_at: string | null
+          icp_summary: string | null
           id: string
           industry: string | null
           inferred_profession: string | null
@@ -54835,6 +54897,7 @@ export type Database = {
           business_hours?: Json | null
           cae_codes?: string[] | null
           cae_description?: string | null
+          call_worthy?: boolean | null
           capital_social?: string | null
           city?: string | null
           company_name?: string | null
@@ -54866,6 +54929,10 @@ export type Database = {
           ghl_synced_at?: string | null
           google_place_id?: string | null
           icp_fit_score?: number | null
+          icp_reasons?: Json | null
+          icp_score_status?: string | null
+          icp_scored_at?: string | null
+          icp_summary?: string | null
           id?: string
           industry?: string | null
           inferred_profession?: string | null
@@ -54955,6 +55022,7 @@ export type Database = {
           business_hours?: Json | null
           cae_codes?: string[] | null
           cae_description?: string | null
+          call_worthy?: boolean | null
           capital_social?: string | null
           city?: string | null
           company_name?: string | null
@@ -54986,6 +55054,10 @@ export type Database = {
           ghl_synced_at?: string | null
           google_place_id?: string | null
           icp_fit_score?: number | null
+          icp_reasons?: Json | null
+          icp_score_status?: string | null
+          icp_scored_at?: string | null
+          icp_summary?: string | null
           id?: string
           industry?: string | null
           inferred_profession?: string | null
@@ -108719,6 +108791,10 @@ export type Database = {
             }
             Returns: boolean
           }
+      acquire_lead_icp_lock: {
+        Args: { _ttl_seconds?: number }
+        Returns: boolean
+      }
       activate_community_member_by_token: {
         Args: { p_token: string }
         Returns: undefined
@@ -108961,6 +109037,24 @@ export type Database = {
       claim_firecrawl_general_search: {
         Args: { p_module_slug: string; p_workspace_id: string }
         Returns: Json
+      }
+      claim_lead_icp_batch: {
+        Args: { _limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          last_error: string | null
+          lead_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "lead_icp_score_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       cleanup_expired_agent_memory: { Args: never; Returns: number }
       cleanup_expired_cache: { Args: never; Returns: number }
@@ -110416,6 +110510,7 @@ export type Database = {
             }
             Returns: undefined
           }
+      release_lead_icp_lock: { Args: never; Returns: undefined }
       release_partner_variant_stock: {
         Args: {
           p_quantity: number
@@ -110438,6 +110533,7 @@ export type Database = {
         Returns: boolean
       }
       reopen_partner_order: { Args: { p_order_id: string }; Returns: Json }
+      requeue_lead_icp_score: { Args: { _lead_id: string }; Returns: undefined }
       reserve_partner_variant_stock: {
         Args: {
           p_allow_backorder?: boolean
@@ -110456,6 +110552,10 @@ export type Database = {
       restore_partner_cart_by_token: {
         Args: { p_token: string }
         Returns: Json
+      }
+      resume_lead_icp_scoring: {
+        Args: { _workspace_id: string }
+        Returns: undefined
       }
       retrieve_entity_memories: {
         Args: {
@@ -110922,6 +111022,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      wake_lead_icp_scorer: { Args: never; Returns: undefined }
       whatsapp_ops_dashboard: {
         Args: {
           p_from?: string
