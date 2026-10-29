@@ -694,6 +694,13 @@
       "when": 1793209256080,
       "tag": "0098_mcp_tool_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1793274097338,
+      "tag": "0099_companies_financials_purchase_cadence",
+      "breakpoints": true
     }
   ]
 }
