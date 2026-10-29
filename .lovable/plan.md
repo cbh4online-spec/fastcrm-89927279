@@ -13,5 +13,10 @@
 4. Verificar os outros cartões de dívida (Cobranças, lista de devedores) para garantir que também incluem NDs; corrigir se algum as excluir.
 5. Impedir que se repita: na ação «Marcar como paga» de uma ND, mostrar confirmação explícita com o valor; sem recibo SAF-T, fica sempre registado na auditoria.
 
+## Lista de faturas (caso André Nogueira Nery)
+6. Na lista de Faturas, ao pesquisar um cliente (ex.: «nery»), aparecem as 2 faturas certas (240,62 € + 19,63 €), mas a barra de totais no topo continua a mostrar os valores de todo o espaço (366 406,42 €). Vou fazer a barra contar só os documentos que correspondem à pesquisa, para mostrar 260,25 € em dívida neste caso.
+7. Comparar com a ficha da empresa deste cliente e garantir que mostra os mesmos 260,25 € em dívida.
+
 ## Pontos por validar
 - Quem marcou a ND como paga a 23/10 foi um utilizador da PHARLISS; se houve um pagamento real fora do SAF-T, diga-me e não anulo.
+- Se no caso do André a ficha da empresa mostra outro valor, diga-me qual vê.
