@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { getSourceLabel } from "@/lib/leadSourceLabels";
 import { toast } from "sonner";
+import { LeadIcpScoreCard } from "@/components/crm/LeadIcpScoreCard";
 import { useGenerateFieldSuggestions } from "@/hooks/useFieldSuggestions";
 import { InsightsSidebar } from "@/components/insights";
 import { ConvertLeadDialog } from "@/components/crm/ConvertLeadDialog";
@@ -537,7 +538,7 @@ export function LeadDetailWithSidebar() {
 
       <div className="flex-1 lg:flex lg:flex-row lg:min-h-0 lg:overflow-hidden bg-muted/20">
         <main className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
-          <div className="w-full p-4 sm:p-8 space-y-6 max-w-5xl mx-auto xl:max-w-none xl:mx-0">{renderTab()}</div>
+          <div className="w-full p-4 sm:p-8 space-y-6 max-w-5xl mx-auto xl:max-w-none xl:mx-0"><LeadIcpScoreCard lead={lead as any} />{renderTab()}</div>
         </main>
 
         <EntityDetailsPanel

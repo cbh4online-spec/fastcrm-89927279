@@ -31,7 +31,7 @@ export function LeadIcpScoreCard({ lead }: Props) {
     setBusy(false);
     if (error) return toast.error("Não foi possível repontuar a lead.");
     toast.success("Lead enviada para nova pontuação. Fica pronta dentro de momentos.");
-    setTimeout(() => qc.invalidateQueries({ queryKey: ["lead"] }), 20000);
+    setTimeout(() => qc.invalidateQueries({ queryKey: ["lead", lead.id] }), 20000);
   };
 
   return (
