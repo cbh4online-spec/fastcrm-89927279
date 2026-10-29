@@ -10,9 +10,10 @@ import { useNavigate } from "react-router-dom";
 interface InvoiceHistorySectionProps {
   contactId?: string;
   companyId?: string;
+  companyName?: string;
 }
 
-export function InvoiceHistorySection({ contactId, companyId }: InvoiceHistorySectionProps) {
+export function InvoiceHistorySection({ contactId, companyId, companyName }: InvoiceHistorySectionProps) {
   const navigate = useNavigate();
   const { data: invoices = [], isLoading } = useInvoices({
     contact_id: contactId,
@@ -143,6 +144,10 @@ export function InvoiceHistorySection({ contactId, companyId }: InvoiceHistorySe
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(invoice.issue_date), "d MMM yyyy", { locale: pt })}
                     </p>
+                    {companyName && invoice.client_name &&
+                      invoice.client_name.trim().toLowerCase() !== companyName.trim().toLowerCase() && (
+                        <p className="text-xs text-muted-foreground">Encomendado por: {invoice.client_name}</p>
+                      )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
