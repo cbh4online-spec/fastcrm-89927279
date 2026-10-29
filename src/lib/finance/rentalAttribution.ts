@@ -27,6 +27,8 @@ export interface ClientAttribution {
   total: number;
   count: number;
   viaFinanciers: string[];
+  companyId?: string | null;
+  contactId?: string | null;
 }
 
 const COUNTABLE_STATUSES = new Set(["sent", "paid", "partially_paid", "overdue"]);
@@ -49,15 +51,20 @@ export function aggregateClientsWithRental(
     let key: string;
     let name: string;
     let via: string | null = null;
+    let companyId: string | null = null;
+    let contactId: string | null = null;
     if (rental?.end_client_name && inv.company_id && inv.company_id === rental.financier_id) {
       key = rental.end_client_id || rental.end_client_name;
       name = rental.end_client_name;
       via = rental.financier_name || inv.client_name;
+      companyId = rental.end_client_id;
     } else {
+      companyId = inv.company_id ?? null;
+      contactId = companyId ? null : inv.contact_id ?? null;
       key = inv.company_id || inv.contact_id || inv.client_name || inv.id;
       name = inv.client_name || "—";
     }
-    const cur = map.get(key) ?? { key, name, total: 0, count: 0, viaFinanciers: [] };
+    const cur = map.get(key) ?? { key, name, total: 0, count: 0, viaFinanciers: [], companyId, contactId };
     cur.total += Number(inv.total || 0);
     cur.count += 1;
     if (via && !cur.viaFinanciers.includes(via)) cur.viaFinanciers.push(via);
