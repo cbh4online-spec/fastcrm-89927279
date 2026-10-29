@@ -17,7 +17,8 @@ import {
   Zap, 
   Calendar,
   X,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Phone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

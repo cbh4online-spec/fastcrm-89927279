@@ -1,3 +1,4 @@
+import { IcpScoreBadge } from "@/components/crm/LeadIcpScoreCard";
 import { computeLeadPageKpis } from "@/lib/crm/leadKpis";
 import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
@@ -52,6 +53,7 @@ type SortKey =
   | "name"
   | "created_at"
   | "lead_score"
+  | "icp_fit_score"
   | "estimated_value"
   | "last_contact_at"
   | "source"
@@ -146,6 +148,12 @@ function renderCell(col: string, lead: SmartLead) {
           </span>
         </div>
       );
+    case "icp":
+      return (
+        <div className="w-full text-right" title={(lead as any).icp_summary || undefined}>
+          <IcpScoreBadge score={(lead as any).icp_fit_score} />
+        </div>
+      );
     case "value":
       return (
         <div className="w-full text-right">
@@ -224,6 +232,7 @@ const COLUMN_WIDTH: Record<string, string> = {
   source: "w-[120px] shrink-0",
   temperature: "w-[100px] shrink-0",
   score: "w-[80px] shrink-0",
+  icp: "w-[110px] shrink-0",
   value: "w-[130px] shrink-0",
   created_at: "w-[120px] shrink-0",
   last_contact: "w-[140px] shrink-0",
@@ -235,7 +244,7 @@ const COLUMN_WIDTH: Record<string, string> = {
   country: "w-[120px] shrink-0",
 };
 
-const NUMERIC_COLUMNS = ["score", "value", "created_at", "last_contact"];
+const NUMERIC_COLUMNS = ["score", "icp", "value", "created_at", "last_contact"];
 
 export function LeadsListIX() {
   const navigate = useNavigate();
@@ -255,6 +264,7 @@ export function LeadsListIX() {
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [temperatureFilter, setTemperatureFilter] = useState<string[]>([]);
+  const [icpFilter, setIcpFilter] = useState<string[]>([]);
 
   const { data, isLoading } = useSmartLeads({
     search,
@@ -266,6 +276,7 @@ export function LeadsListIX() {
     tags: tagFilter,
     statuses: statusFilter,
     temperatures: temperatureFilter,
+    smartFilter: icpFilter.includes("call_worthy") ? "call_worthy" : undefined,
   });
 
   const { data: filterOptions } = useLeadFilterOptions(archiveState === "all" ? "all" : archiveState);
@@ -287,6 +298,13 @@ export function LeadsListIX() {
         options: toOptions(filterOptions?.statuses),
         selected: statusFilter,
         onChange: (v) => { setStatusFilter(v); setPage(0); },
+      },
+      {
+        key: "icp",
+        label: "Encaixe",
+        options: [{ value: "call_worthy", label: "Vale uma ligação (≥ 70)", count: 0 }],
+        selected: icpFilter,
+        onChange: (v) => { setIcpFilter(v); setPage(0); },
       },
       {
         key: "temperature",
@@ -388,6 +406,7 @@ export function LeadsListIX() {
             { value: "name", label: "Nome" },
             { value: "created_at", label: "Data de criação" },
             { value: "lead_score", label: "Score" },
+            { value: "icp_fit_score", label: "Encaixe (cliente ideal)" },
             { value: "estimated_value", label: "Valor estimado" },
             { value: "last_contact_at", label: "Último contacto" },
             { value: "source", label: "Origem" },

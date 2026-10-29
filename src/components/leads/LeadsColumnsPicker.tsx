@@ -27,6 +27,7 @@ export const LEAD_COLUMNS: LeadColumnDef[] = [
   { key: "source", label: "Origem", defaultVisible: false },
   { key: "temperature", label: "Temperatura", defaultVisible: false },
   { key: "score", label: "Score", defaultVisible: true },
+  { key: "icp", label: "Encaixe", defaultVisible: true },
   { key: "value", label: "Valor estimado", defaultVisible: true },
   { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "last_contact", label: "Último contacto", defaultVisible: false },
