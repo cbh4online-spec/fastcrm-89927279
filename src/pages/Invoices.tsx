@@ -1,3 +1,4 @@
+import { matchesDueFilter, DUE_FILTERS, DUE_FILTER_LABEL, type DueFilter } from "@/lib/invoices/dueFilter";
 import { periodLabel } from "@/lib/dates/monthRange";
 import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
@@ -105,6 +106,13 @@ export default function Invoices() {
   const urlTo = searchParams.get("to");
   const dateFrom = urlFrom && DATE_RE.test(urlFrom) ? urlFrom : undefined;
   const dateTo = urlTo && DATE_RE.test(urlTo) ? urlTo : undefined;
+  const urlDue = searchParams.get("due");
+  const dueFilter = (urlDue && (DUE_FILTERS as string[]).includes(urlDue) ? urlDue : undefined) as DueFilter | undefined;
+  const clearDue = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("due");
+    setSearchParams(next, { replace: true });
+  };
   const clearPeriod = () => {
     const next = new URLSearchParams(searchParams);
     next.delete("from"); next.delete("to");
@@ -145,6 +153,10 @@ export default function Invoices() {
   const filteredInvoices = useMemo(() => {
     if (!invoices) return [];
     let result = invoices;
+    if (dueFilter) {
+      const now = new Date();
+      result = result.filter((inv) => matchesDueFilter(inv, dueFilter, now));
+    }
     if (searchValue) {
       const lower = searchValue.toLowerCase();
       result = result.filter(
@@ -166,7 +178,7 @@ export default function Invoices() {
       }
     });
     return sorted;
-  }, [invoices, searchValue, sortValue]);
+  }, [invoices, searchValue, sortValue, dueFilter]);
 
   const totalInvoices = filteredInvoices.length;
   const totalPages = Math.max(1, Math.ceil(totalInvoices / pageSize));
@@ -234,7 +246,7 @@ export default function Invoices() {
   ];
   const summarySeparators: Array<"+" | "=" | null> = ["+", "+", "+", "=", "+", "="];
 
-  const filtersActive = statusFilter !== "all" || !!searchValue || !!dateFrom || !!dateTo;
+  const filtersActive = statusFilter !== "all" || !!searchValue || !!dateFrom || !!dateTo || !!dueFilter;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) setSelectedIds(paginatedInvoices.map((inv) => inv.id));
@@ -247,7 +259,7 @@ export default function Invoices() {
 
   const clearFilters = () => {
     const next = new URLSearchParams(searchParams);
-    ["status", "from", "to"].forEach((k) => next.delete(k));
+    ["status", "from", "to", "due"].forEach((k) => next.delete(k));
     setSearchParams(next, { replace: true });
     setSearchValue("");
   };
@@ -287,6 +299,17 @@ export default function Invoices() {
                 className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Período: {periodLabel(dateFrom, dateTo)}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {dueFilter && (
+              <button
+                type="button"
+                onClick={clearDue}
+                aria-label="Remover filtro de situação"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Situação: {DUE_FILTER_LABEL[dueFilter]}
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
