@@ -129,11 +129,8 @@ Deno.serve(async (req) => {
     const { count } = await admin.from("lead_icp_score_queue").select("lead_id", { count: "exact", head: true }).eq("status", "pending").lt("attempts", 5);
     if ((count ?? 0) > 0) {
       await new Promise((r) => setTimeout(r, SELF_COOLDOWN_MS));
-      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/score-leads-icp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-cron-secret": secret },
-        body: JSON.stringify({ trigger: "chain", depth: depth - 1 }),
-      }).then((r) => r.body?.cancel()).catch((err) => console.error("[score-leads-icp] chain failed", err?.message));
+      const { error: wakeErr } = await admin.rpc("wake_lead_icp_scorer_depth", { _depth: depth - 1 });
+      if (wakeErr) console.error("[score-leads-icp] chain failed", wakeErr.message);
     }
   }
   return json({ processed, rateLimited });
