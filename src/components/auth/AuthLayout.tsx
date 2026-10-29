@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
-import { Sparkles, TrendingUp, ShieldCheck, MessageCircle, FileCheck2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Sparkles, Radar, PlayCircle } from "lucide-react";
 import { FastCRMLogo } from "@/components/brand/FastCRMLogo";
+import heroImg from "@/assets/auth-hero.jpg";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -9,130 +11,125 @@ interface AuthLayoutProps {
 }
 
 const KPIS = [
-  { label: "Conversão do funil", value: "38%", width: "38%", icon: TrendingUp },
-  { label: "Conformidade SAF-T", value: "100%", width: "100%", icon: FileCheck2 },
-  { label: "WhatsApp Pro ativo", value: "99,8%", width: "99.8%", icon: MessageCircle },
+  { label: "CONVERSÃO", value: 38, state: "Equilibrado" },
+  { label: "COBRANÇA", value: 18, state: "Baixo risco" },
+  { label: "PIPELINE", value: 76, state: "Atenção" },
 ];
 
-const RADAR_NODES = [
-  { top: "18%", left: "62%" },
-  { top: "34%", left: "28%" },
-  { top: "58%", left: "72%" },
-  { top: "70%", left: "38%" },
-  { top: "46%", left: "50%" },
+const NODES = [
+  { top: "28%", left: "62%", c: "bg-emerald-400" },
+  { top: "36%", left: "30%", c: "bg-emerald-400" },
+  { top: "48%", left: "52%", c: "bg-sky-400" },
+  { top: "60%", left: "72%", c: "bg-amber-400" },
+  { top: "70%", left: "40%", c: "bg-emerald-400" },
 ];
+
+const STEPS = ["PIPELINE · OPORTUNIDADES", "WHATSAPP PRO", "FATURAÇÃO SAF-T"];
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="dark min-h-screen flex bg-[hsl(var(--auth-surface))] text-foreground">
       {/* Formulário */}
-      <div className="w-full lg:w-[38%] flex flex-col justify-between p-6 sm:p-10 bg-background">
-        <FastCRMLogo variant="full" size="lg" />
-
-        <div className="w-full max-w-sm mx-auto py-10 space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
-            <p className="mt-2 text-muted-foreground">{subtitle}</p>
+      <div className="relative w-full lg:w-[38%] flex flex-col bg-gradient-to-b from-[hsl(var(--auth-surface-2))] to-[hsl(var(--auth-surface))]">
+        <div className="lg:hidden h-32 bg-cover bg-center opacity-60" style={{ backgroundImage: `url(${heroImg})` }} />
+        <div className="flex-1 flex items-center justify-center px-6 py-10 sm:px-12">
+          <div className="w-full max-w-md space-y-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-card/90 px-3 py-2 ring-1 ring-border">
+                  <FastCRMLogo variant="full" size="md" />
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground">PT</span>
+            </div>
+            <p className="text-[11px] tracking-[0.3em] text-muted-foreground">CRM · VENDAS COM IA</p>
+            <div>
+              <h1 className="auth-serif text-5xl font-medium leading-tight">{title}</h1>
+              <p className="mt-3 text-muted-foreground">{subtitle}</p>
+            </div>
+            {children}
+            <div className="flex justify-center gap-5 pt-2 border-t border-border text-sm text-muted-foreground">
+              <Link to="/pricing" className="pt-4 hover:text-foreground">Ver planos</Link>
+              <Link to="/features" className="pt-4 inline-flex items-center gap-1.5 hover:text-foreground">
+                <PlayCircle className="h-4 w-4" /> Ver funcionalidades
+              </Link>
+            </div>
           </div>
-          {children}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>© 2026 FastCRM</span>
-          <a href="/privacy" className="hover:text-foreground">Privacidade</a>
-          <a href="/terms" className="hover:text-foreground">Termos</a>
-          <a href="/pricing" className="hover:text-foreground">Ver planos</a>
         </div>
       </div>
 
       {/* Montra */}
-      <div className="hidden lg:flex lg:w-[62%] relative overflow-hidden gradient-primary p-12 flex-col justify-between text-primary-foreground">
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "linear-gradient(hsl(var(--primary-foreground) / 0.25) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary-foreground) / 0.25) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-          }}
-        />
+      <div className="hidden lg:block lg:w-[62%] relative overflow-hidden">
+        <img src={heroImg} alt="" width={1600} height={1200} className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-[hsl(var(--auth-surface)/0.7)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--auth-surface))] via-transparent to-[hsl(var(--auth-surface)/0.6)]" />
 
-        <div className="relative flex items-center justify-between">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-1.5 text-xs font-medium backdrop-blur">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-foreground opacity-70" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-foreground" />
-            </span>
-            FastCRM Core · Motor de vendas ativo
+        <div className="relative h-full flex flex-col p-10 xl:p-14">
+          <span className="self-start inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/30 px-4 py-2 text-sm backdrop-blur">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <Radar className="h-4 w-4" /> FastCRM Core · Motor de vendas ativo
           </span>
-        </div>
 
-        <div className="relative grid grid-cols-2 gap-6 items-center my-10">
-          {/* Radar do pipeline */}
-          <div className="relative aspect-square max-w-xs w-full mx-auto">
-            {[100, 72, 44].map((s) => (
-              <div
-                key={s}
-                className="absolute rounded-full border border-primary-foreground/30"
-                style={{ inset: `${(100 - s) / 2}%` }}
-              />
-            ))}
-            <div className="absolute inset-0 rounded-full animate-[spin_8s_linear_infinite]"
-              style={{ background: "conic-gradient(from 0deg, hsl(var(--primary-foreground) / 0.25), transparent 25%)" }}
-            />
-            {RADAR_NODES.map((n, i) => (
-              <span
-                key={i}
-                className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-foreground shadow-[0_0_12px_hsl(var(--primary-foreground))]"
-                style={{ top: n.top, left: n.left }}
-              />
+          {/* Cartão índices */}
+          <div className="absolute right-10 top-24 w-72 rounded-2xl border border-border/60 bg-card/40 p-6 backdrop-blur-md">
+            <p className="text-[11px] tracking-[0.25em] text-muted-foreground mb-5">INDICADORES COMERCIAIS</p>
+            <div className="space-y-5">
+              {KPIS.map((k) => (
+                <div key={k.label}>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-semibold">{k.label}</span>
+                    <span className="auth-serif text-2xl">{k.value}</span>
+                  </div>
+                  <div className="mt-1.5 h-1 rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-[hsl(var(--auth-accent))]" style={{ width: `${k.value}%` }} />
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{k.state}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Retículo */}
+          <div className="absolute left-[28%] top-[12%] h-72 w-72 rounded-full border border-[hsl(var(--auth-accent)/0.5)] shadow-[0_0_60px_hsl(var(--auth-accent)/0.35)]">
+            <div className="absolute inset-6 rounded-full border border-dashed border-border/50" />
+            <div className="absolute left-1/2 top-0 h-full w-px bg-border/50" />
+            <div className="absolute top-1/2 left-0 w-full h-px bg-border/50" />
+            {NODES.map((n, i) => (
+              <span key={i} className={`absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background ${n.c}`} style={{ top: n.top, left: n.left }} />
             ))}
           </div>
 
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-primary-foreground/20 bg-primary-foreground/10 p-5 backdrop-blur">
-              <p className="text-[11px] uppercase tracking-wider text-primary-foreground/70 mb-4">Indicadores comerciais</p>
-              <div className="space-y-4">
-                {KPIS.map(({ label, value, width, icon: Icon }) => (
-                  <div key={label}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2"><Icon className="h-4 w-4" />{label}</span>
-                      <span className="font-bold tabular-nums">{value}</span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 rounded-full bg-primary-foreground/20">
-                      <div className="h-full rounded-full bg-primary-foreground" style={{ width }} />
-                    </div>
+          <div className="mt-auto space-y-10">
+            <ol className="space-y-3 text-xs tracking-[0.25em]">
+              {STEPS.map((s, i) => (
+                <li key={s} className={`flex items-center gap-3 ${i === 0 ? "text-foreground" : "text-muted-foreground/70"}`}>
+                  <span className="text-[hsl(var(--auth-accent))]">0{i + 1}</span>
+                  <span className="h-px w-6 bg-border" /> {s}
+                </li>
+              ))}
+            </ol>
+
+            <div className="max-w-2xl space-y-5">
+              <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.3em] text-[hsl(var(--auth-accent))]">
+                <Sparkles className="h-4 w-4" /> VENDAS E FATURAÇÃO COM INTELIGÊNCIA ARTIFICIAL
+              </p>
+              <h2 className="auth-serif text-6xl leading-[1.05]">Feche negócios como nunca fechou.</h2>
+              <p className="text-lg text-muted-foreground max-w-xl">
+                Pipeline, WhatsApp Pro, faturação SAF-T e cobranças de cada cliente num só espaço.
+              </p>
+            </div>
+
+            <div className="flex items-end justify-between border-t border-border/60 pt-6">
+              <div className="flex gap-10">
+                {[["500+", "empresas"], ["24/7", "automação"]].map(([v, l]) => (
+                  <div key={l}>
+                    <p className="auth-serif text-3xl">{v}</p>
+                    <p className="text-xs text-muted-foreground">{l}</p>
                   </div>
                 ))}
               </div>
+              <p className="italic text-muted-foreground">Não vendemos por si. Vendemos consigo.</p>
             </div>
-            <div className="rounded-2xl border border-primary-foreground/20 bg-primary-foreground/10 p-4 backdrop-blur flex items-center gap-3">
-              <ShieldCheck className="h-8 w-8 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold">Proposta aceite · 4.850,00 €</p>
-                <p className="text-xs text-primary-foreground/70">Exemplo de negócio fechado</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative space-y-5 max-w-2xl">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary-foreground/80">
-            <Sparkles className="h-4 w-4" /> Plataforma de vendas e faturação com IA
-          </p>
-          <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
-            Feche negócios e fature mais rápido do que nunca.
-          </h2>
-          <p className="text-lg text-primary-foreground/85">
-            Pipeline inteligente, WhatsApp Pro, faturação SAF-T e gestão de cobranças num só ecossistema.
-          </p>
-          <div className="flex gap-10 pt-2">
-            {[["+500", "empresas"], ["SAF-T", "exportação AT"], ["24/7", "automação"]].map(([v, l]) => (
-              <div key={l}>
-                <p className="text-2xl font-bold">{v}</p>
-                <p className="text-xs uppercase tracking-wider text-primary-foreground/70">{l}</p>
-              </div>
-            ))}
           </div>
         </div>
       </div>
