@@ -1,3 +1,4 @@
+import { periodLabel } from "@/lib/dates/monthRange";
 import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -62,6 +63,7 @@ import {
   RefreshCcw,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -98,6 +100,17 @@ export default function Invoices() {
     setSearchParams(next, { replace: true });
   };
 
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const urlFrom = searchParams.get("from");
+  const urlTo = searchParams.get("to");
+  const dateFrom = urlFrom && DATE_RE.test(urlFrom) ? urlFrom : undefined;
+  const dateTo = urlTo && DATE_RE.test(urlTo) ? urlTo : undefined;
+  const clearPeriod = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("from"); next.delete("to");
+    setSearchParams(next, { replace: true });
+  };
+
   const statusLabel: Record<InvoiceStatus, string> = useMemo(() => ({
     draft: t("statusDraft"),
     sent: t("statusSent"),
@@ -116,9 +129,14 @@ export default function Invoices() {
     { value: "number_asc", label: t("sortNumberAsc") },
   ], [t]);
 
-  const { data: invoices, isLoading } = useInvoices(
-    statusFilter !== "all" ? { status: statusFilter as InvoiceStatus } : undefined,
-  );
+  const invoiceFilters = useMemo(() => {
+    const f: { status?: InvoiceStatus; from?: string; to?: string } = {};
+    if (statusFilter !== "all") f.status = statusFilter as InvoiceStatus;
+    if (dateFrom) f.from = dateFrom;
+    if (dateTo) f.to = dateTo;
+    return Object.keys(f).length ? f : undefined;
+  }, [statusFilter, dateFrom, dateTo]);
+  const { data: invoices, isLoading } = useInvoices(invoiceFilters);
   const stats = useInvoiceStats();
   const markPaid = useMarkInvoicePaid();
   const sendInvoice = useSendInvoice();
@@ -216,7 +234,7 @@ export default function Invoices() {
   ];
   const summarySeparators: Array<"+" | "=" | null> = ["+", "+", "+", "=", "+", "="];
 
-  const filtersActive = statusFilter !== "all" || !!searchValue;
+  const filtersActive = statusFilter !== "all" || !!searchValue || !!dateFrom || !!dateTo;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) setSelectedIds(paginatedInvoices.map((inv) => inv.id));
@@ -228,7 +246,9 @@ export default function Invoices() {
   };
 
   const clearFilters = () => {
-    setStatusFilter("all");
+    const next = new URLSearchParams(searchParams);
+    ["status", "from", "to"].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
     setSearchValue("");
   };
 
@@ -258,6 +278,18 @@ export default function Invoices() {
         }
         chips={
           <>
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={clearPeriod}
+                aria-label="Remover filtro de período"
+                title="O gráfico do painel considera só faturas e recibos, sem IVA"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Período: {periodLabel(dateFrom, dateTo)}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
             <DocumentFilterChip
               label="Estado"
               value={statusFilter === "all" ? "Todos" : statusLabel[statusFilter]}
