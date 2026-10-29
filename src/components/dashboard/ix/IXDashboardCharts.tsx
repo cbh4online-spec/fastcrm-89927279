@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatEUR } from "@/lib/currency";
 import { useNavigate } from "react-router-dom";
 import { monthRange } from "@/lib/dates/monthRange";
+import { clientHref } from "@/lib/dashboard/clientHref";
 
 const MONTH_LABELS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 
@@ -174,9 +175,10 @@ export function ClientDependencyBar({
   dependency,
   loading,
 }: {
-  dependency: Array<{ key: string; name: string; percent: number }>;
+  dependency: Array<{ key: string; name: string; percent: number; companyId?: string | null; contactId?: string | null }>;
   loading?: boolean;
 }) {
+  const navigate = useNavigate();
   if (loading) return <Skeleton className="h-24 w-full rounded-xl" />;
   if (dependency.length === 0) {
     return <p className="text-sm text-muted-foreground">Sem dados suficientes de faturação por cliente.</p>;
@@ -194,7 +196,13 @@ export function ClientDependencyBar({
       </div>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {dependency.map((c, i) => (
-          <div key={c.key} className="flex items-start gap-2 text-sm">
+          <button
+            type="button"
+            key={c.key}
+            onClick={() => navigate(clientHref(c))}
+            aria-label={`Abrir ${c.name}`}
+            className="flex items-start gap-2 rounded-md p-1 text-left text-sm transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <span
               className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ background: IX_PALETTE[i % IX_PALETTE.length] }}
@@ -205,7 +213,7 @@ export function ClientDependencyBar({
               </div>
               <div className="text-xs text-muted-foreground">{c.percent.toFixed(2)}%</div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </>
@@ -216,20 +224,27 @@ export function ActiveClientsChart({
   monthly,
   loading,
 }: {
-  monthly: Array<{ label: string; novos: number; recorrentes: number }>;
+  monthly: Array<{ label: string; year: number; month: number; novos: number; recorrentes: number }>;
   loading?: boolean;
 }) {
   const hasValues = monthly.some((m) => m.novos || m.recorrentes);
+  const navigate = useNavigate();
+  const open = (i: number) => {
+    const row = monthly[i];
+    if (!row) return;
+    const { from, to } = monthRange(row.year, row.month);
+    navigate(`/dashboard/invoices?from=${from}&to=${to}`);
+  };
   return (
     <ChartFrame loading={loading} empty={!hasValues} emptyLabel="Sem clientes ativos no período.">
       <BarChart data={monthly}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
         <XAxis dataKey="label" {...AXIS} />
         <YAxis {...AXIS} allowDecimals={false} />
-        <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+        <Tooltip labelFormatter={(l) => `${l} · clique para ver as faturas`} contentStyle={TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
         <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="novos" name="Novos clientes" stackId="a" fill={IX_SERIES.soft} />
-        <Bar dataKey="recorrentes" name="Recorrentes" stackId="a" fill={IX_SERIES.current} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="novos" name="Novos clientes" stackId="a" fill={IX_SERIES.soft} cursor="pointer" onClick={(_: unknown, i: number) => open(i)} />
+        <Bar dataKey="recorrentes" name="Recorrentes" stackId="a" fill={IX_SERIES.current} radius={[4, 4, 0, 0]} cursor="pointer" onClick={(_: unknown, i: number) => open(i)} />
       </BarChart>
     </ChartFrame>
   );

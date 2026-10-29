@@ -46,6 +46,8 @@ export interface DebtorRow {
   name: string;
   notDue: number;
   overdue: number;
+  companyId?: string | null;
+  contactId?: string | null;
 }
 
 export interface ClientShare {
@@ -53,6 +55,8 @@ export interface ClientShare {
   name: string;
   total: number;
   percent: number;
+  companyId?: string | null;
+  contactId?: string | null;
 }
 
 export interface WorkspaceFinancials {
@@ -86,7 +90,7 @@ export interface WorkspaceFinancials {
     avgPerClient: number;
     avgPerNewClient: number;
     /** Clientes ativos por mês (últimos 12 meses): novos vs recorrentes */
-    monthly: Array<{ label: string; novos: number; recorrentes: number }>;
+    monthly: Array<{ label: string; year: number; month: number; novos: number; recorrentes: number }>;
   };
   vat: {
     monthly: Array<{ label: string; total: number; month: number; year: number }>; // últimos 12 meses
@@ -260,6 +264,8 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
             notDue: 0,
             overdue: 0,
           };
+          if (!row.companyId && inv.company_id) row.companyId = inv.company_id;
+          if (!row.contactId && inv.contact_id) row.contactId = inv.contact_id;
           if (isOverdue) row.overdue += remaining;
           else row.notDue += remaining;
           debtorMap.set(debtorKey, row);
@@ -287,12 +293,14 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
         .slice(0, 10);
 
       // --- Clientes
-      const clientTotals = new Map<string, { name: string; total: number; firstSeen: string }>();
+      const clientTotals = new Map<string, { name: string; total: number; firstSeen: string; companyId?: string | null; contactId?: string | null }>();
       for (const inv of invoices) {
         const key = debtorKeyOf(inv);
         const name = inv.client_name || "—";
         const cur = clientTotals.get(key) || { name, total: 0, firstSeen: inv.issue_date || "" };
         cur.total += Number(inv.subtotal || 0);
+        if (!cur.companyId && inv.company_id) cur.companyId = inv.company_id;
+        if (!cur.contactId && inv.contact_id) cur.contactId = inv.contact_id;
         if (inv.issue_date && (!cur.firstSeen || inv.issue_date < cur.firstSeen)) {
           cur.firstSeen = inv.issue_date;
         }
@@ -305,6 +313,8 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
           name: c.name,
           total: c.total,
           percent: (c.total / totalClientsRevenue) * 100,
+          companyId: c.companyId ?? null,
+          contactId: c.contactId ?? null,
         }))
         .sort((a, b) => b.total - a.total)
         .slice(0, 8);
@@ -312,12 +322,14 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
       // Monthly active clients (últimos 12 meses)
       const monthlyClientsMap = new Map<
         string,
-        { label: string; sortKey: number; novosSet: Set<string>; recorrentesSet: Set<string> }
+        { label: string; year: number; month: number; sortKey: number; novosSet: Set<string>; recorrentesSet: Set<string> }
       >();
       for (let i = 11; i >= 0; i--) {
         const d = new Date(currentYear, currentMonth - i, 1);
         monthlyClientsMap.set(monthKey(d), {
           label: fmtMonthLabel(d),
+          year: d.getFullYear(),
+          month: d.getMonth() + 1,
           sortKey: d.getTime(),
           novosSet: new Set(),
           recorrentesSet: new Set(),
@@ -349,7 +361,7 @@ export function useWorkspaceFinancials(workspaceId: string | undefined) {
       }
       const monthly = Array.from(monthlyClientsMap.values())
         .sort((a, b) => a.sortKey - b.sortKey)
-        .map((b) => ({ label: b.label, novos: b.novosSet.size, recorrentes: b.recorrentesSet.size }));
+        .map((b) => ({ label: b.label, year: b.year, month: b.month, novos: b.novosSet.size, recorrentes: b.recorrentesSet.size }));
 
       const activeCount = monthly.slice(-1)[0]
         ? monthly[monthly.length - 1].novos + monthly[monthly.length - 1].recorrentes

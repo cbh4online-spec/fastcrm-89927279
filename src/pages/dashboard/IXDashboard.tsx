@@ -1,3 +1,4 @@
+import { clientHref, clientInvoicesHref } from "@/lib/dashboard/clientHref";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -339,11 +340,13 @@ export default function IXDashboard() {
                       </div>
                       {financials!.collections.topDebtors.map((d) => (
                         <div key={d.key} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2.5 text-sm">
-                          <span className="truncate" title={d.name}>{d.name}</span>
+                          <button type="button" onClick={() => navigate(clientHref(d))} className="truncate rounded text-left hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={`Abrir ${d.name}`}>{d.name}</button>
                           <span className="w-24 text-right tabular-nums text-muted-foreground">{formatEUR(d.notDue)}</span>
                           <span className="w-24 text-right">
                             {d.overdue > 0 ? (
-                              <Badge variant="destructive" className="tabular-nums">{formatEUR(d.overdue)}</Badge>
+                              <button type="button" onClick={() => navigate(clientInvoicesHref(d.name, "overdue"))} aria-label={`Ver faturas vencidas de ${d.name}`} className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                <Badge variant="destructive" className="cursor-pointer tabular-nums">{formatEUR(d.overdue)}</Badge>
+                              </button>
                             ) : (
                               <span className="tabular-nums text-muted-foreground">{formatEUR(0)}</span>
                             )}
@@ -395,10 +398,10 @@ export default function IXDashboard() {
                   <ActiveClientsChart monthly={financials?.clients.monthly ?? []} loading={finLoading} />
                 </IXCard>
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                  <KpiTile icon={Users} accent="primary" label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} />
-                  <KpiTile icon={UserPlus} accent="success" label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} />
-                  <KpiTile icon={Euro} accent="info" label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} />
-                  <KpiTile icon={Euro} accent="warning" label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} />
+                  <KpiTile icon={Users} accent="primary" label="Clientes ativos" value={String(financials?.clients.activeCount ?? 0)} onClick={() => navigate("/dashboard/companies")} />
+                  <KpiTile icon={UserPlus} accent="success" label="Novos clientes" value={String(financials?.clients.newCount ?? 0)} onClick={() => navigate("/dashboard/companies?sort=recent")} />
+                  <KpiTile icon={Euro} accent="info" label="Valor médio / cliente" value={formatEUR(financials?.clients.avgPerClient ?? 0)} onClick={() => navigate("/dashboard/companies")} />
+                  <KpiTile icon={Euro} accent="warning" label="Valor médio / novo cliente" value={formatEUR(financials?.clients.avgPerNewClient ?? 0)} onClick={() => navigate("/dashboard/companies?sort=recent")} />
                 </div>
               </div>
 
@@ -415,7 +418,13 @@ export default function IXDashboard() {
                 ) : (
                   <div className="divide-y divide-border">
                     {topClients.map((c) => (
-                      <div key={c.key} className="flex items-center justify-between gap-3 py-3">
+                      <button
+                        type="button"
+                        key={c.key}
+                        onClick={() => navigate(clientHref(c))}
+                        aria-label={`Abrir ${c.name}`}
+                        className="flex w-full items-center justify-between gap-3 rounded-md px-1 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
                           <div className="flex flex-wrap items-center gap-1.5">
@@ -428,7 +437,7 @@ export default function IXDashboard() {
                           </div>
                         </div>
                         <p className="text-sm font-semibold tabular-nums">{formatEUR(c.total)}</p>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}

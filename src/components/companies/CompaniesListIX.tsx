@@ -309,8 +309,9 @@ export function CompaniesListIX() {
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const initialSortRecent = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("sort") === "recent";
+  const [sortBy, setSortBy] = useState<SortKey>(initialSortRecent ? "created_at" : "name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(initialSortRecent ? "desc" : "asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);

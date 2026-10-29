@@ -89,7 +89,7 @@ export default function Invoices() {
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("invoices");
   const { isElementVisible } = usePageElementVisibility("invoices");
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") ?? "" : "").slice(0, 200));
   const [sortValue, setSortValue] = useState("date_desc");
   const [searchParams, setSearchParams] = useSearchParams();
   const VALID_STATUSES = ["draft", "sent", "paid", "partially_paid", "overdue", "cancelled"];
