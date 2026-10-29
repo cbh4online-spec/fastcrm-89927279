@@ -35,11 +35,13 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         <div className="flex-1 flex items-center justify-center px-6 py-10 sm:px-12">
           <div className="w-full max-w-md space-y-8">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-card/90 px-3 py-2 ring-1 ring-border">
-                  <FastCRMLogo variant="full" size="md" />
+              <Link to="/" aria-label="FastCRM — página inicial" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+                <FastCRMLogo variant="mark" height={40} className="h-10 w-10 rounded-xl object-contain shadow-sm ring-1 ring-border" />
+                <div className="leading-tight">
+                  <div className="auth-serif text-2xl text-foreground">FastCRM</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Plataforma comercial com IA</div>
                 </div>
-              </div>
+              </Link>
               <span className="text-xs text-muted-foreground">PT</span>
             </div>
             <p className="text-[11px] tracking-[0.3em] text-muted-foreground">CRM · VENDAS COM IA</p>
