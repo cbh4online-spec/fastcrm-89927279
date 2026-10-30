@@ -42,6 +42,13 @@ export function createHandler({ oauth, api, openTab }) {
         if (r.error === "sessao_expirada") { resetSession(); await oauth.logout(); }
         return r;
       }
+      case "SYNC_MESSAGES": {
+        const mine = epoch;
+        const r = await api.syncMessages(message.workspaceId, message.phone, message.chatName, message.messages, allowedWorkspaces);
+        if (mine !== epoch) return { ok: false, error: "sessao_alterada" };
+        if (r.error === "sessao_expirada") { resetSession(); await oauth.logout(); }
+        return r;
+      }
       default:
         return { ok: false, error: "Mensagem inválida" };
     }

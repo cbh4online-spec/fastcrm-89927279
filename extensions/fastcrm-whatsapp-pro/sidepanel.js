@@ -8,6 +8,7 @@ import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl, detailUr
 import { isLookupReady, isOAuthConfigured } from "./lib/oauth-config.js";
 import { oauthRedirectUri } from "./lib/oauth-pkce.js";
 import { requestServerAccess, isServerOriginRemoval } from "./lib/server-permission.js";
+import { readOpenChat } from "./lib/whatsapp-reader.js";
 
 /** Estado só em memória; nunca persistido. */
 const state = { phone: null, workspaceId: "", nonce: 0, authStatus: "disconnected" };
@@ -192,6 +193,8 @@ function updateLookupButton() {
   $("panel-lookup-pending").hidden = enabled;
   $("workspace-block").hidden = !enabled;
   $("btn-panel-lookup").disabled = !(enabled && state.phone && state.workspaceId);
+  const sync = document.getElementById("btn-sync-chat");
+  if (sync) sync.disabled = !(enabled && state.workspaceId);
 }
 
 function renderList(el, rows, kind, extraKey) {
@@ -404,7 +407,52 @@ function setupRedirectUri() {
   });
 }
 
+const SYNC_ERRORS = {
+  sem_whatsapp: "Abra o WhatsApp Web num separador e escolha a conversa.",
+  sem_permissao_whatsapp: "Sem autorização para ler o WhatsApp Web. Carregue de novo e aceite.",
+  sem_mensagens: "Não encontrei mensagens de texto visíveis nesta conversa.",
+  sem_numero: "Não consegui obter o número. Escreva-o no campo «Número» acima e tente de novo.",
+};
+
+function setupSync() {
+  const btn = $("btn-sync-chat");
+  const fb = $("sync-feedback");
+  btn.addEventListener("click", async () => {
+    if (!state.workspaceId) return;
+    btn.disabled = true;
+    try {
+      const origin = "https://web.whatsapp.com/*";
+      let granted = false;
+      try { granted = await chrome.permissions.request({ origins: [origin] }); } catch { granted = false; }
+      if (!granted) return setFeedback(fb, SYNC_ERRORS.sem_permissao_whatsapp, "error");
+      const tabs = await chrome.tabs.query({ url: origin });
+      const tab = tabs.find((t) => t.active) ?? tabs[0];
+      if (!tab?.id) return setFeedback(fb, SYNC_ERRORS.sem_whatsapp, "error");
+      setFeedback(fb, "A ler a conversa…");
+      const [res] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: readOpenChat });
+      const chat = res?.result;
+      if (!chat?.messages?.length) return setFeedback(fb, SYNC_ERRORS.sem_mensagens, "error");
+      const phone = chat.phone || state.phone;
+      if (!phone) return setFeedback(fb, SYNC_ERRORS.sem_numero, "error");
+      setFeedback(fb, `A guardar ${chat.messages.length} mensagens…`);
+      const r = await send({ type: "SYNC_MESSAGES", workspaceId: state.workspaceId, phone, chatName: chat.chatName, messages: chat.messages });
+      if (!r.ok) {
+        setFeedback(fb, SYNC_ERRORS[r.error] ?? lookupError(r.error), "error");
+        if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); }
+        return;
+      }
+      const who = r.linked === "contact" ? "ligada ao contacto" : r.linked === "lead" ? "ligada à lead" : "sem ficha associada";
+      setFeedback(fb, `Guardadas ${r.inserted} novas (${r.skipped} já existiam), ${who}. Veja na Caixa de Entrada.`, "ok");
+    } catch {
+      setFeedback(fb, "Não foi possível guardar a conversa.", "error");
+    } finally {
+      updateLookupButton();
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  setupSync();
   setupRedirectUri();
   $("config-origin").textContent = FASTCRM_ORIGIN;
   setupTabs();
