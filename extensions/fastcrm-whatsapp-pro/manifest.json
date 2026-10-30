@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "FastCRM WhatsApp Pro",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyyyYciFSNYz7DGFhJ+4tmTPo2+h1UZl/hIk4Mqgc0S15o9OUA4yUqVR+Ns3CzXZ3H5f/Fg9DXL8Ixmg8MCdZ1kbmq7GuI8KxKwgyyOIDWhvK7Ed1amkCdbkkcZVg7FXt1Q2DFCME5pJBrIq9jqs3mVvnJ7Plc0qIi5RE3Tw48wKmX2LzrXM+NyNycUP4rXzKFNK93Mb3ha8rvheO/dhmU2APJ0mFOYjjXEDCruNRSbrvDRjnEymASc1nsOu01nhGUkdBh8hkbo+nt8iV2ttVsDzWgNAX86Y5JH1n1rS1ljulha7qi6VMHAHO2BkByWbDiPcmWlbUIE8Hq0HvSDUfRwIDAQAB",
-  "description": "Painel lateral do FastCRM junto do WhatsApp Web. Guarda no CRM a conversa aberta só quando carrega no botão. Sem envio automático.",
+  "description": "Painel lateral do FastCRM junto do WhatsApp Web. Guarda automaticamente no CRM o texto da conversa aberta no WhatsApp Web. Nunca envia mensagens.",
   "default_locale": "pt_PT",
   "minimum_chrome_version": "116",
   "permissions": [

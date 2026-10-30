@@ -97,6 +97,8 @@ function setupPhone() {
     }
     current = r.e164;
     state.phone = r.e164;
+    state.phoneChat = auto.chat || null; // número escrito pertence à conversa aberta
+    auto.lastKey.clear();
     clearResults();
     $("phone-normalized").textContent = r.e164;
     actions.hidden = false;

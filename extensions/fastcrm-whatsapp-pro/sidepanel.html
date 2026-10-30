@@ -11,7 +11,7 @@
     <img src="icons/icon48.png" alt="" class="logo" width="28" height="28" />
     <div>
       <h1>FastCRM WhatsApp Pro</h1>
-      <p class="subtitle">Versão 0.6.1 · piloto</p>
+      <p class="subtitle">Versão 0.7.0 · piloto</p>
     </div>
   </header>
 
@@ -22,6 +22,17 @@
       <p id="auth-hint" class="hint"></p>
     </div>
   </div>
+
+  <section id="auto-sync" class="card auto-card" aria-live="polite">
+    <div class="status-row"><span id="auto-dot" class="dot dot-unknown" aria-hidden="true"></span><span id="auto-title">A preparar…</span></div>
+    <p id="auto-chat" class="auto-chat" hidden></p>
+    <p id="auto-feedback" class="feedback" role="status"></p>
+    <button id="btn-auto-enable" class="btn btn-primary" type="button" hidden>Ligar guardar automático</button>
+    <p id="auto-feedback-off" class="feedback" role="status"></p>
+    <a id="auto-open-crm" class="btn btn-secondary" target="_blank" rel="noopener" hidden>Abrir ficha no CRM</a>
+    <button id="btn-auto-disable" class="btn btn-link" type="button" hidden>Desligar</button>
+    <p class="hint">Com este painel aberto, as mensagens de texto da conversa que tem aberta no WhatsApp Web ficam guardadas no CRM sozinhas. Só lê o ecrã: não envia nada nem abre outra ligação ao WhatsApp.</p>
+  </section>
 
   <nav class="tabs" role="tablist" aria-label="Secções">
     <button role="tab" id="tab-inicio" aria-controls="panel-inicio" aria-selected="true" class="tab">Início</button>
@@ -82,7 +93,7 @@
         <h3>Leads</h3><ul id="list-leads" class="list results"></ul>
         <p class="hint">Sem resultados não garante que o número não exista (formatos guardados podem variar).</p>
       </div>
-      <h3>Guardar conversa</h3>
+      <h3>Guardar agora (manual)</h3>
       <p class="hint">Abra a conversa no WhatsApp Web e carregue no botão. As mensagens de texto visíveis ficam na Caixa de Entrada do CRM. Não envia nada.</p>
       <button id="btn-sync-chat" class="btn btn-primary" type="button" disabled>Guardar conversa no CRM</button>
       <p id="sync-hint" class="hint"></p>
@@ -105,7 +116,7 @@
     <p id="config-feedback" class="feedback" role="status" aria-live="polite"></p>
     <ul class="hint list">
       <li>Sem envio automático de mensagens.</li>
-      <li>Sem leitura de conversas, cookies ou sessões.</li>
+      <li>Só lê o texto da conversa aberta no WhatsApp Web (guardar automático) e nunca cookies ou sessões.</li>
       <li>Pedidos de rede apenas ao servidor de autenticação do FastCRM, para iniciar sessão.</li>
       <li>A sessão fica só em memória e termina ao fechar o browser.</li>
     </ul>
