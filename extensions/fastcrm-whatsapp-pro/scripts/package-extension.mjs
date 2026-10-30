@@ -23,7 +23,7 @@ async function regularFile(root, relative) {
 
 export async function validatePackage(root) {
   const manifest = JSON.parse(await regularFile(root, 'manifest.json'));
-  if (manifest.manifest_version !== 3 || manifest.version !== '0.5.0') throw new Error('Manifest/versão incorretos');
+  if (manifest.manifest_version !== 3 || manifest.version !== '0.5.1') throw new Error('Manifest/versão incorretos');
   if (JSON.stringify(manifest.permissions) !== JSON.stringify(['storage', 'sidePanel', 'identity']) || !(manifest.host_permissions === undefined || (Array.isArray(manifest.host_permissions) && manifest.host_permissions.length === 0)) || JSON.stringify(manifest.optional_host_permissions) !== JSON.stringify(['https://eumnfkccyvlyoyjchiwe.supabase.co/*']) || manifest.optional_permissions || manifest.content_scripts || manifest.externally_connectable) throw new Error('Permissões inesperadas');
   const refs = [manifest.background?.service_worker, manifest.side_panel?.default_path,
     ...Object.values(manifest.icons ?? {}), ...Object.values(manifest.action?.default_icon ?? {}),
@@ -36,7 +36,7 @@ export async function validatePackage(root) {
   return manifest;
 }
 
-export async function packageExtension({ sourceDir = source, distDir = path.join(source, 'dist/fastcrm-whatsapp-pro'), zipPath = path.join(source, 'dist/fastcrm-whatsapp-pro-v0.5.0.zip'), distOnly = false } = {}) {
+export async function packageExtension({ sourceDir = source, distDir = path.join(source, 'dist/fastcrm-whatsapp-pro'), zipPath = path.join(source, 'dist/fastcrm-whatsapp-pro-v0.5.1.zip'), distOnly = false } = {}) {
   await validatePackage(sourceDir);
   const files = [...fixedFiles];
   for (const name of (await fs.readdir(path.join(sourceDir, 'icons'))).sort()) {

@@ -135,7 +135,9 @@ const AUTH_TEXT = {
   connected: ["Ligado ao FastCRM", "Sessão válida só até fechar o browser.", "dot-on"],
 };
 const AUTH_ERRORS = {
-  autorizacao_cancelada: "Ligação cancelada.",
+  autorizacao_cancelada: "Janela de autorização fechada antes de concluir.",
+  pagina_autorizacao_indisponivel: "A página de autorização do FastCRM não abriu (endereço de regresso não autorizado ou sem rede).",
+  autorizacao_falhou: "A autorização não foi concluída. Confirme que tem sessão iniciada no FastCRM e tente de novo.",
   autorizacao_recusada: "Autorização recusada.",
   rede_indisponivel: "Servidor indisponível. Tente mais tarde.",
   sem_permissao_servidor: "O Chrome não autorizou o acesso ao servidor FastCRM. Clique «Ligar» e aceite o pedido.",

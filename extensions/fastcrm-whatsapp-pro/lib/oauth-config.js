@@ -12,7 +12,7 @@
 export const AUTH_ORIGIN = "https://eumnfkccyvlyoyjchiwe.supabase.co";
 export const AUTHORIZE_ENDPOINT = AUTH_ORIGIN + "/auth/v1/oauth/authorize";
 export const TOKEN_ENDPOINT = AUTH_ORIGIN + "/auth/v1/oauth/token";
-export const PUBLIC_CLIENT_ID = "498e10aa-441f-4ded-9e73-81979d751acf";
+export const PUBLIC_CLIENT_ID = "e3797d42-b91a-4872-8a42-fca687486725";
 export const SCOPES = "email"; // sem "openid" até haver chaves de assinatura assimétricas verificadas (OIDC)
 export const REDIRECT_PATH = "oauth2";
 export const NETWORK_TIMEOUT_MS = 15000;
