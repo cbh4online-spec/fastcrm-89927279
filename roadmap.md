@@ -65,3 +65,5 @@
 - [x] Add-on 49 €/mês por número; pedido pelo dono, aprovação pelo super admin (Definições → Canais).
 - [x] Ligar o número +351 925 990 747 só ao METODOPARE e enviar pela Meta (texto 1:1). Falta teste real de envio.
 - [ ] Receber respostas no CRM — exige mudar a estrutura da aplicação (decisão do utilizador).
+
+- Gerir modelos oficiais Meta (feito: criar/listar/apagar). Por fazer: enviar modelo aprovado fora das 24 h a partir da Nova Mensagem/Inbox.
