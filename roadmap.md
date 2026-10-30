@@ -59,3 +59,4 @@
 ## WhatsApp — concluir integração (2026-10-30)
 - [x] Fase 1 diagnóstico: Z-API desligado em PHARLISS («Client-Token not allowed») e myMYA Hub (subscrição da instância expirada); 0 mensagens em 30 dias exceto 9 recebidas a 01/10.
 - [ ] Fase 2–4 (ficha, extensão piloto, envios automáticos) — bloqueado: religar Z-API pelo utilizador + escolher workspaces piloto.
+- [ ] Extensão: registar cliente OAuth e ativar piloto myMYA Hub — bloqueado: endereço de retorno da extensão (Configurações).
