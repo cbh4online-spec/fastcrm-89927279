@@ -722,6 +722,13 @@
       "when": 1793398401500,
       "tag": "0102_whatsapp_official_addon_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1793399461193,
+      "tag": "0103_metodopare_meta_official_line",
+      "breakpoints": true
     }
   ]
 }
