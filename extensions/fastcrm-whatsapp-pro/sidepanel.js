@@ -229,34 +229,49 @@ function renderList(el, rows, kind, extraKey) {
   }
 }
 
+async function loadWorkspaces() {
+  const btn = $("btn-load-workspaces");
+  const epoch = state.authEpoch; // sessão de autenticação no momento do pedido
+  btn.disabled = true;
+  const fb = $("workspace-feedback");
+  setFeedback(fb, "A carregar…");
+  const r = await send({ type: "LIST_WORKSPACES" });
+  btn.disabled = false;
+  if (epoch !== state.authEpoch) return; // logout/revogação entretanto: não reabrir lista
+  const sel = $("select-workspace");
+  state.workspaceId = "";
+  clearResults();
+  if (!r.ok) {
+    sel.replaceChildren(new Option("— indisponível —", ""));
+    sel.disabled = true;
+    setFeedback(fb, lookupError(r.error), "error");
+    if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); }
+    return;
+  }
+  const list = r.workspaces ?? [];
+  sel.replaceChildren(new Option("— escolha —", ""), ...list.map((w) => new Option(w.name || "Workspace sem nome", w.id)));
+  sel.disabled = !list.length;
+  const saved = await autoSyncPrefs();
+  const pick = list.find((w) => w.id === saved.workspaceId) ?? (list.length === 1 ? list[0] : null);
+  if (pick) {
+    sel.value = pick.id;
+    state.workspaceId = pick.id;
+    updateLookupButton();
+    setFeedback(fb, "", "");
+  } else {
+    setFeedback(fb, list.length ? "Escolha o workspace." : "Sem workspaces disponíveis para o piloto.", list.length ? "ok" : "error");
+  }
+  renderAutoSync();
+}
+
 function setupPanelLookup() {
-  $("btn-load-workspaces").addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    const epoch = state.authEpoch; // sessão de autenticação no momento do clique
-    btn.disabled = true;
-    const fb = $("workspace-feedback");
-    setFeedback(fb, "A carregar…");
-    const r = await send({ type: "LIST_WORKSPACES" });
-    btn.disabled = false;
-    if (epoch !== state.authEpoch) return; // logout/revogação entretanto: não reabrir lista
-    const sel = $("select-workspace");
-    state.workspaceId = "";
-    clearResults();
-    if (!r.ok) {
-      sel.replaceChildren(new Option("— indisponível —", ""));
-      sel.disabled = true;
-      setFeedback(fb, lookupError(r.error), "error");
-      if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); }
-      return;
-    }
-    sel.replaceChildren(new Option("— escolha —", ""), ...(r.workspaces ?? []).map((w) => new Option(w.name || "Workspace sem nome", w.id)));
-    sel.disabled = !(r.workspaces ?? []).length;
-    setFeedback(fb, (r.workspaces ?? []).length ? "Escolha o workspace." : "Sem workspaces disponíveis para o piloto.", (r.workspaces ?? []).length ? "ok" : "error");
-  });
+  $("btn-load-workspaces").addEventListener("click", () => loadWorkspaces());
 
   $("select-workspace").addEventListener("change", (e) => {
     state.workspaceId = e.currentTarget.value;
     clearResults();
+    saveAutoSyncPrefs({ workspaceId: state.workspaceId });
+    renderAutoSync();
   });
 
   $("btn-panel-lookup").addEventListener("click", async () => {
