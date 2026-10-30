@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InstagramConnectionCard } from "@/components/integrations/InstagramConnectionCard";
 import { WhatsAppZapiConnectionCard } from "@/components/integrations/WhatsAppZapiConnectionCard";
+import { WhatsAppOfficialAddonCard } from "@/components/integrations/WhatsAppOfficialAddonCard";
 import { TwilioConnectionCard } from "@/components/integrations/TwilioConnectionCard";
 import { EmailChannelSettings } from "./EmailChannelSettings";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
@@ -81,6 +82,8 @@ export function ChannelsSettings({ searchQuery = "", matchedSections }: Channels
             <InstagramConnectionCard />
             
             <WhatsAppZapiConnectionCard />
+
+            <WhatsAppOfficialAddonCard />
           </div>
         </SettingsSection>
       )}
