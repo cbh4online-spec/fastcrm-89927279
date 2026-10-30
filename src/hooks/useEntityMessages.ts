@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { phoneOptOutVariants } from "@/lib/whatsapp/phoneVariants";
 
 export interface EntityMessage {
   id: string;
@@ -35,14 +36,34 @@ export function useEntityMessages(
         : 'company_id';
 
       // 1. Fetch conversations for this entity
-      const { data: conversations, error: convError } = await supabase
+      const select = 'id, channel, status, last_message_at, last_message_preview, last_message_direction, unread_count';
+      const { data: direct, error: convError } = await supabase
         .from('conversations')
-        .select('id, channel, status, last_message_at, last_message_preview, last_message_direction, unread_count')
+        .select(select)
         .eq(column, entityId)
         .order('last_message_at', { ascending: false });
 
       if (convError) throw convError;
-      if (!conversations?.length) return [];
+
+      // 1b. WhatsApp guardado pela extensão: também pelo número do contacto/lead.
+      let byPhone: typeof direct = [];
+      if (entityType !== 'company') {
+        const table = entityType === 'lead' ? 'leads' : 'contacts';
+        const cols = entityType === 'lead' ? 'workspace_id, phone' : 'workspace_id, phone, whatsapp_number';
+        const { data: ent } = await supabase.from(table).select(cols).eq('id', entityId).maybeSingle();
+        const e = ent as { workspace_id?: string; phone?: string | null; whatsapp_number?: string | null } | null;
+        const variants = [...new Set([...phoneOptOutVariants(e?.phone), ...phoneOptOutVariants(e?.whatsapp_number)])];
+        if (e?.workspace_id && variants.length) {
+          const { data } = await supabase.from('conversations').select(select)
+            .eq('workspace_id', e.workspace_id).eq('channel', 'whatsapp').in('external_thread_id', variants);
+          byPhone = data ?? [];
+        }
+      }
+      const seen = new Set<string>();
+      const conversations = [...(direct ?? []), ...(byPhone ?? [])]
+        .filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)))
+        .sort((a, b) => (b.last_message_at ?? '').localeCompare(a.last_message_at ?? ''));
+      if (!conversations.length) return [];
 
       // 2. Fetch last 20 messages per conversation
       const conversationIds = conversations.map(c => c.id);

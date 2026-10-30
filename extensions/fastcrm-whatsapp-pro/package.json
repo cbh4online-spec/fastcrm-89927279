@@ -1,7 +1,7 @@
 {
   "name": "fastcrm-whatsapp-pro",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.6.1",
   "type": "module",
   "description": "Ficheiro só para testes locais (node --test). O Chrome ignora-o.",
   "scripts": {

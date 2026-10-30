@@ -31,6 +31,8 @@ export function sanitizeResponse(response, type) {
     out.inserted = Number(response.inserted) || 0;
     out.skipped = Number(response.skipped) || 0;
     out.linked = s(response.linked, 10);
+    out.contactId = response.contactId ? s(response.contactId, 36) : null;
+    out.leadId = response.leadId ? s(response.leadId, 36) : null;
   }
   return out;
 }

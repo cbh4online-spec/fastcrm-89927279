@@ -236,10 +236,11 @@ async function syncMessages(req: Extract<ParsedRequest, { action: "sync_messages
     deps.findLeads(req.workspaceId, req.variants, 2),
   ]);
   const contact = contacts.find((r) => r.workspace_id === req.workspaceId);
-  const lead = contact ? undefined : leads.find((r) => r.workspace_id === req.workspaceId);
+  const lead = leads.find((r) => r.workspace_id === req.workspaceId);
+  const contactId = contact ? String(contact.id) : null;
+  const leadId = lead ? String(lead.id) : null;
   const conversationId = await deps.upsertConversation({
-    workspaceId: req.workspaceId, e164: req.e164, userId,
-    contactId: contact ? String(contact.id) : null, leadId: lead ? String(lead.id) : null,
+    workspaceId: req.workspaceId, e164: req.e164, userId, contactId, leadId,
   });
   const existing = await deps.existingMessageKeys(req.workspaceId, conversationId, req.messages.map((m) => m.key));
   const fresh = req.messages.filter((m) => !existing.has(m.key));
@@ -251,8 +252,10 @@ async function syncMessages(req: Extract<ParsedRequest, { action: "sync_messages
   }))) : 0;
   const last = [...req.messages].sort((a, b) => a.sentAt.localeCompare(b.sentAt)).at(-1)!;
   if (inserted) await deps.touchConversation(conversationId, last.sentAt, last.text.slice(0, 140));
+  console.log(JSON.stringify({ event: "sync_messages", workspace_id: req.workspaceId, received: req.messages.length,
+    inserted, has_contact: !!contactId, has_lead: !!leadId }));
   return { status: 200, body: { workspace_id: req.workspaceId, conversation_id: conversationId, inserted, skipped: req.messages.length - inserted,
-    linked: contact ? "contact" : lead ? "lead" : "none" } };
+    linked: contact ? "contact" : lead ? "lead" : "none", contact_id: contactId, lead_id: leadId } };
 }
 
 // ---------- Rate limit simples por utilizador (por isolate; melhor esforço) ----------
