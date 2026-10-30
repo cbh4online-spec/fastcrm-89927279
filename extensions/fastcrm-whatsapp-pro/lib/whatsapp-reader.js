@@ -37,7 +37,7 @@ export function readOpenChat() {
   if (!bubbles.length) bubbles = [...root.querySelectorAll("[data-pre-plain-text]")];
   const seen = new Set();
   for (const node of bubbles) {
-    const metaEl = node.hasAttribute && node.hasAttribute("data-pre-plain-text") ? node : node.querySelector?.("[data-pre-plain-text]");
+    const metaEl = node.getAttribute?.("data-pre-plain-text") ? node : node.querySelector?.("[data-pre-plain-text]");
     const bubble = node.classList && (node.classList.contains("message-in") || node.classList.contains("message-out")) ? node : node.closest?.(".message-out, .message-in");
     const idEl = node.closest?.("[data-id]") || (node.querySelector?.("[data-id]"));
     const id = idEl ? idEl.getAttribute("data-id") || "" : "";
