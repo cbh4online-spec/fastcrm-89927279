@@ -1,5 +1,5 @@
 /**
- * FastCRM WhatsApp Pro — Side Panel (v0.7.0)
+ * FastCRM WhatsApp Pro — Side Panel (v0.7.1)
  * Guardar automático: lê o texto da conversa aberta no WhatsApp Web e envia ao FastCRM. Nunca envia mensagens.
  */
 import { normalizePhone } from "./lib/phone.js";
@@ -489,7 +489,7 @@ function setupSync() {
   });
 }
 
-/* ---------- Sincronização automática (v0.7.0) ----------
+/* ---------- Sincronização automática (v0.7.1) ----------
  * Enquanto o painel está aberto e ligado, lê a conversa aberta no WhatsApp Web a cada
  * AUTO_INTERVAL_MS e envia só quando há mensagens novas. Só leitura do ecrã: não abre
  * ligações extra ao WhatsApp nem envia mensagens. Dedupe no servidor (waweb: hash).
