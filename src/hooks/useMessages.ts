@@ -7,6 +7,7 @@ import { recordMessage, checkMessageLoop } from "@/lib/inboxSafety";
 import { supabase } from "@/integrations/supabase/client";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { generateRequestId } from "@/lib/requestId";
+import { WhatsAppWebFallbackError, readFunctionError } from "@/lib/whatsapp/sendFallback";
 
 export type MessageDirection = "inbound" | "outbound";
 
@@ -171,24 +172,12 @@ export function useSendMessage() {
         });
 
         if (error) {
-          let errorMsg = "Falha ao enviar mensagem";
-          try {
-            const ctx = (error as any)?.context;
-            if (ctx?.json) {
-              const body = await ctx.json();
-              errorMsg =
-                body?.code === "CHANNEL_NOT_ACTIVE"
-                  ? `O canal ${conversation.channel} não está ativo no GoHighLevel. Use «Abrir no WhatsApp Web» para responder.`
-                  : body?.error || errorMsg;
-            } else if (data?.error) {
-              errorMsg = data.error;
-            } else {
-              errorMsg = error.message || errorMsg;
-            }
-          } catch {
-            errorMsg = data?.error || error.message || errorMsg;
+          const { message, code } = await readFunctionError(error, "Falha ao enviar mensagem");
+          const ghlPhone = (channelMeta?.phone as string) || contact?.phone || lead?.phone || "";
+          if (code === "CHANNEL_NOT_ACTIVE" && conversation.channel === "whatsapp" && ghlPhone) {
+            throw new WhatsAppWebFallbackError(ghlPhone, content, "canal inativo no GoHighLevel");
           }
-          throw new Error(errorMsg);
+          throw new Error(message);
         }
         if (data?.error) throw new Error(data.error);
 
@@ -240,21 +229,8 @@ export function useSendMessage() {
         });
 
         if (error) {
-          let errorMsg = "Falha ao enviar mensagem WhatsApp";
-          try {
-            const ctx = (error as any)?.context;
-            if (ctx?.json) {
-              const body = await ctx.json();
-              errorMsg = body?.error || errorMsg;
-            } else if (data?.error) {
-              errorMsg = data.error;
-            } else {
-              errorMsg = error.message || errorMsg;
-            }
-          } catch {
-            errorMsg = data?.error || error.message || errorMsg;
-          }
-          throw new Error(errorMsg);
+          const { message } = await readFunctionError(error, "Falha ao enviar mensagem WhatsApp");
+          throw new Error(message);
         }
         if (data?.error) {
           if (data?.fallback && !isGroup && recipientPhone) {
