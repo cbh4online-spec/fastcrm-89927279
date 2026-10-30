@@ -1,5 +1,5 @@
 /**
- * FastCRM WhatsApp Pro — Side Panel (v0.7.1)
+ * FastCRM WhatsApp Pro — Side Panel (v0.7.2)
  * Guardar automático: lê o texto da conversa aberta no WhatsApp Web e envia ao FastCRM. Nunca envia mensagens.
  */
 import { normalizePhone } from "./lib/phone.js";
@@ -489,7 +489,7 @@ function setupSync() {
   });
 }
 
-/* ---------- Sincronização automática (v0.7.1) ----------
+/* ---------- Sincronização automática (v0.7.2) ----------
  * Enquanto o painel está aberto e ligado, lê a conversa aberta no WhatsApp Web a cada
  * AUTO_INTERVAL_MS e envia só quando há mensagens novas. Só leitura do ecrã: não abre
  * ligações extra ao WhatsApp nem envia mensagens. Dedupe no servidor (waweb: hash).
@@ -541,7 +541,10 @@ async function autoTick() {
     const chat = res?.result;
     if (!chat?.hasChat) { auto.chat = ""; return setAutoStatus("À espera que abra uma conversa no WhatsApp Web."); }
     auto.chat = chat.chatName || "";
-    if (!chat.messages?.length) return setAutoStatus("Nesta conversa ainda não há mensagens de texto para guardar.");
+    if (!chat.messages?.length) {
+      const g = chat.diag || {};
+      return setAutoStatus(`Ainda não consegui ler mensagens de texto nesta conversa. Desça até ao fim da conversa e aguarde 20 segundos. Se continuar, envie-nos este código: L${g.rows ?? "?"}-M${g.meta ?? "?"}-B${g.bubbles ?? "?"}-I${g.ids ?? "?"}.`, "error");
+    }
     const phone = chat.phone || (state.phoneChat === chat.chatName ? state.phone : null);
     if (!phone) return setAutoStatus("Este contacto não mostra o número. Escreva-o no separador Contacto e carregue em Validar.", "error");
     const key = chatKey(chat, phone);
