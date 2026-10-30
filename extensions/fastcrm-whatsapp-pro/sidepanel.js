@@ -195,6 +195,12 @@ function updateLookupButton() {
   $("btn-panel-lookup").disabled = !(enabled && state.phone && state.workspaceId);
   const sync = document.getElementById("btn-sync-chat");
   if (sync) sync.disabled = !(enabled && state.workspaceId);
+  const hint = document.getElementById("sync-hint");
+  if (hint) {
+    hint.textContent = state.authStatus !== "connected" ? "Ligue primeiro ao FastCRM no separador Início."
+      : !state.workspaceId ? "Escolha o espaço de trabalho acima para ativar o botão."
+      : "Abra a conversa no WhatsApp Web antes de carregar.";
+  }
 }
 
 function renderList(el, rows, kind, extraKey) {
@@ -441,8 +447,16 @@ function setupSync() {
         if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); }
         return;
       }
-      const who = r.linked === "contact" ? "ligada ao contacto" : r.linked === "lead" ? "ligada à lead" : "sem ficha associada";
-      setFeedback(fb, `Guardadas ${r.inserted} novas (${r.skipped} já existiam), ${who}. Veja na Caixa de Entrada.`, "ok");
+      const who = r.linked === "contact" ? "ligada ao contacto" : r.linked === "lead" ? "ligada à lead" : "sem ficha associada (crie o contacto com este número)";
+      setFeedback(fb, `Guardadas ${r.inserted} novas (${r.skipped} já existiam), ${who}.`, "ok");
+      const link = document.getElementById("sync-open-crm");
+      if (link) {
+        const path = r.contact_id ? `/dashboard/crm/contacts/${encodeURIComponent(r.contact_id)}`
+          : r.lead_id ? `/dashboard/crm/leads/${encodeURIComponent(r.lead_id)}`
+          : `/dashboard/inbox?conversation=${encodeURIComponent(r.conversation_id ?? "")}`;
+        link.href = FASTCRM_ORIGIN + path;
+        link.hidden = false;
+      }
     } catch {
       setFeedback(fb, "Não foi possível guardar a conversa.", "error");
     } finally {
