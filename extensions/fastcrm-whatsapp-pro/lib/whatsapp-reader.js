@@ -12,15 +12,17 @@ export function readOpenChat() {
   const ONLY_TIME = /^\s*\d{1,2}:\d{2}(\s*[ap]\.?\s*m\.?)?\s*$/i;
   const clean = (s) => (s || "").replace(INVISIBLE, " ").replace(/\s+/g, " ").trim();
   const txt = (el) => clean(el ? (el.innerText || el.textContent || "") : "");
-  const parseDate = (s) => {
+  // Lê dd/mm/aaaa, aaaa-mm-dd ou (com AM/PM) mm/dd/aaaa.
+  const parseDate = (s, us) => {
     const dm = /(\d{1,4})[\/.-](\d{1,2})[\/.-](\d{2,4})/.exec(s);
     if (!dm) return null;
-    let [, a, b, c] = dm;
+    const [, a, b, c] = dm;
     let day = +a, month = +b, year = +c;
     if (a.length === 4) { year = +a; month = +b; day = +c; }
+    else if (us && day <= 12) { [day, month] = [month, day]; }
     if (year < 100) year += 2000;
     if (month > 12 && day <= 12) [day, month] = [month, day];
-    return { day, month, year, us: false };
+    return { day, month, year };
   };
   const build = (time, date) => {
     const t = TIME_RE.exec(time);
@@ -29,24 +31,14 @@ export function readOpenChat() {
     const ampm = t[3];
     if (ampm) { const pm = ampm.toLowerCase() === "p"; if (pm && hour < 12) hour += 12; if (!pm && hour === 12) hour = 0; }
     const now = new Date();
-    let day = now.getDate(), month = now.getMonth() + 1, year = now.getFullYear();
-    if (date) {
-      ({ day, month, year } = date);
-      if (ampm && date.day <= 12 && date.month <= 12 && date.us !== false) [day, month] = [month, day];
-    }
+    const { day, month, year } = date || { day: now.getDate(), month: now.getMonth() + 1, year: now.getFullYear() };
     const d = new Date(year, month - 1, day, hour, +t[2]);
     return isNaN(d.getTime()) ? null : d;
   };
   const parseStamp = (meta) => {
     const s = clean(meta);
-    const date = parseDate(s);
-    // formato EUA (12h) costuma ser mês/dia
-    if (date && /\b[ap]\.?\s*m\b/i.test(s) && date.day <= 12 && date.month <= 31 && date.month > 0) {
-      const t = TIME_RE.exec(s);
-      if (!t) return null;
-      return build(s, { day: date.month <= 12 ? date.month : date.day, month: date.month <= 12 ? date.day : date.month, year: date.year });
-    }
-    return build(s, date);
+    const t = TIME_RE.exec(s);
+    return build(s, parseDate(s, !!(t && t[3])));
   };
   const dirFromId = (id) => (/^true_/.test(id) ? "outbound" : /^false_/.test(id) ? "inbound" : null);
   const isQuoted = (el) => !!el.closest?.(".quoted-mention, [data-testid*='quoted'], [aria-label*='uot']");
