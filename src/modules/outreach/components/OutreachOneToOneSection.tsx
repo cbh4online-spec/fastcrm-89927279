@@ -1,3 +1,4 @@
+import { openWhatsAppChat } from "@/lib/whatsapp/openWhatsAppChat";
 /**
  * Secção "Contacto 1:1 validado" — ficha de Empresa / Contacto / Lead.
  *
@@ -205,7 +206,7 @@ export function OutreachOneToOneSection({
 
   const openWhatsApp = () => {
     if (!phone) return;
-    window.open(whatsappDeepLink(phone, body), "_blank", "noopener");
+    if (!openWhatsAppChat(phone, body)) window.open(whatsappDeepLink(phone, body), "_blank", "noopener");
     registerAssisted.mutate({ channel: "whatsapp", companyId: companyScopeId, details: { mode: "wa.me" } });
   };
 

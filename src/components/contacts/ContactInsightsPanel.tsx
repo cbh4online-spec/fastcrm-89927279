@@ -1,3 +1,4 @@
+import { openWhatsAppChat } from "@/lib/whatsapp/openWhatsAppChat";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,8 +134,7 @@ export function ContactInsightsPanel({
       setShowEmailDialog(true);
     } else if (channel === "whatsapp" && contactPhone) {
       const cleanPhone = contactPhone.replace(/[^\d+]/g, "");
-      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-      window.open(waUrl, "_blank");
+      openWhatsAppChat(cleanPhone, message);
       toast.success("A abrir WhatsApp...");
     } else {
       toast.error("Canal de contacto não disponível");

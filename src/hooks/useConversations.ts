@@ -151,8 +151,9 @@ export function useConversations(filters?: ConversationFilters) {
           )
         `)
         .eq("workspace_id", currentWorkspace.id)
-        .order("conversation_priority_score", { ascending: false, nullsFirst: true })
-        .order("last_message_at", { ascending: false, nullsFirst: false });
+        // Mais recentes primeiro: o limite de 1000 linhas não pode esconder conversas novas.
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .order("conversation_priority_score", { ascending: false, nullsFirst: true });
 
       if (filters?.status !== undefined) {
         query = query.eq("status", filters.status);
