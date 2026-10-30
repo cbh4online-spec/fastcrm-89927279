@@ -63,5 +63,5 @@
 
 ## WhatsApp Business Oficial (pedido 2026-10-30)
 - [x] Add-on 49 €/mês por número; pedido pelo dono, aprovação pelo super admin (Definições → Canais).
-- [ ] Ligar o número +351 925 990 747 só ao METODOPARE e enviar pela Meta — aguarda ligação do conector ao projeto.
+- [x] Ligar o número +351 925 990 747 só ao METODOPARE e enviar pela Meta (texto 1:1). Falta teste real de envio.
 - [ ] Receber respostas no CRM — exige mudar a estrutura da aplicação (decisão do utilizador).

@@ -25,6 +25,7 @@ import {
   type WhatsAppZapiGroup,
 } from "@/hooks/useWhatsAppZapi";
 import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
+import { useWhatsAppProviderInstance } from "@/hooks/useWhatsAppPro";
 
 interface QuickWhatsAppZapiDialogProps {
   open: boolean;
@@ -55,7 +56,9 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
   const [groupSearch, setGroupSearch] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<WhatsAppZapiGroup | null>(null);
 
-  const isConnected = connection?.status === "connected";
+  const { data: providerInstance } = useWhatsAppProviderInstance();
+  const isOfficialLine = providerInstance?.provider_name === "meta_cloud_api" && providerInstance.active;
+  const isConnected = isOfficialLine || connection?.status === "connected";
   const disconnectReason = describeZapiError(connection?.last_error ?? null, !!connection);
 
   const openWhatsAppWeb = () => {
@@ -123,6 +126,12 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
             WhatsApp — Nova Mensagem
           </DialogTitle>
         </DialogHeader>
+
+        {isOfficialLine && (
+          <p className="text-sm text-muted-foreground">
+            Envio pela linha oficial {String(providerInstance?.metadata?.display_phone_number ?? "")}. Fora das 24 h após a última mensagem do cliente, a Meta só aceita modelos aprovados.
+          </p>
+        )}
 
         {!isConnected && (
           <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">

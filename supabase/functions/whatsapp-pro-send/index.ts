@@ -6,6 +6,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { signWorkerRequest, verifyWorkerRequest } from "../_shared/sdr-engine/workerAuth.ts";
 import { consumeWorkerDispatch, parseSdrBinding } from "../_shared/sdr-engine/transportGuard.ts";
+import { isMetaInstanceAllowed, toMetaRecipient, sendMetaText } from "../_shared/whatsappMetaOfficial.ts";
+import { phoneOptOutVariants } from "../_shared/phoneVariants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,6 +69,7 @@ Deno.serve(async (req) => {
     if (!worker.ok && worker.present) return json({ error: "worker_unauthorized", reason: worker.reason }, 401);
 
     const body = JSON.parse(rawBody) as SendPayload;
+    let senderUserId: string | null = null;
 
     if (!body.workspaceId || !body.messageType || (!body.phone && !body.groupId && !body.conversationId)) {
       return json({ error: "workspace_id, messageType e (phone | groupId | conversationId) são obrigatórios" }, 400);
@@ -92,6 +95,7 @@ Deno.serve(async (req) => {
       const { data: userData, error: userErr } = await userClient.auth.getUser();
       if (userErr || !userData?.user) return json({ error: "Unauthorized" }, 401);
       const userId = userData.user.id;
+      senderUserId = userId;
 
       // Verificar membership (com bypass de super_admin)
       const { data: member } = await adminClient
@@ -132,7 +136,7 @@ Deno.serve(async (req) => {
 
     const { data: instance } = await adminClient
       .from("whatsapp_provider_instances")
-      .select("id, provider_name, default_country_code, active")
+      .select("id, workspace_id, provider_name, default_country_code, active, metadata")
       .eq("id", instanceId as string)
       .maybeSingle();
 
@@ -233,8 +237,64 @@ Deno.serve(async (req) => {
           providerMessageId: sendData?.externalMessageId ?? null,
         };
       }
+    } else if (provider === "meta_cloud_api") {
+      // Linha oficial Meta: presa a um único workspace, só texto 1:1 por agora.
+      if (!isMetaInstanceAllowed(instance as never, body.workspaceId)) {
+        return json({ error: "Linha oficial não autorizada para este workspace.", code: "META_NOT_ALLOWED" }, 403);
+      }
+      let phone = body.phone;
+      if (!phone && body.conversationId) {
+        const { data: conv } = await adminClient.from("conversations").select("external_thread_id")
+          .eq("id", body.conversationId).eq("workspace_id", body.workspaceId).maybeSingle();
+        phone = conv?.external_thread_id ?? "";
+      }
+      const to = toMetaRecipient(phone);
+      if (body.groupId || body.mediaUrl || body.buttons?.length || !body.text?.trim()) {
+        return json({ error: "A linha oficial envia, por agora, só mensagens de texto para um contacto.", code: "META_UNSUPPORTED", fallback: true }, 200);
+      }
+      if (!to) return json({ error: "Número inválido para WhatsApp.", code: "INVALID_RECIPIENT", fallback: true }, 200);
+      // Opt-out fail-closed
+      const variants = phoneOptOutVariants(to);
+      const { data: optouts, error: optErr } = await adminClient.from("whatsapp_optouts").select("id")
+        .eq("workspace_id", body.workspaceId).in("phone", variants.length ? variants : [to]).limit(1);
+      if (optErr || (optouts ?? []).length) {
+        return json({ error: "Este contacto pediu para não receber mensagens WhatsApp.", code: "OPTED_OUT" }, 200);
+      }
+      const sent = await sendMetaText(to, body.text!.slice(0, 4096));
+      if (!sent.ok) {
+        return json({ error: sent.info.message, code: sent.info.code, fallback: true }, 200);
+      }
+      result = { success: true, providerMessageId: sent.messageId };
+      // Persistir na Caixa de Entrada
+      const now = new Date().toISOString();
+      const threadKey = `+${to}`;
+      let convId = body.conversationId ?? null;
+      if (!convId) {
+        const { data: existing } = await adminClient.from("conversations").select("id")
+          .eq("workspace_id", body.workspaceId).eq("channel", "whatsapp").in("external_thread_id", [threadKey, to])
+          .order("last_message_at", { ascending: false }).limit(1);
+        convId = existing?.[0]?.id ?? null;
+        if (!convId) {
+          const { data: created } = await adminClient.from("conversations").insert({
+            workspace_id: body.workspaceId, channel: "whatsapp", external_thread_id: threadKey, status: "open",
+            unread_count: 0, last_message_at: now, last_message_preview: body.text!.slice(0, 100),
+            last_message_direction: "outbound", channel_metadata: { source: "meta_official", phone: threadKey },
+            contact_id: body.contactId ?? null,
+          }).select("id").single();
+          convId = created?.id ?? null;
+        }
+      }
+      if (convId) {
+        await adminClient.from("messages").insert({
+          workspace_id: body.workspaceId, conversation_id: convId, direction: "outbound", content: body.text,
+          sender_id: senderUserId, sent_at: now, external_message_id: sent.messageId,
+          metadata: { source: "meta_official" },
+        });
+        await adminClient.from("conversations").update({
+          last_message_at: now, last_message_preview: body.text!.slice(0, 100), last_message_direction: "outbound",
+        }).eq("id", convId).eq("workspace_id", body.workspaceId);
+      }
     } else {
-      // Adapter futuro
       result = { success: false, error: `Provider ${provider} ainda não implementado server-side` };
     }
 
