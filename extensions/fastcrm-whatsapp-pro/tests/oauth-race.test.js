@@ -120,7 +120,7 @@ test("tentativa antiga lenta não sobrepõe login novo após logout", async () =
 test("cancelamento e falha de troca deixam desligado", async () => {
   const h = harness();
   const p = h.oauth.start();
-  await until(() => h.launches[0]); h.launches[0].reject(new Error("cancel"));
+  await until(() => h.launches[0]); h.launches[0].reject(new Error("The user did not approve access."));
   assert.equal((await p).error, "autorizacao_cancelada");
   const p2 = h.oauth.start();
   await until(() => h.launches[1]); h.callback(h.launches[1]);
