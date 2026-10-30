@@ -22,3 +22,4 @@
 - FastMatch reputation is maintained by atomic review triggers with a protected rating sum/count; never aggregate RLS-filtered reviews or write reputation from the client.
 - EventMap reads only the admin-authorized `read_event_catalog` projection, falling back to the active live Kernel registry when the legacy catalogue is empty, without exposing payload schemas.
 - Score new leads against the workspace ICP only via the `lead_icp_score_queue` (statement-level insert trigger wakes `score-leads-icp`, bounded batches, global lease lock, per-workspace pause on 402/403, depth-budgeted chain, hourly backstop), so imports never fan out per row and credit failures stop all work.
+- WhatsApp conversations reach the CRM without Z-API only via the extension's explicit «Guardar conversa no CRM» (user token, crm.write, dedupe by external_message_id 'waweb:' hash), never by background reading.
