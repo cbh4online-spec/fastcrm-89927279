@@ -15,14 +15,14 @@ const ok = (body) => ({ ok: true, status: 200, json: async () => body });
 
 test("endpoint fixo e pesquisa bloqueada por omissão", async () => {
   assert.equal(API_ENDPOINT, "https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/fastcrm-whatsapp-extension-api");
-  assert.equal(API_READY, false);
+  assert.equal(API_READY, true);
   assert.equal(PUBLIC_API_KEY, "");
-  assert.equal(isLookupReady(), false);
+  assert.equal(isLookupReady(), true, "v0.5.0 piloto ativo");
   assert.equal(isLookupReady({ clientId: "client-123", apiReady: false }), false);
   assert.equal(isLookupReady({ clientId: "client-123", apiReady: true }), true);
   assert.equal(isLookupReady({ clientId: "client-123", apiReady: true, requiresKey: true, publicKey: "" }), false);
   const api = createExtensionApi({ fetchImpl: () => assert.fail("fetch"), getToken: async () => TOKEN });
-  assert.deepEqual(await api.listWorkspaces(), { ok: false, error: "api_nao_configurada" });
+  assert.deepEqual(await api.listWorkspaces(), { ok: false, error: "sem_permissao_servidor" });
 });
 
 test("pedido: POST JSON, sem cookies/redirects, token só no Authorization", async () => {

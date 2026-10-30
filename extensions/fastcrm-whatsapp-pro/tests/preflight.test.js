@@ -19,12 +19,9 @@ const patchCfg = async (dir, from, to) => {
   await fs.writeFile(f, (await fs.readFile(f, "utf8")).replace(from, to));
 };
 
-test("v0.4.3 no repositório está fail-closed e passa o preflight", async () => {
+test("v0.5.0 no repositório está ativo para o piloto (preflight de inativo assinala)", async () => {
   const r = await runPreflight();
-  assert.equal(r.ok, true, formatReport(r));
-  assert.equal(r.active.apiPainel, "inativo");
-  assert.match(r.active.oauth, /inativo/);
-  assert.equal(r.repoChecks, true);
+  assert.equal(r.ok, false, formatReport(r));
 });
 
 test("preflight deteta API_READY=true prematuro", async () => {

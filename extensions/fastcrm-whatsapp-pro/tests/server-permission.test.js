@@ -24,10 +24,10 @@ test("manifest: host obrigatório ausente, opcional exato, CSP inalterada", () =
   assert.equal(m.optional_permissions, undefined);
 });
 
-test("oauth-config: PUBLIC_CLIENT_ID vazio e API_READY=false byte-a-byte", () => {
+test("oauth-config v0.5.0: client_id piloto e API_READY=true", () => {
   const cfg = readFileSync(new URL("../lib/oauth-config.js", import.meta.url), "utf8");
-  assert.ok(cfg.includes('export const PUBLIC_CLIENT_ID = "";\n'));
-  assert.ok(cfg.includes("export const API_READY = false;\n"));
+  assert.ok(cfg.includes('export const PUBLIC_CLIENT_ID = "498e10aa-441f-4ded-9e73-81979d751acf";\n'));
+  assert.ok(cfg.includes("export const API_READY = true;\n"));
 });
 
 test("requestServerAccess: chamada síncrona; concessão/recusa/rejeição/exceção/API ausente", async () => {
@@ -62,12 +62,12 @@ function perms({ granted = true, removeResult = true, removeThrows = false } = {
 
 test("migração: remove só no estado seguro; nunca numa build configurada", async () => {
   const safe = perms();
-  assert.equal(await migrateSafeState(safe), "removed");
+  assert.equal(await migrateSafeState(safe, { clientId: "", apiReady: false }), "removed");
   assert.deepEqual(safe.calls[1], ["remove", { origins: [SERVER_ORIGIN_PATTERN] }]);
-  assert.equal(await migrateSafeState(perms({ granted: false })), "not_granted");
-  assert.equal(await migrateSafeState(perms({ removeResult: false })), "remove_failed");
-  assert.equal(await migrateSafeState(perms({ removeThrows: true })), "remove_failed");
-  assert.equal(await migrateSafeState({}), "unavailable");
+  assert.equal(await migrateSafeState(perms({ granted: false }), { clientId: "", apiReady: false }), "not_granted");
+  assert.equal(await migrateSafeState(perms({ removeResult: false }), { clientId: "", apiReady: false }), "remove_failed");
+  assert.equal(await migrateSafeState(perms({ removeThrows: true }), { clientId: "", apiReady: false }), "remove_failed");
+  assert.equal(await migrateSafeState({}, { clientId: "", apiReady: false }), "unavailable");
   for (const opts of [{ clientId: CLIENT, apiReady: false }, { clientId: "", apiReady: true }, { clientId: CLIENT, apiReady: true }]) {
     const c = perms();
     assert.equal(await migrateSafeState(c, opts), "skipped_configured");
