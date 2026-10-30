@@ -150,15 +150,18 @@ export function useSendMessage() {
       type Party = { email: string | null; ghl_contact_id: string | null; phone: string | null };
       const lead = pickOne<Party>(conversation.lead);
       const contact = pickOne<Party>((conversation as { contact?: unknown }).contact);
-      const isGHLConversation = Boolean(
-        channelMeta?.source === "ghl" || 
-        channelMeta?.source === "ghl_sync" ||
-        channelMeta?.ghl_contact_id || 
-        lead?.ghl_contact_id ||
-        contact?.ghl_contact_id ||
-        // Conversas sincronizadas do GHL têm o thread com prefixo "ghl_"
-        (typeof conversation.external_thread_id === "string" && conversation.external_thread_id.startsWith("ghl_"))
+      const threadIsGHL =
+        typeof conversation.external_thread_id === "string" && conversation.external_thread_id.startsWith("ghl_");
+      const metaIsGHL = Boolean(
+        channelMeta?.source === "ghl" || channelMeta?.source === "ghl_sync" || channelMeta?.ghl_contact_id
       );
+      // WhatsApp: só é GHL se a própria conversa veio do GHL. Conversas guardadas pela
+      // extensão (thread = número) não podem ser desviadas para o GHL só porque o
+      // contacto tem ghl_contact_id — isso causava CHANNEL_NOT_ACTIVE (403).
+      const isGHLConversation =
+        conversation.channel === "whatsapp"
+          ? metaIsGHL || threadIsGHL
+          : Boolean(metaIsGHL || threadIsGHL || lead?.ghl_contact_id || contact?.ghl_contact_id);
 
 
       // For GHL-linked conversations (SMS, WhatsApp, Instagram, Messenger, Facebook, or "other" with GHL metadata), use the GHL send function
@@ -173,7 +176,10 @@ export function useSendMessage() {
             const ctx = (error as any)?.context;
             if (ctx?.json) {
               const body = await ctx.json();
-              errorMsg = body?.error || errorMsg;
+              errorMsg =
+                body?.code === "CHANNEL_NOT_ACTIVE"
+                  ? `O canal ${conversation.channel} não está ativo no GoHighLevel. Use «Abrir no WhatsApp Web» para responder.`
+                  : body?.error || errorMsg;
             } else if (data?.error) {
               errorMsg = data.error;
             } else {
