@@ -40,3 +40,24 @@ test("formato 12h com PM converte para 18h", () => {
   assert.equal(d.getHours(), 18);
   assert.equal(d.getDate(), 30);
 });
+
+test("aceita data antes da hora e balões message-in/out", () => {
+  const mk = (out, meta, text, id) => {
+    const metaEl = { getAttribute: () => meta, hasAttribute: () => true, querySelector: () => ({ innerText: text }) };
+    return {
+      classList: { contains: (c) => c === (out ? "message-out" : "message-in") },
+      hasAttribute: () => false,
+      querySelector: (s) => (s === "[data-pre-plain-text]" ? metaEl : s === "[data-id]" ? null : null),
+      closest: (s) => (s === "[data-id]" ? { getAttribute: () => id } : null),
+    };
+  };
+  const main = { querySelectorAll: (s) => (s.includes("message-") ? [mk(false, "[30/10/2026, 18:18] Daniel: ", "Então?", "false_351912345678@c.us_A"), mk(true, "[30/10/2026, 18:25] Eu: ", "e sim tenho", "true_351912345678@c.us_B")] : []) };
+  globalThis.document = { querySelector: (s) => (s === "#main" ? main : null) };
+  try {
+    const r = readOpenChat();
+    assert.equal(r.messages.length, 2);
+    assert.equal(r.messages[1].direction, "outbound");
+    assert.equal(new Date(r.messages[0].sent_at).getHours(), 18);
+    assert.equal(r.phone, "+351912345678");
+  } finally { delete globalThis.document; }
+});
