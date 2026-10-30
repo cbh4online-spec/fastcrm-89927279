@@ -1,7 +1,6 @@
 /**
  * FastCRM WhatsApp Pro — Side Panel (v0.7.0)
- * Uso manual: atalhos, validação local de números, cópia explícita.
- * Não faz pedidos de rede nem lê dados de páginas.
+ * Guardar automático: lê o texto da conversa aberta no WhatsApp Web e envia ao FastCRM. Nunca envia mensagens.
  */
 import { normalizePhone } from "./lib/phone.js";
 import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl, detailUrl } from "./lib/urls.js";
@@ -231,7 +230,13 @@ function renderList(el, rows, kind, extraKey) {
   }
 }
 
-async function loadWorkspaces() {
+let wsLoading = null;
+function loadWorkspaces() {
+  if (!wsLoading) wsLoading = loadWorkspacesNow().finally(() => { wsLoading = null; });
+  return wsLoading;
+}
+
+async function loadWorkspacesNow() {
   const btn = $("btn-load-workspaces");
   const epoch = state.authEpoch; // sessão de autenticação no momento do pedido
   btn.disabled = true;
@@ -313,10 +318,7 @@ function renderAuth(status) {
   $("btn-auth-login").hidden = status !== "disconnected";
   $("btn-auth-logout").hidden = status !== "connected";
   updateLookupButton();
-  if (status === "connected" && !state.workspaceId && !state.loadingWs) {
-    state.loadingWs = true;
-    loadWorkspaces().finally(() => { state.loadingWs = false; });
-  }
+  if (status === "connected" && !state.workspaceId) loadWorkspaces();
   renderAutoSync();
 }
 
@@ -497,10 +499,10 @@ const WA_ORIGIN = "https://web.whatsapp.com/*";
 const auto = { enabled: false, permitted: false, running: false, lastKey: new Map(), timer: 0, status: "", kind: "", chat: "", total: 0, linkPath: "" };
 
 async function autoSyncPrefs() {
-  try { return (await chrome.storage.local.get("autoSync")).autoSync ?? {}; } catch { return {}; }
+  try { return (await chrome.storage.session.get("autoSync")).autoSync ?? {}; } catch { return {}; }
 }
 async function saveAutoSyncPrefs(patch) {
-  try { const cur = await autoSyncPrefs(); await chrome.storage.local.set({ autoSync: { ...cur, ...patch } }); } catch { /* sem storage */ }
+  try { const cur = await autoSyncPrefs(); await chrome.storage.session.set({ autoSync: { ...cur, ...patch } }); } catch { /* sem storage */ }
 }
 
 function setAutoStatus(text, kind = "") { auto.status = text; auto.kind = kind; renderAutoSync(); }
@@ -567,7 +569,7 @@ async function autoTick() {
 
 async function setupAutoSync() {
   const prefs = await autoSyncPrefs();
-  auto.enabled = prefs.enabled === true;
+  auto.enabled = prefs.enabled !== false; // ligado por omissão quando há autorização do WhatsApp Web
   try { auto.permitted = await chrome.permissions.contains({ origins: [WA_ORIGIN] }); } catch { auto.permitted = false; }
   $("btn-auto-enable").addEventListener("click", async () => {
     let ok = false;
