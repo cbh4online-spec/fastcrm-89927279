@@ -15,7 +15,7 @@ const ok = (body) => ({ ok: true, status: 200, json: async () => body });
 
 test("endpoint fixo e pesquisa bloqueada por omissão", async () => {
   assert.equal(API_ENDPOINT, "https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/fastcrm-whatsapp-extension-api");
-  assert.equal(API_READY, false);
+  assert.equal(API_READY, true);
   assert.equal(PUBLIC_API_KEY, "");
   assert.equal(isLookupReady(), false);
   assert.equal(isLookupReady({ clientId: "client-123", apiReady: false }), false);
