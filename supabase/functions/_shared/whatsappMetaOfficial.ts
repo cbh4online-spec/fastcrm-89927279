@@ -2,6 +2,9 @@
 // Só é usado quando a instância activa do workspace é `meta_cloud_api`;
 // a ligação Meta pertence a um único workspace (metadata.allowed_workspace_id).
 
+// deno-lint-ignore no-explicit-any
+const env = (k: string): string | undefined => (globalThis as any).Deno?.env?.get(k);
+
 export const META_GATEWAY_URL = "https://connector-gateway.lovable.dev/whatsapp";
 
 export type MetaInstance = {
@@ -52,8 +55,8 @@ export function describeMetaError(status: number, bodyText: string): MetaErrorIn
 export async function sendMetaText(to: string, text: string): Promise<
   { ok: true; messageId: string | null } | { ok: false; status: number; info: MetaErrorInfo; raw: string }
 > {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  const waKey = Deno.env.get("WHATSAPP_API_KEY");
+  const lovableKey = env("LOVABLE_API_KEY");
+  const waKey = env("WHATSAPP_API_KEY");
   if (!lovableKey || !waKey) {
     return { ok: false, status: 500, info: { code: "NOT_CONFIGURED", message: "Linha oficial WhatsApp não configurada no servidor." }, raw: "" };
   }
