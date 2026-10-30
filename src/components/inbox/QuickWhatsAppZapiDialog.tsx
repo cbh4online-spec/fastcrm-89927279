@@ -260,6 +260,15 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
           <Button variant="outline" onClick={() => handleClose(false)}>
             Cancelar
           </Button>
+          {!isConnected && tab === "dm" && (
+            <Button
+              variant="outline"
+              onClick={openWhatsAppWeb}
+              disabled={phone.trim().length === 0}
+            >
+              Abrir no WhatsApp Web
+            </Button>
+          )}
           <Button
             onClick={handleSend}
             disabled={
