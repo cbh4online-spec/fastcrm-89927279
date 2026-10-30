@@ -256,7 +256,12 @@ export function useSendMessage() {
           }
           throw new Error(errorMsg);
         }
-        if (data?.error) throw new Error(data.error);
+        if (data?.error) {
+          if (data?.fallback && !isGroup && recipientPhone) {
+            throw new WhatsAppWebFallbackError(String(recipientPhone), content, String(data.error));
+          }
+          throw new Error(data.error);
+        }
 
         // whatsapp-pro-send já persistiu a mensagem outbound e atualizou preview.
         return {
