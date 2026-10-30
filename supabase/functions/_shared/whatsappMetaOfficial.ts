@@ -34,7 +34,7 @@ export type MetaErrorInfo = { code: string; message: string };
 export function describeMetaError(status: number, bodyText: string): MetaErrorInfo {
   let metaCode: number | undefined;
   try { metaCode = JSON.parse(bodyText)?.error?.code; } catch { /* texto simples */ }
-  if (metaCode === 131047 || metaCode === 131026 && false) {
+  if (metaCode === 131047) {
     return { code: "OUTSIDE_24H", message: "Passaram mais de 24 h desde a última mensagem deste cliente. A Meta só aceita modelos aprovados — use «Abrir no WhatsApp Web»." };
   }
   if (metaCode === 131026 || metaCode === 100) {
