@@ -1,10 +1,14 @@
 /**
  * FastCRM WhatsApp Pro — API de leitura da extensão (núcleo testável, sem I/O direto).
- * Apenas duas ações: "workspaces" e "lookup". Nunca envia mensagens nem escreve dados.
+ * Ações: "workspaces", "lookup" e "sync_messages" (grava no CRM mensagens lidas pelo utilizador no WhatsApp Web).
+ * Nunca envia mensagens.
  */
 import { roleHasCapability, type WorkspaceRole } from "../_shared/capabilities.ts";
 
 export const MAX_BODY_BYTES = 1024;
+export const MAX_SYNC_BODY_BYTES = 256 * 1024;
+export const MAX_SYNC_MESSAGES = 200;
+export const MAX_MESSAGE_CHARS = 4000;
 export const RESULT_LIMIT = 10;
 export const WORKSPACE_LIMIT = 50;
 export const REQUEST_TIMEOUT_MS = 10_000;
@@ -76,14 +80,55 @@ export function phoneVariants(raw: unknown): string[] {
 export type ParsedRequest =
   | { ok: true; action: "workspaces" }
   | { ok: true; action: "lookup"; workspaceId: string; variants: string[] }
+  | { ok: true; action: "sync_messages"; workspaceId: string; variants: string[]; e164: string; chatName: string | null; messages: SyncMessage[] }
   | { ok: false; status: number; error: string };
 
+export interface SyncMessage { direction: "inbound" | "outbound"; text: string; sentAt: string; key: string }
+
+/** Chave estável anti-duplicados: direção + instante + texto (FNV-1a 64 em hex). */
+export function messageKey(direction: string, sentAt: string, text: string): string {
+  let h = 0xcbf29ce484222325n;
+  for (const ch of new TextEncoder().encode(`${direction}|${sentAt}|${text}`)) {
+    h ^= BigInt(ch);
+    h = (h * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return `waweb:${h.toString(16).padStart(16, "0")}`;
+}
+
+function parseSync(b: Record<string, unknown>): ParsedRequest {
+  if (Object.keys(b).some((k) => !["action", "workspace_id", "phone", "chat_name", "messages"].includes(k))) return { ok: false, status: 422, error: "unexpected_fields" };
+  if (typeof b.workspace_id !== "string" || !UUID_RE.test(b.workspace_id)) return { ok: false, status: 422, error: "invalid_workspace" };
+  const variants = phoneVariants(b.phone);
+  if (!variants.length) return { ok: false, status: 422, error: "invalid_phone" };
+  if (!Array.isArray(b.messages) || !b.messages.length || b.messages.length > MAX_SYNC_MESSAGES) return { ok: false, status: 422, error: "invalid_messages" };
+  const messages: SyncMessage[] = [];
+  const seen = new Set<string>();
+  for (const m of b.messages) {
+    if (!m || typeof m !== "object") return { ok: false, status: 422, error: "invalid_messages" };
+    const r = m as Record<string, unknown>;
+    const direction = r.direction === "inbound" || r.direction === "outbound" ? r.direction : null;
+    const text = typeof r.text === "string" ? r.text.trim().slice(0, MAX_MESSAGE_CHARS) : "";
+    const t = typeof r.sent_at === "string" ? Date.parse(r.sent_at) : NaN;
+    if (!direction || !text || !Number.isFinite(t)) return { ok: false, status: 422, error: "invalid_messages" };
+    const sentAt = new Date(t).toISOString();
+    const key = messageKey(direction, sentAt, text);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    messages.push({ direction, text, sentAt, key });
+  }
+  const chatName = typeof b.chat_name === "string" && b.chat_name.trim() ? b.chat_name.trim().slice(0, 120) : null;
+  return { ok: true, action: "sync_messages", workspaceId: b.workspace_id.toLowerCase(), variants, e164: variants[0], chatName, messages };
+}
+
 export function parseBody(text: string): ParsedRequest {
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return { ok: false, status: 413, error: "payload_too_large" };
+  const size = new TextEncoder().encode(text).length;
+  if (size > MAX_SYNC_BODY_BYTES) return { ok: false, status: 413, error: "payload_too_large" };
   let body: unknown;
   try { body = JSON.parse(text); } catch { return { ok: false, status: 422, error: "invalid_json" }; }
   if (!body || typeof body !== "object" || Array.isArray(body)) return { ok: false, status: 422, error: "invalid_body" };
   const b = body as Record<string, unknown>;
+  if (b.action === "sync_messages") return parseSync(b);
+  if (size > MAX_BODY_BYTES) return { ok: false, status: 413, error: "payload_too_large" };
   const keys = Object.keys(b);
   if (b.action === "workspaces") {
     return keys.length === 1 ? { ok: true, action: "workspaces" } : { ok: false, status: 422, error: "unexpected_fields" };
@@ -115,6 +160,11 @@ export interface Deps {
   findContacts(workspaceId: string, variants: string[], limit: number): Promise<Record<string, unknown>[]>;
   findLeads(workspaceId: string, variants: string[], limit: number): Promise<Record<string, unknown>[]>;
   now(): number;
+  /** Encontra ou cria a conversa WhatsApp do número (external_thread_id = e164). */
+  upsertConversation(input: { workspaceId: string; e164: string; contactId: string | null; leadId: string | null; userId: string }): Promise<string>;
+  existingMessageKeys(workspaceId: string, conversationId: string, keys: string[]): Promise<Set<string>>;
+  insertMessages(rows: Record<string, unknown>[]): Promise<number>;
+  touchConversation(conversationId: string, lastAt: string, preview: string): Promise<void>;
 }
 
 export interface Result { status: number; body: Record<string, unknown> }
@@ -134,6 +184,7 @@ export async function authenticate(token: string, cfg: ApiConfig, deps: Deps): P
 }
 
 const canRead = (role: string) => roleHasCapability(role as WorkspaceRole, "crm.read");
+const canWrite = (role: string) => roleHasCapability(role as WorkspaceRole, "crm.write");
 
 export async function handleAction(req: Exclude<ParsedRequest, { ok: false }>, userId: string, cfg: ApiConfig, deps: Deps): Promise<Result> {
   if (req.action === "workspaces") {
@@ -148,6 +199,7 @@ export async function handleAction(req: Exclude<ParsedRequest, { ok: false }>, u
   // lookup — membership explícita obrigatória (sem bypass de super admin).
   const member = await deps.getMembership(userId, req.workspaceId);
   if (!member || member.workspace_id !== req.workspaceId || !canRead(member.role)) return fail(403, "forbidden");
+  if (req.action === "sync_messages" && !canWrite(member.role)) return fail(403, "forbidden");
 
   const instance = await deps.getInstance(req.workspaceId);
   if (instance === "error") return fail(503, "unavailable");
@@ -155,6 +207,8 @@ export async function handleAction(req: Exclude<ParsedRequest, { ok: false }>, u
     if (instance.status === "suspended" || instance.status === "inactive") return fail(403, "workspace_suspended");
     if (instance.supabase_url.replace(/\/+$/, "") !== cfg.supabaseUrl.replace(/\/+$/, "")) return fail(409, "workspace_instance_unsupported");
   }
+
+  if (req.action === "sync_messages") return syncMessages(req, userId, deps);
 
   const [contacts, leads] = await Promise.all([
     deps.findContacts(req.workspaceId, req.variants, RESULT_LIMIT),
@@ -174,6 +228,31 @@ export async function handleAction(req: Exclude<ParsedRequest, { ok: false }>, u
       exhaustive: false,
     },
   };
+}
+
+async function syncMessages(req: Extract<ParsedRequest, { action: "sync_messages" }>, userId: string, deps: Deps): Promise<Result> {
+  const [contacts, leads] = await Promise.all([
+    deps.findContacts(req.workspaceId, req.variants, 2),
+    deps.findLeads(req.workspaceId, req.variants, 2),
+  ]);
+  const contact = contacts.find((r) => r.workspace_id === req.workspaceId);
+  const lead = contact ? undefined : leads.find((r) => r.workspace_id === req.workspaceId);
+  const conversationId = await deps.upsertConversation({
+    workspaceId: req.workspaceId, e164: req.e164, userId,
+    contactId: contact ? String(contact.id) : null, leadId: lead ? String(lead.id) : null,
+  });
+  const existing = await deps.existingMessageKeys(req.workspaceId, conversationId, req.messages.map((m) => m.key));
+  const fresh = req.messages.filter((m) => !existing.has(m.key));
+  const inserted = fresh.length ? await deps.insertMessages(fresh.map((m) => ({
+    workspace_id: req.workspaceId, conversation_id: conversationId, direction: m.direction, content: m.text,
+    sent_at: m.sentAt, external_message_id: m.key, message_type: "text",
+    sender_id: m.direction === "outbound" ? userId : null,
+    metadata: { source: "whatsapp_web_extension", synced_by: userId, chat_name: req.chatName },
+  }))) : 0;
+  const last = [...req.messages].sort((a, b) => a.sentAt.localeCompare(b.sentAt)).at(-1)!;
+  if (inserted) await deps.touchConversation(conversationId, last.sentAt, last.text.slice(0, 140));
+  return { status: 200, body: { workspace_id: req.workspaceId, conversation_id: conversationId, inserted, skipped: req.messages.length - inserted,
+    linked: contact ? "contact" : lead ? "lead" : "none" } };
 }
 
 // ---------- Rate limit simples por utilizador (por isolate; melhor esforço) ----------
