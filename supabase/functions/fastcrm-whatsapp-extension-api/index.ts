@@ -67,7 +67,12 @@ function buildDeps(url: string, anonKey: string, token: string): Deps {
         .eq("workspace_id", workspaceId).eq("channel", "whatsapp").eq("external_thread_id", e164)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (error) throw new Error("db");
-      if (found?.id) return found.id as string;
+      if (found?.id) {
+        // Completa ligações em falta (nunca substitui uma ligação existente).
+        if (contactId) await db.from("conversations").update({ contact_id: contactId }).eq("id", found.id).is("contact_id", null);
+        if (leadId) await db.from("conversations").update({ lead_id: leadId }).eq("id", found.id).is("lead_id", null);
+        return found.id as string;
+      }
       const { data, error: ie } = await db.from("conversations").insert({
         workspace_id: workspaceId, channel: "whatsapp", external_thread_id: e164, status: "open",
         contact_id: contactId, lead_id: leadId, assigned_to: userId,
