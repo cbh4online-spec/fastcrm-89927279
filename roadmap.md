@@ -55,3 +55,7 @@
 - [x] Reunir acessos reais numa secção própria entre Clientes e Vendas, sem duplicações ou alterações funcionais.
 - [x] Garantir menu lateral no Extrator Instagram e abertura/destaque da secção ativa, incluindo móvel/recolhido.
 - [x] Executar testes de navegação e verificar a prévia, sem publicação nem alterações ao servidor. Oito testes aprovados; navegação desktop, móvel e recolhida confirmada; build automático OK. Suite alargada tem duas falhas anteriores (billing e /admin); observado erro de locale alheio à navegação.
+
+## WhatsApp — concluir integração (2026-10-30)
+- [x] Fase 1 diagnóstico: Z-API desligado em PHARLISS («Client-Token not allowed») e myMYA Hub (subscrição da instância expirada); 0 mensagens em 30 dias exceto 9 recebidas a 01/10.
+- [ ] Fase 2–4 (ficha, extensão piloto, envios automáticos) — bloqueado: religar Z-API pelo utilizador + escolher workspaces piloto.
