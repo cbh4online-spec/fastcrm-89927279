@@ -1,7 +1,6 @@
 /**
- * FastCRM WhatsApp Pro — Side Panel (v0.4.3)
- * Uso manual: atalhos, validação local de números, cópia explícita.
- * Não faz pedidos de rede nem lê dados de páginas.
+ * FastCRM WhatsApp Pro — Side Panel (v0.7.0)
+ * Guardar automático: lê o texto da conversa aberta no WhatsApp Web e envia ao FastCRM. Nunca envia mensagens.
  */
 import { normalizePhone } from "./lib/phone.js";
 import { FASTCRM_ORIGIN, WHATSAPP_WEB_ORIGIN, fastcrmUrl, isAllowedUrl, detailUrl } from "./lib/urls.js";
@@ -97,6 +96,8 @@ function setupPhone() {
     }
     current = r.e164;
     state.phone = r.e164;
+    state.phoneChat = auto.chat || null; // número escrito pertence à conversa aberta
+    auto.lastKey.clear();
     clearResults();
     $("phone-normalized").textContent = r.e164;
     actions.hidden = false;
@@ -229,34 +230,55 @@ function renderList(el, rows, kind, extraKey) {
   }
 }
 
+let wsLoading = null;
+function loadWorkspaces() {
+  if (!wsLoading) wsLoading = loadWorkspacesNow().finally(() => { wsLoading = null; });
+  return wsLoading;
+}
+
+async function loadWorkspacesNow() {
+  const btn = $("btn-load-workspaces");
+  const epoch = state.authEpoch; // sessão de autenticação no momento do pedido
+  btn.disabled = true;
+  const fb = $("workspace-feedback");
+  setFeedback(fb, "A carregar…");
+  const r = await send({ type: "LIST_WORKSPACES" });
+  btn.disabled = false;
+  if (epoch !== state.authEpoch) return; // logout/revogação entretanto: não reabrir lista
+  const sel = $("select-workspace");
+  state.workspaceId = "";
+  clearResults();
+  if (!r.ok) {
+    sel.replaceChildren(new Option("— indisponível —", ""));
+    sel.disabled = true;
+    setFeedback(fb, lookupError(r.error), "error");
+    if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); }
+    return;
+  }
+  const list = r.workspaces ?? [];
+  sel.replaceChildren(new Option("— escolha —", ""), ...list.map((w) => new Option(w.name || "Workspace sem nome", w.id)));
+  sel.disabled = !list.length;
+  const saved = await autoSyncPrefs();
+  const pick = list.find((w) => w.id === saved.workspaceId) ?? (list.length === 1 ? list[0] : null);
+  if (pick) {
+    sel.value = pick.id;
+    state.workspaceId = pick.id;
+    updateLookupButton();
+    setFeedback(fb, "", "");
+  } else {
+    setFeedback(fb, list.length ? "Escolha o workspace." : "Sem workspaces disponíveis para o piloto.", list.length ? "ok" : "error");
+  }
+  renderAutoSync();
+}
+
 function setupPanelLookup() {
-  $("btn-load-workspaces").addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    const epoch = state.authEpoch; // sessão de autenticação no momento do clique
-    btn.disabled = true;
-    const fb = $("workspace-feedback");
-    setFeedback(fb, "A carregar…");
-    const r = await send({ type: "LIST_WORKSPACES" });
-    btn.disabled = false;
-    if (epoch !== state.authEpoch) return; // logout/revogação entretanto: não reabrir lista
-    const sel = $("select-workspace");
-    state.workspaceId = "";
-    clearResults();
-    if (!r.ok) {
-      sel.replaceChildren(new Option("— indisponível —", ""));
-      sel.disabled = true;
-      setFeedback(fb, lookupError(r.error), "error");
-      if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); }
-      return;
-    }
-    sel.replaceChildren(new Option("— escolha —", ""), ...(r.workspaces ?? []).map((w) => new Option(w.name || "Workspace sem nome", w.id)));
-    sel.disabled = !(r.workspaces ?? []).length;
-    setFeedback(fb, (r.workspaces ?? []).length ? "Escolha o workspace." : "Sem workspaces disponíveis para o piloto.", (r.workspaces ?? []).length ? "ok" : "error");
-  });
+  $("btn-load-workspaces").addEventListener("click", () => loadWorkspaces());
 
   $("select-workspace").addEventListener("change", (e) => {
     state.workspaceId = e.currentTarget.value;
     clearResults();
+    saveAutoSyncPrefs({ workspaceId: state.workspaceId });
+    renderAutoSync();
   });
 
   $("btn-panel-lookup").addEventListener("click", async () => {
@@ -296,6 +318,8 @@ function renderAuth(status) {
   $("btn-auth-login").hidden = status !== "disconnected";
   $("btn-auth-logout").hidden = status !== "connected";
   updateLookupButton();
+  if (status === "connected" && !state.workspaceId) loadWorkspaces();
+  renderAutoSync();
 }
 
 /**
@@ -465,7 +489,111 @@ function setupSync() {
   });
 }
 
+/* ---------- Sincronização automática (v0.7.0) ----------
+ * Enquanto o painel está aberto e ligado, lê a conversa aberta no WhatsApp Web a cada
+ * AUTO_INTERVAL_MS e envia só quando há mensagens novas. Só leitura do ecrã: não abre
+ * ligações extra ao WhatsApp nem envia mensagens. Dedupe no servidor (waweb: hash).
+ */
+const AUTO_INTERVAL_MS = 20000;
+const WA_ORIGIN = "https://web.whatsapp.com/*";
+const auto = { enabled: false, permitted: false, running: false, lastKey: new Map(), timer: 0, status: "", kind: "", chat: "", total: 0, linkPath: "" };
+
+/** Preferências só em memória (regra do painel: sem persistência). */
+const prefsMem = {};
+async function autoSyncPrefs() { return prefsMem; }
+async function saveAutoSyncPrefs(patch) { Object.assign(prefsMem, patch); }
+
+function setAutoStatus(text, kind = "") { auto.status = text; auto.kind = kind; renderAutoSync(); }
+
+function renderAutoSync() {
+  const box = document.getElementById("auto-sync");
+  if (!box) return;
+  const connected = state.authStatus === "connected";
+  const on = connected && auto.enabled && auto.permitted && !!state.workspaceId;
+  $("auto-dot").className = "dot " + (on ? "dot-ok" : "dot-unknown");
+  $("auto-title").textContent = !connected ? "Ligue ao FastCRM para guardar conversas"
+    : !state.workspaceId ? "Escolha o workspace para começar"
+    : on ? "Guardar automático ligado" : "Guardar automático desligado";
+  $("btn-auto-enable").hidden = !connected || !state.workspaceId || on;
+  $("btn-auto-disable").hidden = !on;
+  $("auto-chat").textContent = on && auto.chat ? auto.chat : "";
+  $("auto-chat").hidden = !(on && auto.chat);
+  setFeedback($("auto-feedback"), on ? auto.status : "", on ? auto.kind : "");
+  const link = $("auto-open-crm");
+  link.hidden = !(on && auto.linkPath);
+  if (auto.linkPath) link.href = FASTCRM_ORIGIN + auto.linkPath;
+}
+
+function chatKey(chat, phone) {
+  const last = chat.messages[chat.messages.length - 1];
+  return `${phone}|${chat.messages.length}|${last.sent_at}|${last.direction}|${last.text.slice(0, 80)}`;
+}
+
+async function autoTick() {
+  if (auto.running) return;
+  if (!(state.authStatus === "connected" && auto.enabled && auto.permitted && state.workspaceId)) return;
+  auto.running = true;
+  try {
+    const tabs = await chrome.tabs.query({ url: WA_ORIGIN });
+    const tab = tabs.find((t) => t.active) ?? tabs[0];
+    if (!tab?.id) return setAutoStatus("Abra o WhatsApp Web para começar a guardar.");
+    const [res] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: readOpenChat });
+    const chat = res?.result;
+    if (!chat?.hasChat) { auto.chat = ""; return setAutoStatus("À espera que abra uma conversa no WhatsApp Web."); }
+    auto.chat = chat.chatName || "";
+    if (!chat.messages?.length) return setAutoStatus("Nesta conversa ainda não há mensagens de texto para guardar.");
+    const phone = chat.phone || (state.phoneChat === chat.chatName ? state.phone : null);
+    if (!phone) return setAutoStatus("Este contacto não mostra o número. Escreva-o no separador Contacto e carregue em Validar.", "error");
+    const key = chatKey(chat, phone);
+    if (auto.lastKey.get(phone) === key) return; // nada de novo
+    const r = await send({ type: "SYNC_MESSAGES", workspaceId: state.workspaceId, phone, chatName: chat.chatName, messages: chat.messages });
+    if (!r.ok) {
+      if (r.error === "sessao_expirada") { state.authStatus = "disconnected"; renderAuth("disconnected"); return; }
+      return setAutoStatus(SYNC_ERRORS[r.error] ?? lookupError(r.error), "error");
+    }
+    auto.lastKey.set(phone, key);
+    auto.linkPath = r.contactId ? `/dashboard/contacts/${encodeURIComponent(r.contactId)}`
+      : r.leadId ? `/dashboard/leads/${encodeURIComponent(r.leadId)}`
+      : `/dashboard/inbox?conversation=${encodeURIComponent(r.conversationId ?? "")}`;
+    const hora = new Date().toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+    const where = r.linked === "contact" ? "na ficha do contacto" : r.linked === "lead" ? "na ficha da lead" : "na Caixa de Entrada (sem ficha com este número)";
+    setAutoStatus(r.inserted ? `${r.inserted} mensagens novas guardadas ${where} às ${hora}.` : `Conversa em dia ${where} (${hora}).`, "ok");
+  } catch {
+    setAutoStatus("Não foi possível ler o WhatsApp Web. Recarregue a página do WhatsApp.", "error");
+  } finally {
+    auto.running = false;
+  }
+}
+
+async function setupAutoSync() {
+  const prefs = await autoSyncPrefs();
+  auto.enabled = prefs.enabled !== false; // ligado por omissão quando há autorização do WhatsApp Web
+  try { auto.permitted = await chrome.permissions.contains({ origins: [WA_ORIGIN] }); } catch { auto.permitted = false; }
+  $("btn-auto-enable").addEventListener("click", async () => {
+    let ok = false;
+    try { ok = await chrome.permissions.request({ origins: [WA_ORIGIN] }); } catch { ok = false; }
+    auto.permitted = ok;
+    if (!ok) { renderAutoSync(); return setFeedback($("auto-feedback-off"), "Sem autorização para ler o WhatsApp Web.", "error"); }
+    auto.enabled = true;
+    await saveAutoSyncPrefs({ enabled: true });
+    setAutoStatus("A verificar a conversa aberta…");
+    autoTick();
+  });
+  $("btn-auto-disable").addEventListener("click", async () => {
+    auto.enabled = false;
+    await saveAutoSyncPrefs({ enabled: false });
+    renderAutoSync();
+  });
+  // Reage logo quando muda de conversa/aba, além do intervalo.
+  try { chrome.tabs.onActivated.addListener(() => setTimeout(autoTick, 800)); } catch { /* sem API */ }
+  try { chrome.tabs.onUpdated.addListener((_id, info, tab) => { if (info.status === "complete" && tab.url?.startsWith("https://web.whatsapp.com")) setTimeout(autoTick, 2000); }); } catch { /* sem API */ }
+  auto.timer = setInterval(autoTick, AUTO_INTERVAL_MS);
+  renderAutoSync();
+  autoTick();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  setupAutoSync();
   setupSync();
   setupRedirectUri();
   $("config-origin").textContent = FASTCRM_ORIGIN;
