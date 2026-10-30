@@ -130,7 +130,7 @@ function setupPhone() {
 }
 
 const AUTH_TEXT = {
-  config_pending: ["Configuração OAuth pendente", "O cliente OAuth público ainda não foi registado. Use o fluxo manual.", "dot-off"],
+  config_pending: ["Versão desatualizada", "Esta instalação não está ligada ao FastCRM. Remova-a e instale a versão 0.5.0 ou superior.", "dot-off"],
   disconnected: ["Desligado", "Ligue-se para preparar a futura pesquisa no painel.", "dot-off"],
   connected: ["Ligado ao FastCRM", "Sessão válida só até fechar o browser.", "dot-on"],
 };
