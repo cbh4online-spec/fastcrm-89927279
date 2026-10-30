@@ -36,7 +36,7 @@ export async function validatePackage(root) {
   return manifest;
 }
 
-export async function packageExtension({ sourceDir = source, distDir = path.join(source, 'dist/fastcrm-whatsapp-pro'), zipPath = path.join(source, 'dist/fastcrm-whatsapp-pro-v0.5.1.zip'), distOnly = false } = {}) {
+export async function packageExtension({ sourceDir = source, distDir = path.join(source, 'dist/fastcrm-whatsapp-pro'), zipPath = path.join(source, 'dist/fastcrm-whatsapp-pro-v0.6.0.zip'), distOnly = false } = {}) {
   await validatePackage(sourceDir);
   const files = [...fixedFiles];
   for (const name of (await fs.readdir(path.join(sourceDir, 'icons'))).sort()) {
