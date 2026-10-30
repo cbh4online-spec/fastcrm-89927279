@@ -340,8 +340,7 @@ export function ContactMessagesSection({
       case 'whatsapp':
         if (entityPhone) {
           const cleanPhone = entityPhone.replace(/\D/g, '');
-          void encodedContent;
-          if (!openWhatsAppChat(cleanPhone, content)) toast.error("Número inválido");
+          if (!openWhatsAppChat(cleanPhone, draft.content)) toast.error("Número inválido");
         } else {
           toast.error("Telefone não disponível");
         }
