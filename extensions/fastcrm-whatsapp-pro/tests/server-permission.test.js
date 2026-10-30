@@ -26,7 +26,7 @@ test("manifest: host obrigatório ausente, opcional exato, CSP inalterada", () =
 
 test("oauth-config v0.5.0: client_id piloto e API_READY=true", () => {
   const cfg = readFileSync(new URL("../lib/oauth-config.js", import.meta.url), "utf8");
-  assert.ok(cfg.includes('export const PUBLIC_CLIENT_ID = "498e10aa-441f-4ded-9e73-81979d751acf";\n'));
+  assert.ok(cfg.includes('export const PUBLIC_CLIENT_ID = "e3797d42-b91a-4872-8a42-fca687486725";\n'));
   assert.ok(cfg.includes("export const API_READY = true;\n"));
 });
 
