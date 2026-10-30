@@ -1,5 +1,11 @@
 import { lazy } from "react";
-import { Route } from "react-router-dom";
+import { Route, Navigate, useParams } from "react-router-dom";
+
+/** Links antigos /dashboard/products/:id abrem o catálogo com a ficha aberta. */
+function ProductIdRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/dashboard/products?product=${encodeURIComponent(id)}` : "/dashboard/products"} replace />;
+}
 
 const Proposals = lazy(() => import("@/pages/Proposals"));
 const PitchPage = lazy(() => import("@/pages/dashboard/PitchPage"));
@@ -30,6 +36,7 @@ export function SalesAssetsRoutes() {
       <Route path="/dashboard/proposals/templates/:id" element={<ProposalTemplateBuilderPage />} />
       <Route path="/dashboard/proposals/:id" element={<ProposalDetail />} />
       <Route path="/dashboard/products" element={<Products />} />
+      <Route path="/dashboard/products/:id" element={<ProductIdRedirect />} />
       <Route path="/dashboard/b2b-products" element={<Products />} />
       <Route path="/dashboard/packages" element={<Packages />} />
       <Route path="/dashboard/bundles" element={<BundlesPage />} />
