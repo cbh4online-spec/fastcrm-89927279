@@ -60,3 +60,8 @@
 - [x] Fase 1 diagnóstico: Z-API desligado em PHARLISS («Client-Token not allowed») e myMYA Hub (subscrição da instância expirada); 0 mensagens em 30 dias exceto 9 recebidas a 01/10.
 - [ ] Fase 2–4 (ficha, extensão piloto, envios automáticos) — bloqueado: religar Z-API pelo utilizador + escolher workspaces piloto.
 - [x] Extensão v0.5.0 ativa para piloto myMYA Hub (falta teste do utilizador)
+
+## WhatsApp Business Oficial (pedido 2026-10-30)
+- [x] Add-on 49 €/mês por número; pedido pelo dono, aprovação pelo super admin (Definições → Canais).
+- [ ] Ligar o número +351 925 990 747 só ao METODOPARE e enviar pela Meta — aguarda ligação do conector ao projeto.
+- [ ] Receber respostas no CRM — exige mudar a estrutura da aplicação (decisão do utilizador).
