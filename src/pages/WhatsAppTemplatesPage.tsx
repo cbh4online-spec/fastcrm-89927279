@@ -15,6 +15,7 @@ import { FileText, Plus, MoreVertical, Search, CheckCircle2, Clock, XCircle, Pen
 import { Link } from "react-router-dom";
 import { PlaybookLibraryPanel } from "@/components/whatsapp-pro/PlaybookLibraryPanel";
 import { PlaybookTemplatesList } from "@/components/whatsapp-pro/PlaybookTemplatesList";
+import { MetaOfficialTemplatesPanel } from "@/components/whatsapp-pro/MetaOfficialTemplatesPanel";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: any; tone: string }> = {
   draft: { label: "Rascunho", icon: Pencil, tone: "bg-muted text-muted-foreground" },
@@ -33,7 +34,7 @@ export default function WhatsAppTemplatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [view, setView] = useState<"mine" | "playbook">("mine");
+  const [view, setView] = useState<"mine" | "playbook" | "meta">("mine");
 
   const filtered = useMemo(() => {
     return (templates || []).filter(t => {
@@ -82,14 +83,15 @@ export default function WhatsAppTemplatesPage() {
 
         <PlaybookLibraryPanel />
 
-        <Tabs value={view} onValueChange={(v) => setView(v as "mine" | "playbook")}>
+        <Tabs value={view} onValueChange={(v) => setView(v as "mine" | "playbook" | "meta")}>
           <TabsList>
             <TabsTrigger value="mine">Os meus templates ({counts.all})</TabsTrigger>
             <TabsTrigger value="playbook">Biblioteca comercial</TabsTrigger>
+            <TabsTrigger value="meta">Modelos oficiais Meta</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {view === "playbook" ? <PlaybookTemplatesList /> : (
+        {view === "meta" ? <MetaOfficialTemplatesPanel /> : view === "playbook" ? <PlaybookTemplatesList /> : (
         <>
         <div className="flex flex-wrap items-center gap-2">
           <Tabs value={statusFilter} onValueChange={setStatusFilter}>
