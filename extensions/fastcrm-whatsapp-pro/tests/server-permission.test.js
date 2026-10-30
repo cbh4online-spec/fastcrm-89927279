@@ -18,9 +18,9 @@ const until = async (f) => { for (let i = 0; i < 200 && !f(); i++) await tick();
 test("manifest: host obrigatório ausente, opcional exato, CSP inalterada", () => {
   const m = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
   assert.equal(m.host_permissions, undefined);
-  assert.deepEqual(m.optional_host_permissions, [SERVER_ORIGIN_PATTERN]);
+  assert.deepEqual(m.optional_host_permissions, [SERVER_ORIGIN_PATTERN, "https://web.whatsapp.com/*"]);
   assert.equal(SERVER_ORIGIN_PATTERN, "https://eumnfkccyvlyoyjchiwe.supabase.co/*");
-  assert.deepEqual(m.permissions, ["storage", "sidePanel", "identity"]);
+  assert.deepEqual(m.permissions, ["storage", "sidePanel", "identity", "scripting"]);
   assert.equal(m.optional_permissions, undefined);
 });
 
@@ -32,7 +32,7 @@ test("oauth-config v0.5.0: client_id piloto e API_READY=true", () => {
 
 test("requestServerAccess: chamada síncrona; concessão/recusa/rejeição/exceção/API ausente", async () => {
   let called = 0;
-  const p = requestServerAccess({ permissions: { request: (a) => { called++; assert.deepEqual(a, { origins: [SERVER_ORIGIN_PATTERN] }); return Promise.resolve(true); } } });
+  const p = requestServerAccess({ permissions: { request: (a) => { called++; assert.deepEqual(a, { origins: [SERVER_ORIGIN_PATTERN, "https://web.whatsapp.com/*"] }); return Promise.resolve(true); } } });
   assert.equal(called, 1, "request invocado antes de qualquer await");
   assert.equal(await p, true);
   assert.equal(await requestServerAccess({ permissions: { request: async () => false } }), false);
@@ -47,7 +47,7 @@ test("hasServerAccess falha fechada", async () => {
   assert.equal(await hasServerAccess({ permissions: { contains: async () => true } }), true);
   assert.equal(await hasServerAccess({ permissions: { contains: async () => { throw new Error(); } } }), false);
   assert.equal(await hasServerAccess({}), false);
-  assert.equal(isServerOriginRemoval({ origins: [SERVER_ORIGIN_PATTERN] }), true);
+  assert.equal(isServerOriginRemoval({ origins: [SERVER_ORIGIN_PATTERN, "https://web.whatsapp.com/*"] }), true);
   assert.equal(isServerOriginRemoval({ permissions: ["storage"] }), false);
 });
 
@@ -63,7 +63,7 @@ function perms({ granted = true, removeResult = true, removeThrows = false } = {
 test("migração: remove só no estado seguro; nunca numa build configurada", async () => {
   const safe = perms();
   assert.equal(await migrateSafeState(safe, { clientId: "", apiReady: false }), "removed");
-  assert.deepEqual(safe.calls[1], ["remove", { origins: [SERVER_ORIGIN_PATTERN] }]);
+  assert.deepEqual(safe.calls[1], ["remove", { origins: [SERVER_ORIGIN_PATTERN, "https://web.whatsapp.com/*"] }]);
   assert.equal(await migrateSafeState(perms({ granted: false }), { clientId: "", apiReady: false }), "not_granted");
   assert.equal(await migrateSafeState(perms({ removeResult: false }), { clientId: "", apiReady: false }), "remove_failed");
   assert.equal(await migrateSafeState(perms({ removeThrows: true }), { clientId: "", apiReady: false }), "remove_failed");
