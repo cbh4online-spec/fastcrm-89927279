@@ -1,3 +1,4 @@
+import { openWhatsAppChat } from "@/lib/whatsapp/openWhatsAppChat";
 import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useCallback } from "react";
 import { LinkedConversationsCard } from "./LinkedConversationsCard";
@@ -339,7 +340,7 @@ export function ContactMessagesSection({
       case 'whatsapp':
         if (entityPhone) {
           const cleanPhone = entityPhone.replace(/\D/g, '');
-          window.open(`https://wa.me/${cleanPhone}?text=${encodedContent}`, '_blank');
+          if (!openWhatsAppChat(cleanPhone, draft.content)) toast.error("Número inválido");
         } else {
           toast.error("Telefone não disponível");
         }

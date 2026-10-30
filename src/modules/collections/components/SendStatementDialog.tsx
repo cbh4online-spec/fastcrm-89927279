@@ -1,3 +1,4 @@
+import { openWhatsAppChat } from "@/lib/whatsapp/openWhatsAppChat";
 import { useMemo, useState } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -139,8 +140,7 @@ export function SendStatementDialog({
       return;
     }
     const text = buildWhatsAppText();
-    const url = `https://wa.me/${e164.replace(/^\+/, "")}?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    openWhatsAppChat(e164, text);
     registerWhatsAppAction.mutate({ phone: e164, summary: text });
   };
 

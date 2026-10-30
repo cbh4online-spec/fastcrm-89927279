@@ -11,6 +11,12 @@ import { createOAuthClient } from "./lib/oauth-client.js";
 import { createExtensionApi } from "./lib/extension-api.js";
 import { hasServerAccess, isServerOriginRemoval, migrateSafeState } from "./lib/server-permission.js";
 import { isTrustedSender, isKnownMessage, sanitizeResponse } from "./lib/messages.js";
+import { createTabReuser } from "./lib/tab-reuse.js";
+
+// v0.8.0: um único separador do WhatsApp Web (evita «aberto noutra janela»).
+const reuseTab = createTabReuser(chrome);
+chrome.tabs.onCreated.addListener((tab) => { const u = tab.pendingUrl || tab.url; if (u) reuseTab(tab.id, u).catch(() => {}); });
+chrome.tabs.onUpdated.addListener((id, info) => { if (info.url) reuseTab(id, info.url).catch(() => {}); });
 
 const oauth = createOAuthClient({ chromeApi: chrome });
 const api = createExtensionApi({ getToken: () => oauth.getAccessTokenForServiceWorker(), hasAccess: () => hasServerAccess(chrome) });
