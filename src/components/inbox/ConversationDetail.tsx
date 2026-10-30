@@ -37,6 +37,8 @@ import { WhatsAppInteractiveButtonsDialog } from "./WhatsAppInteractiveButtonsDi
 import { useCreateLead } from "@/hooks/useLeads";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { WhatsAppWebFallbackError } from "@/lib/whatsapp/sendFallback";
+import { openWhatsAppChat } from "@/lib/whatsapp/openWhatsAppChat";
 import { VariableContext } from "@/lib/templateVariables";
 import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
@@ -161,6 +163,20 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
     try {
       await sendMessage.mutateAsync({ conversationId, content });
     } catch (error) {
+      if (error instanceof WhatsAppWebFallbackError) {
+        // A mensagem não é gravada aqui: a extensão guarda-a quando aparecer no WhatsApp Web.
+        toast.warning("Linha WhatsApp do CRM desligada", {
+          description: "Envie pelo WhatsApp Web: a mensagem abre já escrita, basta carregar em Enter.",
+          duration: 15000,
+          action: {
+            label: "Enviar no WhatsApp Web",
+            onClick: () => {
+              if (!openWhatsAppChat(error.phone, error.text)) toast.error("Número de telefone inválido");
+            },
+          },
+        });
+        return;
+      }
       const msg = error instanceof Error ? error.message : "Falha ao enviar mensagem";
       toast.error(msg);
     }
