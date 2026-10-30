@@ -99,8 +99,13 @@ export function createOAuthClient({ chromeApi, fetchImpl = fetch, clientId = PUB
     let callback;
     try {
       callback = await chromeApi.identity.launchWebAuthFlow({ url: req.url, interactive: true });
-    } catch {
-      return { status: await status(), error: stale() ? "sessao_alterada" : "autorizacao_cancelada" };
+    } catch (err) {
+      if (stale()) return { status: await status(), error: "sessao_alterada" };
+      const msg = String((err && err.message) || "").toLowerCase();
+      const code = msg.includes("could not be loaded") ? "pagina_autorizacao_indisponivel"
+        : msg.includes("did not approve") ? "autorizacao_cancelada"
+        : "autorizacao_falhou";
+      return { status: await status(), error: code };
     }
     if (stale()) return { status: await status(), error: "sessao_alterada" };
     const parsed = parseCallback(callback, { redirectUri, expectedState: req.state });
