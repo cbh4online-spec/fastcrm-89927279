@@ -18,9 +18,9 @@ const until = async (f) => { for (let i = 0; i < 200 && !f(); i++) await tick();
 test("manifest: host obrigatório ausente, opcional exato, CSP inalterada", () => {
   const m = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
   assert.equal(m.host_permissions, undefined);
-  assert.deepEqual(m.optional_host_permissions, [SERVER_ORIGIN_PATTERN]);
+  assert.deepEqual(m.optional_host_permissions, [SERVER_ORIGIN_PATTERN, "https://web.whatsapp.com/*"]);
   assert.equal(SERVER_ORIGIN_PATTERN, "https://eumnfkccyvlyoyjchiwe.supabase.co/*");
-  assert.deepEqual(m.permissions, ["storage", "sidePanel", "identity"]);
+  assert.deepEqual(m.permissions, ["storage", "sidePanel", "identity", "scripting"]);
   assert.equal(m.optional_permissions, undefined);
 });
 

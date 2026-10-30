@@ -82,5 +82,21 @@ export function createExtensionApi({ fetchImpl = fetch, getToken, ready = () => 
     return results ? { ok: true, ...results } : { ok: false, error: "resposta_invalida" };
   }
 
-  return { listWorkspaces, lookup };
+  async function syncMessages(workspaceId, phone, chatName, messages, allowedIds) {
+    const ws = uuid(workspaceId);
+    if (!ws || !allowedIds.has(ws)) return { ok: false, error: "workspace_invalido" };
+    const n = typeof phone === "string" && phone.length <= 40 ? normalizePhone(phone) : { ok: false };
+    if (!n.ok) return { ok: false, error: "telefone_invalido" };
+    if (!Array.isArray(messages) || !messages.length) return { ok: false, error: "sem_mensagens" };
+    const clean = messages.slice(-200).filter((m) => (m?.direction === "inbound" || m?.direction === "outbound") && typeof m.text === "string" && typeof m.sent_at === "string")
+      .map((m) => ({ direction: m.direction, text: m.text.slice(0, 4000), sent_at: m.sent_at.slice(0, 40) }));
+    if (!clean.length) return { ok: false, error: "sem_mensagens" };
+    const r = await call({ action: "sync_messages", workspace_id: ws, phone: n.e164, chat_name: str(chatName, 120), messages: clean });
+    if (!r.ok) return r;
+    const b = r.body ?? {};
+    if (uuid(b.workspace_id) !== ws || !uuid(b.conversation_id)) return { ok: false, error: "resposta_invalida" };
+    return { ok: true, conversationId: uuid(b.conversation_id), inserted: Number(b.inserted) || 0, skipped: Number(b.skipped) || 0, linked: str(b.linked, 10) };
+  }
+
+  return { listWorkspaces, lookup, syncMessages };
 }

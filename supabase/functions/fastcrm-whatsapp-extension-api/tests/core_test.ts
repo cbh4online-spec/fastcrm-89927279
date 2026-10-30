@@ -20,6 +20,10 @@ function deps(over: Partial<Deps> = {}): Deps {
     findContacts: () => Promise.resolve([{ id: "c1", workspace_id: WS, name: "X", phone: "+351912345678", notes: "secreto" }, { id: "c2", workspace_id: OTHER, name: "Y" }]),
     findLeads: () => Promise.resolve([{ id: "l1", workspace_id: WS, name: "L", phone: "912345678", status: "new", email: "a@b" }]),
     now: () => 1_000_000,
+    upsertConversation: () => Promise.resolve("conv1"),
+    existingMessageKeys: () => Promise.resolve(new Set<string>()),
+    insertMessages: (rows) => Promise.resolve(rows.length),
+    touchConversation: () => Promise.resolve(),
     ...over,
   };
 }
@@ -117,4 +121,45 @@ Deno.test("piloto: workspace fora da allowlist bloqueado antes de membership/dad
   assertEquals(touched, false);
   const w = await handleAction({ ok: true, action: "workspaces" }, "u1", CFG, deps({ listMemberships: () => Promise.resolve([{ workspace_id: WS, role: "owner", name: "A" }, { workspace_id: OTHER, role: "owner", name: "B" }]) }));
   assertEquals(w.body, { workspaces: [{ id: WS, name: "A", role: "owner" }] });
+});
+
+const syncBody = (msgs: unknown[]) => JSON.stringify({ action: "sync_messages", workspace_id: WS, phone: "912345678", messages: msgs });
+const M = (d: string, t: string, at = "2026-10-30T17:00:00Z") => ({ direction: d, text: t, sent_at: at });
+
+Deno.test("sync: valida mensagens e remove duplicados no próprio pedido", () => {
+  assertEquals(parseBody(syncBody([])).ok, false);
+  assertEquals(parseBody(syncBody([M("sideways", "x")])).ok, false);
+  assertEquals(parseBody(syncBody([M("inbound", "x", "nope")])).ok, false);
+  const r = parseBody(syncBody([M("inbound", "Olá"), M("inbound", "Olá"), M("outbound", "Olá")]));
+  assert(r.ok && r.action === "sync_messages");
+  if (r.ok && r.action === "sync_messages") { assertEquals(r.messages.length, 2); assertEquals(r.e164, "+351912345678"); }
+});
+
+Deno.test("sync: só grava mensagens novas e liga ao contacto", async () => {
+  const p = parseBody(syncBody([M("inbound", "A"), M("outbound", "B", "2026-10-30T17:05:00Z")]));
+  if (!p.ok) throw new Error("parse");
+  const firstKey = (p as { messages: { key: string }[] }).messages[0].key;
+  let rows: Record<string, unknown>[] = [];
+  const r = await handleAction(p, "u1", CFG, deps({
+    existingMessageKeys: () => Promise.resolve(new Set([firstKey])),
+    insertMessages: (x) => { rows = x; return Promise.resolve(x.length); },
+  }));
+  assertEquals(r.status, 200);
+  assertEquals(r.body.inserted, 1);
+  assertEquals(r.body.skipped, 1);
+  assertEquals(r.body.linked, "contact");
+  assertEquals(rows[0].workspace_id, WS);
+  assertEquals(rows[0].direction, "outbound");
+});
+
+Deno.test("sync: papel sem crm.write é recusado antes de gravar", async () => {
+  let wrote = false;
+  const p = parseBody(syncBody([M("inbound", "A")]));
+  if (!p.ok) throw new Error("parse");
+  const r = await handleAction(p, "u1", CFG, deps({
+    getMembership: () => Promise.resolve({ workspace_id: WS, role: "viewer" }),
+    upsertConversation: () => { wrote = true; return Promise.resolve("c"); },
+  }));
+  assertEquals(r.status, 403);
+  assertEquals(wrote, false);
 });

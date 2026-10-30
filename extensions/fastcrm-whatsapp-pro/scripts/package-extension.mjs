@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 
 const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const fixedFiles = ['manifest.json', 'background.js', 'sidepanel.html', 'sidepanel.js', 'sidepanel.css', 'lib/phone.js', 'lib/urls.js', 'lib/messages.js', 'lib/extension-api.js', 'lib/sw-handlers.js', 'lib/oauth-config.js', 'lib/oauth-client.js', 'lib/oauth-pkce.js', 'lib/server-permission.js'];
+const fixedFiles = ['manifest.json', 'background.js', 'sidepanel.html', 'sidepanel.js', 'sidepanel.css', 'lib/phone.js', 'lib/urls.js', 'lib/messages.js', 'lib/extension-api.js', 'lib/sw-handlers.js', 'lib/oauth-config.js', 'lib/oauth-client.js', 'lib/oauth-pkce.js', 'lib/server-permission.js', 'lib/whatsapp-reader.js'];
 const timestamp = new Date('2026-01-01T00:00:00Z');
 
 async function regularFile(root, relative) {
@@ -23,8 +23,8 @@ async function regularFile(root, relative) {
 
 export async function validatePackage(root) {
   const manifest = JSON.parse(await regularFile(root, 'manifest.json'));
-  if (manifest.manifest_version !== 3 || manifest.version !== '0.5.1') throw new Error('Manifest/versão incorretos');
-  if (JSON.stringify(manifest.permissions) !== JSON.stringify(['storage', 'sidePanel', 'identity']) || !(manifest.host_permissions === undefined || (Array.isArray(manifest.host_permissions) && manifest.host_permissions.length === 0)) || JSON.stringify(manifest.optional_host_permissions) !== JSON.stringify(['https://eumnfkccyvlyoyjchiwe.supabase.co/*']) || manifest.optional_permissions || manifest.content_scripts || manifest.externally_connectable) throw new Error('Permissões inesperadas');
+  if (manifest.manifest_version !== 3 || manifest.version !== '0.6.0') throw new Error('Manifest/versão incorretos');
+  if (JSON.stringify(manifest.permissions) !== JSON.stringify(['storage', 'sidePanel', 'identity', 'scripting']) || !(manifest.host_permissions === undefined || (Array.isArray(manifest.host_permissions) && manifest.host_permissions.length === 0)) || JSON.stringify(manifest.optional_host_permissions) !== JSON.stringify(['https://eumnfkccyvlyoyjchiwe.supabase.co/*', 'https://web.whatsapp.com/*']) || manifest.optional_permissions || manifest.content_scripts || manifest.externally_connectable) throw new Error('Permissões inesperadas');
   const refs = [manifest.background?.service_worker, manifest.side_panel?.default_path,
     ...Object.values(manifest.icons ?? {}), ...Object.values(manifest.action?.default_icon ?? {}),
     `_locales/${manifest.default_locale}/messages.json`];
@@ -36,7 +36,7 @@ export async function validatePackage(root) {
   return manifest;
 }
 
-export async function packageExtension({ sourceDir = source, distDir = path.join(source, 'dist/fastcrm-whatsapp-pro'), zipPath = path.join(source, 'dist/fastcrm-whatsapp-pro-v0.5.1.zip'), distOnly = false } = {}) {
+export async function packageExtension({ sourceDir = source, distDir = path.join(source, 'dist/fastcrm-whatsapp-pro'), zipPath = path.join(source, 'dist/fastcrm-whatsapp-pro-v0.6.0.zip'), distOnly = false } = {}) {
   await validatePackage(sourceDir);
   const files = [...fixedFiles];
   for (const name of (await fs.readdir(path.join(sourceDir, 'icons'))).sort()) {

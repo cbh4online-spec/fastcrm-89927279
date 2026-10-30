@@ -62,6 +62,35 @@ function buildDeps(url: string, anonKey: string, token: string): Deps {
       return data ?? [];
     },
     now: () => Date.now(),
+    async upsertConversation({ workspaceId, e164, contactId, leadId, userId }) {
+      const { data: found, error } = await db.from("conversations").select("id")
+        .eq("workspace_id", workspaceId).eq("channel", "whatsapp").eq("external_thread_id", e164)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw new Error("db");
+      if (found?.id) return found.id as string;
+      const { data, error: ie } = await db.from("conversations").insert({
+        workspace_id: workspaceId, channel: "whatsapp", external_thread_id: e164, status: "open",
+        contact_id: contactId, lead_id: leadId, assigned_to: userId,
+      }).select("id").single();
+      if (ie || !data) throw new Error("db");
+      return data.id as string;
+    },
+    async existingMessageKeys(workspaceId, conversationId, keys) {
+      const { data, error } = await db.from("messages").select("external_message_id")
+        .eq("workspace_id", workspaceId).eq("conversation_id", conversationId).in("external_message_id", keys);
+      if (error) throw new Error("db");
+      return new Set((data ?? []).map((r: { external_message_id: string }) => r.external_message_id));
+    },
+    async insertMessages(rows) {
+      const { error, count } = await db.from("messages").insert(rows, { count: "exact" });
+      if (error) throw new Error("db");
+      return count ?? rows.length;
+    },
+    async touchConversation(conversationId, lastAt, preview) {
+      // Melhor esforço: a política de atualização pode não permitir; as mensagens já ficaram gravadas.
+      await db.from("conversations").update({ last_message_at: lastAt, last_message_preview: preview, updated_at: new Date().toISOString() })
+        .eq("id", conversationId);
+    },
   };
 }
 

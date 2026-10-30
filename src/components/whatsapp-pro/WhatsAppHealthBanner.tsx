@@ -9,7 +9,8 @@ import {
 } from "@/hooks/useWhatsAppZapiConnection";
 import { useDismissWhatsAppHealthAlert } from "@/hooks/useWhatsAppHealth";
 
-const ALERT_STATUSES: ZapiStatus[] = ["disconnected", "qr_expired", "error", "reconnecting"];
+// "disconnected" não alerta: a linha Z-API é opcional (as conversas podem chegar pela extensão).
+const ALERT_STATUSES: ZapiStatus[] = ["qr_expired", "error", "reconnecting"];
 
 const COPY: Record<string, { title: string; sub: string; icon: React.ReactNode; tone: string; cta: string }> = {
   disconnected: {
