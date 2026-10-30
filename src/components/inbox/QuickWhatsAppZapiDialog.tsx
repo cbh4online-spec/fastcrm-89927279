@@ -34,6 +34,14 @@ function normalizePhone(input: string): string {
   return input.replace(/\D/g, "");
 }
 
+export function describeZapiError(lastError: string | null, hasInstance: boolean): string {
+  if (!hasInstance) return "WhatsApp ainda não foi configurado neste espaço de trabalho.";
+  const e = (lastError ?? "").toLowerCase();
+  if (e.includes("renew") || e.includes("subscription")) return "A subscrição do serviço WhatsApp expirou e precisa de ser renovada.";
+  if (e.includes("client-token") || e.includes("token")) return "O token do serviço WhatsApp é inválido.";
+  return "WhatsApp não está ligado.";
+}
+
 export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZapiDialogProps) {
   const { data: connection } = useWhatsAppZapiConnection();
   const { data: groups, isLoading: groupsLoading } = useWhatsAppZapiGroups();
@@ -47,6 +55,17 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
   const [selectedGroup, setSelectedGroup] = useState<WhatsAppZapiGroup | null>(null);
 
   const isConnected = connection?.status === "connected";
+  const disconnectReason = describeZapiError(connection?.last_error ?? null, !!connection);
+
+  const openWhatsAppWeb = () => {
+    const normalized = normalizePhone(phone);
+    if (normalized.length < 8) {
+      toast.error("Número inválido (incluir indicativo, ex: 351912345678)");
+      return;
+    }
+    const url = `https://wa.me/${normalized}?text=${encodeURIComponent(message.trim())}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const filteredGroups = useMemo(() => {
     if (!groups) return [];
@@ -108,9 +127,14 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
         {!isConnected && (
           <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>
-              WhatsApp não está ligado. Configure em <strong>Definições → Canais → WhatsApp</strong>.
-            </span>
+            <div className="space-y-1">
+              <p>
+                {disconnectReason} Configure em <strong>Definições → Canais → WhatsApp</strong>.
+              </p>
+              {tab === "dm" && (
+                <p>Enquanto isso, pode usar «Abrir no WhatsApp Web» e enviar manualmente.</p>
+              )}
+            </div>
           </div>
         )}
 
