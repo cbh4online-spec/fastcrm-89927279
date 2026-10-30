@@ -172,7 +172,7 @@ test("migração: só clientId === \"\" e apiReady === false removem; tudo o res
   }
   for (const opts of [null, "x", 1]) assert.equal(await migrateSafeState(perms(), opts), "skipped_configured");
   assert.equal(await migrateSafeState(perms(), { clientId: "", apiReady: false }), "removed");
-  assert.equal(await migrateSafeState(perms()), "removed", "omissão usa as constantes atuais (seguras)");
+  assert.equal(await migrateSafeState(perms()), "skipped_configured", "v0.5.0: build configurada nunca remove");
 });
 
 // ---------- 4) padrão exato ----------

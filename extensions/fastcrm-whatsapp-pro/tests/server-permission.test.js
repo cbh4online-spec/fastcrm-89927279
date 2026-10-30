@@ -62,12 +62,12 @@ function perms({ granted = true, removeResult = true, removeThrows = false } = {
 
 test("migração: remove só no estado seguro; nunca numa build configurada", async () => {
   const safe = perms();
-  assert.equal(await migrateSafeState(safe), "removed");
+  assert.equal(await migrateSafeState(safe, { clientId: "", apiReady: false }), "removed");
   assert.deepEqual(safe.calls[1], ["remove", { origins: [SERVER_ORIGIN_PATTERN] }]);
-  assert.equal(await migrateSafeState(perms({ granted: false })), "not_granted");
-  assert.equal(await migrateSafeState(perms({ removeResult: false })), "remove_failed");
-  assert.equal(await migrateSafeState(perms({ removeThrows: true })), "remove_failed");
-  assert.equal(await migrateSafeState({}), "unavailable");
+  assert.equal(await migrateSafeState(perms({ granted: false }), { clientId: "", apiReady: false }), "not_granted");
+  assert.equal(await migrateSafeState(perms({ removeResult: false }), { clientId: "", apiReady: false }), "remove_failed");
+  assert.equal(await migrateSafeState(perms({ removeThrows: true }), { clientId: "", apiReady: false }), "remove_failed");
+  assert.equal(await migrateSafeState({}, { clientId: "", apiReady: false }), "unavailable");
   for (const opts of [{ clientId: CLIENT, apiReady: false }, { clientId: "", apiReady: true }, { clientId: CLIENT, apiReady: true }]) {
     const c = perms();
     assert.equal(await migrateSafeState(c, opts), "skipped_configured");

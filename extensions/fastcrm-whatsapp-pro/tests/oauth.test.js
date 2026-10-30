@@ -77,7 +77,7 @@ test("callback: code válido aceite; error/state/redirect/duplicados recusados",
 test("sem client_id público: estado configuração pendente e sem abrir login", async () => {
   assert.equal(isOAuthConfigured(""), false);
   const c = fakeChrome({ launchError: true });
-  const client = createOAuthClient({ chromeApi: c, fetchImpl: () => assert.fail("fetch") });
+  const client = createOAuthClient({ chromeApi: c, clientId: "", fetchImpl: () => assert.fail("fetch") });
   assert.equal(await client.status(), "config_pending");
   assert.deepEqual(await client.start(), { status: "config_pending" });
 });
