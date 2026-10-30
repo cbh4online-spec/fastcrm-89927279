@@ -498,12 +498,10 @@ const AUTO_INTERVAL_MS = 20000;
 const WA_ORIGIN = "https://web.whatsapp.com/*";
 const auto = { enabled: false, permitted: false, running: false, lastKey: new Map(), timer: 0, status: "", kind: "", chat: "", total: 0, linkPath: "" };
 
-async function autoSyncPrefs() {
-  try { return (await chrome.storage.session.get("autoSync")).autoSync ?? {}; } catch { return {}; }
-}
-async function saveAutoSyncPrefs(patch) {
-  try { const cur = await autoSyncPrefs(); await chrome.storage.session.set({ autoSync: { ...cur, ...patch } }); } catch { /* sem storage */ }
-}
+/** Preferências só em memória (regra do painel: sem persistência). */
+const prefsMem = {};
+async function autoSyncPrefs() { return prefsMem; }
+async function saveAutoSyncPrefs(patch) { Object.assign(prefsMem, patch); }
 
 function setAutoStatus(text, kind = "") { auto.status = text; auto.kind = kind; renderAutoSync(); }
 
