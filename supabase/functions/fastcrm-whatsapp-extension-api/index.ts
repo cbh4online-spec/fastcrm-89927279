@@ -66,7 +66,12 @@ function buildDeps(url: string, anonKey: string, token: string): Deps {
 }
 
 async function handle(req: Request): Promise<Response> {
-  const cfg = readConfig((k) => Deno.env.get(k));
+  // Identificadores públicos (não secretos) da extensão 0.5.1 com ID fixo.
+  const PUBLIC_EXTENSION_CONFIG: Record<string, string> = {
+    FASTCRM_WA_EXTENSION_OAUTH_CLIENT_ID: "e3797d42-b91a-4872-8a42-fca687486725",
+    FASTCRM_WA_EXTENSION_ALLOWED_ORIGIN: "chrome-extension://kdocdkdaklgfehfcggnacaaffiidipma",
+  };
+  const cfg = readConfig((k) => PUBLIC_EXTENSION_CONFIG[k] ?? Deno.env.get(k));
   if (!cfg) return json(503, { error: "disabled" });
 
   const origin = req.headers.get("Origin");
