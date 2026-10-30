@@ -127,6 +127,12 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
           </DialogTitle>
         </DialogHeader>
 
+        {isOfficialLine && (
+          <p className="text-sm text-muted-foreground">
+            Envio pela linha oficial {String(providerInstance?.metadata?.display_phone_number ?? "")}. Fora das 24 h após a última mensagem do cliente, a Meta só aceita modelos aprovados.
+          </p>
+        )}
+
         {!isConnected && (
           <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
