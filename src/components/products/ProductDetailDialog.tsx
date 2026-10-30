@@ -234,14 +234,18 @@ export function ProductDetailDialog({
   };
 
   if (isLoading) {
+    // Mesma estrutura (Fragment > Dialog) que o estado carregado, para o React
+    // não destruir e recriar a janela quando os dados chegam (fechava sozinha).
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="max-w-4xl h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
+            <div className="flex flex-1 items-center justify-center p-8" role="status" aria-label="A carregar produto">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 

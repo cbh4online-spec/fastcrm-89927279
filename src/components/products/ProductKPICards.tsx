@@ -24,6 +24,8 @@ type Period = "30d" | "90d" | "1y";
 export function ProductKPICards({ productId, currency = "EUR" }: ProductKPICardsProps) {
   const [period, setPeriod] = useState<Period>("30d");
   const { data: stats, isLoading } = useProductStats(productId);
+  // Tem de ser chamado antes de qualquer return (regras dos hooks) — senão a ficha crasha e fecha.
+  const canViewCostMargin = useCanViewCostMargin();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-PT", {
@@ -75,7 +77,6 @@ export function ProductKPICards({ productId, currency = "EUR" }: ProductKPICards
     "1y": "12 meses",
   };
 
-  const canViewCostMargin = useCanViewCostMargin();
   const allTiles = [
     { label: "Receita", icon: DollarSign, value: formatCurrency(getRevenueByPeriod()), hint: periodLabels[period] },
     { label: "Vendas", icon: ShoppingCart, value: String(getSalesByPeriod()), hint: periodLabels[period] },

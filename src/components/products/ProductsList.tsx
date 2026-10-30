@@ -94,6 +94,19 @@ export function ProductsList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantsCreate]);
 
+  // Links diretos (?product=ID ou ?highlight=ID) abrem a ficha do produto
+  const linkedProductId = searchParams.get("product") || searchParams.get("highlight");
+  useEffect(() => {
+    if (!linkedProductId) return;
+    const found = state.products?.find((p) => p.id === linkedProductId);
+    state.setDetailProduct(found ?? ({ id: linkedProductId } as typeof found & {}));
+    const next = new URLSearchParams(searchParams);
+    next.delete("product");
+    next.delete("highlight");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedProductId]);
+
   // Colunas e filtros sensíveis (custo/margem) ocultos para roles sem permissão
   const visibleProductColumns = useMemo(
     () => (canViewCostMargin
