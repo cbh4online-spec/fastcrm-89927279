@@ -451,9 +451,9 @@ function setupSync() {
       setFeedback(fb, `Guardadas ${r.inserted} novas (${r.skipped} já existiam), ${who}.`, "ok");
       const link = document.getElementById("sync-open-crm");
       if (link) {
-        const path = r.contact_id ? `/dashboard/crm/contacts/${encodeURIComponent(r.contact_id)}`
-          : r.lead_id ? `/dashboard/crm/leads/${encodeURIComponent(r.lead_id)}`
-          : `/dashboard/inbox?conversation=${encodeURIComponent(r.conversation_id ?? "")}`;
+        const path = r.contactId ? `/dashboard/contacts/${encodeURIComponent(r.contactId)}`
+          : r.leadId ? `/dashboard/leads/${encodeURIComponent(r.leadId)}`
+          : `/dashboard/inbox?conversation=${encodeURIComponent(r.conversationId ?? "")}`;
         link.href = FASTCRM_ORIGIN + path;
         link.hidden = false;
       }

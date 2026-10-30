@@ -95,7 +95,7 @@ export function createExtensionApi({ fetchImpl = fetch, getToken, ready = () => 
     if (!r.ok) return r;
     const b = r.body ?? {};
     if (uuid(b.workspace_id) !== ws || !uuid(b.conversation_id)) return { ok: false, error: "resposta_invalida" };
-    return { ok: true, conversationId: uuid(b.conversation_id), inserted: Number(b.inserted) || 0, skipped: Number(b.skipped) || 0, linked: str(b.linked, 10) };
+    return { ok: true, conversationId: uuid(b.conversation_id), inserted: Number(b.inserted) || 0, skipped: Number(b.skipped) || 0, linked: str(b.linked, 10), contactId: uuid(b.contact_id), leadId: uuid(b.lead_id) };
   }
 
   return { listWorkspaces, lookup, syncMessages };
