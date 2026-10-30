@@ -25,6 +25,7 @@ import {
   type WhatsAppZapiGroup,
 } from "@/hooks/useWhatsAppZapi";
 import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
+import { useWhatsAppProviderInstance } from "@/hooks/useWhatsAppPro";
 
 interface QuickWhatsAppZapiDialogProps {
   open: boolean;
@@ -55,7 +56,9 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
   const [groupSearch, setGroupSearch] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<WhatsAppZapiGroup | null>(null);
 
-  const isConnected = connection?.status === "connected";
+  const { data: providerInstance } = useWhatsAppProviderInstance();
+  const isOfficialLine = providerInstance?.provider_name === "meta_cloud_api" && providerInstance.active;
+  const isConnected = isOfficialLine || connection?.status === "connected";
   const disconnectReason = describeZapiError(connection?.last_error ?? null, !!connection);
 
   const openWhatsAppWeb = () => {
