@@ -184,23 +184,10 @@ export default function IXDashboard() {
     [invoices, rentals],
   );
 
-  // Impostos — por taxa
-  const vatByRate = useMemo(() => {
-    const map = new Map<number, { base: number; tax: number; count: number }>();
-    invoices.forEach((i) => {
-      const rate = Number(i.tax_rate || 0);
-      const cur = map.get(rate) ?? { base: 0, tax: 0, count: 0 };
-      cur.base += Number(i.subtotal || 0);
-      cur.tax += Number(i.tax_amount || 0);
-      cur.count += 1;
-      map.set(rate, cur);
-    });
-    return Array.from(map.entries())
-      .map(([rate, v]) => ({ rate, ...v }))
-      .sort((a, b) => b.tax - a.tax);
-  }, [invoices]);
-
-  const totalVat = vatByRate.reduce((s, r) => s + r.tax, 0);
+  // Impostos — por taxa (só documentos emitidos; notas de crédito abatem)
+  const vat = useMemo(() => computeVatByRate(invoices), [invoices]);
+  const vatByRate = vat.rows;
+  const totalVat = vat.totalVat;
 
   const tabs: IXTabDef[] = SECTIONS.map((s) => ({ id: s.id, label: s.label }));
 
