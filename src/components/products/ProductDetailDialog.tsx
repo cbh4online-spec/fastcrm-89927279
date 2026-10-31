@@ -618,7 +618,7 @@ export function ProductDetailDialog({
                       {showCost && (
                         <Card className="p-3">
                           <p className="text-xs text-muted-foreground">
-                            {isBundle ? "Custo Total" : "Custo Direto"} <span className="text-[10px] uppercase">(s/IVA)</span>
+                            Custo Total <span className="text-[10px] uppercase">(s/IVA, inclui operacional)</span>
                           </p>
                           {netDirectCost !== null ? (
                             <>
