@@ -189,7 +189,7 @@ export function TemplateEditorDialog({ open, onOpenChange, workspaceId, phone, t
 
         <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           <fieldset disabled={locked} className="min-w-0">
-            <Accordion type="multiple" defaultValue={["a", "b"]} className="w-full">
+            <Accordion type="multiple" defaultValue={locked ? ["a", "b", "c", "d", "e"] : ["a", "b"]} className="w-full">
               <AccordionItem value="a">
                 <AccordionTrigger>A · Identificação</AccordionTrigger>
                 <AccordionContent className="space-y-3 px-1">
