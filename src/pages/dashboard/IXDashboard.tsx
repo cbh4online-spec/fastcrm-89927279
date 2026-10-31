@@ -26,6 +26,7 @@ import { formatEUR } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { aggregateClientsWithRental, type RentalInfo } from "@/lib/finance/rentalAttribution";
+import { computeMonthMetrics, computeVatByRate, isOpenCollectionCase } from "@/lib/dashboard/ixDashboardMetrics";
 
 
 type SectionId = "faturacao" | "cobrancas" | "clientes" | "itens" | "impostos";
@@ -129,19 +130,12 @@ export default function IXDashboard() {
   );
 
 
-  // Faturação — mês corrente
-  const monthMetrics = useMemo(() => {
-    const now = new Date();
-    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const currentMonth = invoices.filter((i) => new Date(i.issue_date).getTime() >= startMonth);
-    const total = currentMonth.reduce((s, i) => s + Number(i.total || 0), 0);
-    const paid = currentMonth.reduce((s, i) => s + Number(i.amount_paid || 0), 0);
-    return { count: currentMonth.length, total, paid, outstanding: total - paid };
-  }, [invoices]);
+  // Faturação — mês corrente (Lisboa; só FT/FR emitidas)
+  const monthMetrics = useMemo(() => computeMonthMetrics(invoices), [invoices]);
 
   // Cobranças — agregado dos casos abertos
   const collectionsMetrics = useMemo(() => {
-    const open = cases.filter((c) => c.status !== "paid");
+    const open = cases.filter((c) => isOpenCollectionCase(c.status));
     const totalDue = open.reduce((s, c) => s + Number(c.total_due || 0), 0);
     const buckets = { d030: 0, d3160: 0, d6190: 0, d90: 0 };
     open.forEach((c) => {
@@ -190,23 +184,10 @@ export default function IXDashboard() {
     [invoices, rentals],
   );
 
-  // Impostos — por taxa
-  const vatByRate = useMemo(() => {
-    const map = new Map<number, { base: number; tax: number; count: number }>();
-    invoices.forEach((i) => {
-      const rate = Number(i.tax_rate || 0);
-      const cur = map.get(rate) ?? { base: 0, tax: 0, count: 0 };
-      cur.base += Number(i.subtotal || 0);
-      cur.tax += Number(i.tax_amount || 0);
-      cur.count += 1;
-      map.set(rate, cur);
-    });
-    return Array.from(map.entries())
-      .map(([rate, v]) => ({ rate, ...v }))
-      .sort((a, b) => b.tax - a.tax);
-  }, [invoices]);
-
-  const totalVat = vatByRate.reduce((s, r) => s + r.tax, 0);
+  // Impostos — por taxa (só documentos emitidos; notas de crédito abatem)
+  const vat = useMemo(() => computeVatByRate(invoices), [invoices]);
+  const vatByRate = vat.rows;
+  const totalVat = vat.totalVat;
 
   const tabs: IXTabDef[] = SECTIONS.map((s) => ({ id: s.id, label: s.label }));
 
@@ -223,20 +204,21 @@ export default function IXDashboard() {
               </p>
             </div>
             {/* Atalhos rápidos — estilo IX */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {[
                 { label: "Novo Orçamento", to: "/dashboard/proposals/new" },
                 { label: "Nova Guia de Transporte", to: "/dashboard/invoices/new?type=transport" },
                 { label: "Novo Contacto", to: "/dashboard/contacts/new" },
                 { label: "Novo Item", to: "/dashboard/products?new=1" },
-                { label: "Exportar SAF-T", to: "/dashboard/imports/saft" },
+                { label: "Importar SAF-T", to: "/dashboard/imports/saft" },
                 { label: "Lote de Faturas", to: "/dashboard/invoices?bulk=1" },
               ].map((a) => (
                 <button
+                  type="button"
                   key={a.label}
                   onClick={() => navigate(a.to)}
                   className={cn(
-                    "h-10 px-4 rounded-full border border-border bg-card text-sm font-semibold text-foreground",
+                    "h-10 shrink-0 px-4 rounded-full border border-border bg-card text-sm font-semibold text-foreground",
                     "shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors whitespace-nowrap",
                   )}
                 >
@@ -244,8 +226,9 @@ export default function IXDashboard() {
                 </button>
               ))}
               <button
+                type="button"
                 onClick={() => navigate("/dashboard/invoices/new")}
-                className="h-10 px-5 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
+                className="order-first sm:order-none h-10 shrink-0 px-5 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
               >
                 Nova Fatura
               </button>
