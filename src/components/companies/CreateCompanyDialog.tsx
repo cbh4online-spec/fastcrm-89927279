@@ -1,3 +1,4 @@
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanies } from "@/hooks/useCompanies";
@@ -392,11 +393,9 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                     <Phone className="w-3.5 h-3.5" />
                     Telefone
                   </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  <PhoneInput
+                  value={formData.phone}
+                  onChange={(val) => setFormData({ ...formData, phone: val })}
                     placeholder="+351 21 123 4567"
                   />
                 </div>
