@@ -100645,6 +100645,266 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_meta_template_button_actions: {
+        Row: {
+          action_type: string
+          button_key: string
+          config: Json
+          id: string
+          template_id: string
+          workflow_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          button_key: string
+          config?: Json
+          id?: string
+          template_id: string
+          workflow_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          button_key?: string
+          config?: Json
+          id?: string
+          template_id?: string
+          workflow_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_meta_template_button_actions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_meta_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_meta_template_events: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          details: Json
+          event_type: string
+          id: string
+          lead_id: string | null
+          message_id: string | null
+          phone: string | null
+          result: string | null
+          source: string
+          template_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          details?: Json
+          event_type: string
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          phone?: string | null
+          result?: string | null
+          source?: string
+          template_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          details?: Json
+          event_type?: string
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          phone?: string | null
+          result?: string | null
+          source?: string
+          template_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_meta_template_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_meta_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_meta_template_variables: {
+        Row: {
+          component: string
+          crm_field: string | null
+          example_value: string | null
+          fallback_value: string | null
+          id: string
+          template_id: string
+          var_index: number
+          workspace_id: string
+        }
+        Insert: {
+          component?: string
+          crm_field?: string | null
+          example_value?: string | null
+          fallback_value?: string | null
+          id?: string
+          template_id: string
+          var_index: number
+          workspace_id: string
+        }
+        Update: {
+          component?: string
+          crm_field?: string | null
+          example_value?: string | null
+          fallback_value?: string | null
+          id?: string
+          template_id?: string
+          var_index?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_meta_template_variables_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_meta_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_meta_template_versions: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          snapshot: Json
+          status: string | null
+          template_id: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          snapshot: Json
+          status?: string | null
+          template_id: string
+          version: number
+          workspace_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          snapshot?: Json
+          status?: string | null
+          template_id?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_meta_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_meta_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_meta_templates: {
+        Row: {
+          automations: Json
+          category: string
+          components: Json
+          created_at: string
+          created_by: string | null
+          definition: Json
+          deleted_at: string | null
+          description: string | null
+          id: string
+          internal_name: string
+          language: string
+          last_synced_at: string | null
+          meta_name: string
+          meta_template_id: string | null
+          parent_template_id: string | null
+          provider_instance_id: string | null
+          quality_score: string | null
+          rejected_reason: string | null
+          status: string
+          submitted_at: string | null
+          tags: string[]
+          updated_at: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          automations?: Json
+          category?: string
+          components?: Json
+          created_at?: string
+          created_by?: string | null
+          definition?: Json
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          internal_name: string
+          language?: string
+          last_synced_at?: string | null
+          meta_name: string
+          meta_template_id?: string | null
+          parent_template_id?: string | null
+          provider_instance_id?: string | null
+          quality_score?: string | null
+          rejected_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          tags?: string[]
+          updated_at?: string
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          automations?: Json
+          category?: string
+          components?: Json
+          created_at?: string
+          created_by?: string | null
+          definition?: Json
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          internal_name?: string
+          language?: string
+          last_synced_at?: string | null
+          meta_name?: string
+          meta_template_id?: string | null
+          parent_template_id?: string | null
+          provider_instance_id?: string | null
+          quality_score?: string | null
+          rejected_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          tags?: string[]
+          updated_at?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_official_number_requests: {
         Row: {
           business_name: string | null

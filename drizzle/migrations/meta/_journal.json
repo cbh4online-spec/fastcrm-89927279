@@ -729,6 +729,13 @@
       "when": 1793399461193,
       "tag": "0103_metodopare_meta_official_line",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1793456827967,
+      "tag": "0104_whatsapp_meta_templates_manager",
+      "breakpoints": true
     }
   ]
 }
