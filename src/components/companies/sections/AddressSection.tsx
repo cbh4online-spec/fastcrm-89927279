@@ -80,7 +80,7 @@ export function AddressSection({ company, onFieldChange }: AddressSectionProps) 
             label="País"
             fieldId="country"
             fieldType="text"
-            value="Portugal"
+            value={(company as any).country || "Portugal"}
             onChange={(val) => onFieldChange("country" as keyof Company, val)}
             icon={<Flag className="w-4 h-4" />}
           />
