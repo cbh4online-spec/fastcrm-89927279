@@ -176,3 +176,9 @@ export const CRM_FIELDS = [
   { value: "owner.name", label: "Responsável comercial" },
   { value: "manual", label: "Preencher no envio" },
 ] as const;
+
+/** Caminho para apagar um modelo na Meta. Com o ID apaga só esse idioma; só com o nome apagaria todos. */
+export function metaTemplateDeletePath(name: string, metaTemplateId?: string | null): string {
+  const n = `name=${encodeURIComponent(name)}`;
+  return metaTemplateId ? `/message_templates?hsm_id=${encodeURIComponent(metaTemplateId)}&${n}` : `/message_templates?${n}`;
+}

@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { isMetaInstanceAllowed, META_GATEWAY_URL, toMetaRecipient, describeMetaError } from "../_shared/whatsappMetaOfficial.ts";
 import {
-  buildMetaComponents, validateMetaTemplateFields, canSendTemplate, countBodyVariables, type MetaTemplateDraft,
+  buildMetaComponents, validateMetaTemplateFields, canSendTemplate, countBodyVariables, metaTemplateDeletePath, type MetaTemplateDraft,
 } from "../_shared/metaTemplateRules.ts";
 import { phoneOptOutVariants } from "../_shared/phoneVariants.ts";
 
@@ -264,7 +264,8 @@ Deno.serve(async (req) => {
       const tpl = await loadTpl(body.templateId);
       if (!tpl) return json({ error: "Modelo não encontrado." }, 404);
       if (tpl.meta_template_id || tpl.status !== "DRAFT") {
-        const r = await meta(`/message_templates?name=${encodeURIComponent(tpl.meta_name)}`, { method: "DELETE" });
+        // Só por nome, a Meta apaga TODOS os idiomas do modelo; com hsm_id apaga apenas este.
+        const r = await meta(metaTemplateDeletePath(tpl.meta_name, tpl.meta_template_id), { method: "DELETE" });
         if (!r.ok && r.status !== 404) return json({ error: r.msg, status: r.status }, 200);
       }
       await admin.from("whatsapp_meta_templates").update({ deleted_at: new Date().toISOString(), status: "DELETED" }).eq("id", tpl.id);
@@ -309,11 +310,20 @@ Deno.serve(async (req) => {
 
     // Resolve variáveis com dados reais do contacto (exemplos nunca são usados no envio)
     const { data: vars } = await admin.from("whatsapp_meta_template_variables").select("*").eq("template_id", tpl.id).order("var_index");
-    let contact: any = null, company: any = null;
+    let contact: any = null, company: any = null, ownerName: string | null = null;
     if (sp.data.contactId) {
       const { data: c } = await admin.from("contacts").select("*").eq("id", sp.data.contactId).eq("workspace_id", workspaceId).maybeSingle();
       contact = c;
-      if (c?.company_id) { const { data: co } = await admin.from("companies").select("name").eq("id", c.company_id).maybeSingle(); company = co; }
+      if (c?.company_id) { const { data: co } = await admin.from("companies").select("name").eq("id", c.company_id).eq("workspace_id", workspaceId).maybeSingle(); company = co; }
+      // Responsável comercial: vendedor (sales_reps) ou, na falta, o gestor atribuído.
+      if (c?.sales_rep_id) {
+        const { data: rep } = await admin.from("sales_reps").select("name").eq("id", c.sales_rep_id).eq("workspace_id", workspaceId).maybeSingle();
+        ownerName = rep?.name ?? null;
+      }
+      if (!ownerName && c?.assigned_to) {
+        const { data: pr } = await admin.from("profiles").select("full_name").eq("id", c.assigned_to).maybeSingle();
+        ownerName = pr?.full_name ?? null;
+      }
     }
     const resolve = (f: string | null): string | null => {
       if (!f || f === "manual") return null;
@@ -323,6 +333,7 @@ Deno.serve(async (req) => {
       if (f === "contact.phone") return contact?.phone ?? null;
       if (f === "contact.email") return contact?.email ?? null;
       if (f === "company.name") return company?.name ?? null;
+      if (f === "owner.name") return ownerName;
       return null;
     };
     const n = countBodyVariables(String((tpl.definition as any)?.body ?? ""));

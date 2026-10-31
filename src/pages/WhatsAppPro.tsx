@@ -413,7 +413,7 @@ export default function WhatsAppPro() {
             <Card className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Templates WhatsApp</h3>
-                <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/communication/templates")}>
+                <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/whatsapp-pro/templates")}>
                   Gerir todos
                 </Button>
               </div>
