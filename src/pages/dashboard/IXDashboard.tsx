@@ -26,6 +26,7 @@ import { formatEUR } from "@/lib/currency";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { aggregateClientsWithRental, type RentalInfo } from "@/lib/finance/rentalAttribution";
+import { computeMonthMetrics, computeVatByRate, isOpenCollectionCase } from "@/lib/dashboard/ixDashboardMetrics";
 
 
 type SectionId = "faturacao" | "cobrancas" | "clientes" | "itens" | "impostos";
@@ -129,19 +130,12 @@ export default function IXDashboard() {
   );
 
 
-  // Faturação — mês corrente
-  const monthMetrics = useMemo(() => {
-    const now = new Date();
-    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const currentMonth = invoices.filter((i) => new Date(i.issue_date).getTime() >= startMonth);
-    const total = currentMonth.reduce((s, i) => s + Number(i.total || 0), 0);
-    const paid = currentMonth.reduce((s, i) => s + Number(i.amount_paid || 0), 0);
-    return { count: currentMonth.length, total, paid, outstanding: total - paid };
-  }, [invoices]);
+  // Faturação — mês corrente (Lisboa; só FT/FR emitidas)
+  const monthMetrics = useMemo(() => computeMonthMetrics(invoices), [invoices]);
 
   // Cobranças — agregado dos casos abertos
   const collectionsMetrics = useMemo(() => {
-    const open = cases.filter((c) => c.status !== "paid");
+    const open = cases.filter((c) => isOpenCollectionCase(c.status));
     const totalDue = open.reduce((s, c) => s + Number(c.total_due || 0), 0);
     const buckets = { d030: 0, d3160: 0, d6190: 0, d90: 0 };
     open.forEach((c) => {
