@@ -41,3 +41,13 @@ describe("gestor de modelos Meta", () => {
     expect(canSendTemplate({ status: "APPROVED", category: "UTILITY", optedOut: true, marketingConsent: true }).ok).toBe(false);
   });
 });
+
+import { metaTemplateDeletePath } from "../../../supabase/functions/_shared/metaTemplateRules";
+describe("apagar modelo na Meta", () => {
+  it("com ID apaga só esse idioma", () => {
+    expect(metaTemplateDeletePath("aviso_fatura", "123")).toBe("/message_templates?hsm_id=123&name=aviso_fatura");
+  });
+  it("sem ID usa só o nome", () => {
+    expect(metaTemplateDeletePath("aviso_fatura", null)).toBe("/message_templates?name=aviso_fatura");
+  });
+});
