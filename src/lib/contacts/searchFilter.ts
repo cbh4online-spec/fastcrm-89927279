@@ -12,3 +12,9 @@ export function buildContactSearchOr(raw: string): string | null {
   if (!t) return null;
   return `name.ilike.%${t}%,email.ilike.%${t}%,company.ilike.%${t}%`;
 }
+
+export function buildCompanySearchOr(raw: string): string | null {
+  const t = sanitizeIlikeTerm(raw);
+  if (!t) return null;
+  return `name.ilike.%${t}%,email.ilike.%${t}%,industry.ilike.%${t}%`;
+}

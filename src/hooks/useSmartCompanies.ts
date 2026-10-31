@@ -1,3 +1,5 @@
+import { fetchAllPaged } from "@/lib/contacts/fetchAllPaged";
+import { buildCompanySearchOr } from "@/lib/contacts/searchFilter";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
@@ -132,6 +134,7 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters): ReturnType<t
         default: sortColumn = "company_score"; sortAscending = false;
       }
 
+      const buildQuery = () => {
       let query = workspaceClient
         .from("companies")
         .select(COMPANIES_SELECT_COLUMNS, { count: 'exact' })
@@ -152,7 +155,7 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters): ReturnType<t
         query = query.eq("ai_company_type", filters.companyType);
       }
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,industry.ilike.%${filters.search}%`);
+        { const or = buildCompanySearchOr(filters.search); if (or) query = query.or(or); }
       }
 
       // Smart filters at SQL level
@@ -168,17 +171,21 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters): ReturnType<t
         }
       }
 
-      // Server-side pagination (only when explicitly requested; otherwise fetch all up to 10k)
+      return query;
+      };
+
+      let data: any[] | null = null;
+      let count: number | null = null;
       if (paginate) {
         const from = (page as number) * (pageSize as number);
         const to = from + (pageSize as number) - 1;
-        query = query.range(from, to);
+        const res = await buildQuery().range(from, to);
+        if (res.error) throw res.error;
+        data = res.data; count = res.count;
       } else {
-        query = query.range(0, 9999);
+        const all = await fetchAllPaged<any>((f, t) => buildQuery().order("id", { ascending: true }).range(f, t));
+        data = all.rows; count = all.count;
       }
-
-      const { data, error, count } = await query;
-      if (error) throw error;
 
       const companies: SmartCompany[] = (data || []).map((c: any) => {
         const lastContact = c.last_contact_at ? new Date(c.last_contact_at) : null;

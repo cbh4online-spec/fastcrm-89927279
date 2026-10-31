@@ -1,3 +1,4 @@
+import { fetchAllPaged } from "@/lib/contacts/fetchAllPaged";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
@@ -166,20 +167,20 @@ export function useCompanies(options?: { archiveState?: CompaniesArchiveState })
     queryFn: async () => {
       if (!currentWorkspace) return [];
 
-      let request = workspaceClient
-        .from("companies")
-        .select("*")
-        .eq("workspace_id", currentWorkspace.id)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-
-      if (archiveState === "active") request = request.is("archived_at", null);
-      else if (archiveState === "archived") request = request.not("archived_at", "is", null);
-
-      const { data, error } = await request;
-
-      if (error) throw error;
-      return data as unknown as Company[];
+      const build = () => {
+        let request = workspaceClient
+          .from("companies")
+          .select("*")
+          .eq("workspace_id", currentWorkspace.id)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true });
+        if (archiveState === "active") request = request.is("archived_at", null);
+        else if (archiveState === "archived") request = request.not("archived_at", "is", null);
+        return request;
+      };
+      const { rows } = await fetchAllPaged<any>((f, t) => build().range(f, t) as any);
+      return rows as unknown as Company[];
     },
     enabled: !!currentWorkspace,
   });
