@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCompanies, Company } from "@/hooks/useCompanies";
+import { useCompanies, useCompany, Company } from "@/hooks/useCompanies";
 import { useEntityNavIds } from "@/hooks/useEntityNavIds";
 import { useEntityListNavigation } from "@/hooks/useEntityListNavigation";
 import { usePageElementVisibility } from '@/hooks/usePageElementVisibility';
@@ -128,7 +128,8 @@ export function CompanyDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { companies, isLoading, updateCompany, deleteCompany } = useCompanies();
+  const { updateCompany, deleteCompany } = useCompanies();
+  const { data: companyData, isLoading } = useCompany(id);
   const { currentWorkspace } = useWorkspace();
   const { isModuleInstalled } = useWorkspaceModules();
   const { data: counts } = useEntityCounts('company', id);
@@ -150,7 +151,7 @@ export function CompanyDetailWithSidebar() {
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const { isElementVisible: isActionVisible } = usePageElementVisibility('companies');
 
-  const company = companies.find(c => c.id === id);
+  const company = companyData ?? undefined;
   const showEnrichButton = isModuleInstalled('google-local-services');
   const generateSuggestions = useGenerateFieldSuggestions();
 
@@ -177,10 +178,11 @@ export function CompanyDetailWithSidebar() {
     
     await updateCompany.mutateAsync({
       id: company.id,
-      [field]: value || undefined,
+      [field]: typeof value === "string" ? (value.trim() === "" ? null : value) : value ?? null,
     });
+    queryClient.invalidateQueries({ queryKey: ["company", company.id] });
     toast.success("Campo atualizado");
-  }, [company, updateCompany, currentWorkspace]);
+  }, [company, updateCompany, currentWorkspace, queryClient]);
 
   const handleNifDataReceived = useCallback(async (data: NifLookupResult) => {
     if (!company) return;

@@ -1,3 +1,4 @@
+import { fetchAllPaged } from "@/lib/contacts/fetchAllPaged";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,17 +43,16 @@ export function useCompanyAggregatedInvoices(companyId: string | undefined) {
       const contactIds = (contacts || []).map((c: any) => c.id);
 
       // 2. Fetch invoices directly linked to the company
-      const directPromise = supabase
-        .from("invoices")
-        .select("id,status,total,subtotal,tax_amount,amount_paid,issue_date,paid_at,due_date,company_id,contact_id,invoice_number,workspace_id")
-        .eq("company_id", companyId);
+      const cols = "id,status,total,subtotal,tax_amount,amount_paid,issue_date,paid_at,due_date,company_id,contact_id,invoice_number,workspace_id";
+      const directPromise = fetchAllPaged<any>((from, to) =>
+        supabase.from("invoices").select(cols).eq("company_id", companyId).order("id").range(from, to) as any,
+      ).then((r) => ({ data: r.rows, error: null }), (error) => ({ data: [] as any[], error }));
 
       // 3. Fetch invoices linked to any of the company's contacts
       const viaContactsPromise = contactIds.length > 0
-        ? supabase
-            .from("invoices")
-            .select("id,status,total,subtotal,tax_amount,amount_paid,issue_date,paid_at,due_date,company_id,contact_id,invoice_number,workspace_id")
-            .in("contact_id", contactIds)
+        ? fetchAllPaged<any>((from, to) =>
+            supabase.from("invoices").select(cols).in("contact_id", contactIds).order("id").range(from, to) as any,
+          ).then((r) => ({ data: r.rows, error: null }), (error) => ({ data: [] as any[], error }))
         : Promise.resolve({ data: [] as any[], error: null });
 
       const [direct, viaContacts] = await Promise.all([directPromise, viaContactsPromise]);
