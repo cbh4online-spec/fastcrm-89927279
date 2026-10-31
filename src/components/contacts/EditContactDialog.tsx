@@ -1,3 +1,5 @@
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { emptyToNull } from "@/lib/contacts/editPayload";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useContacts, Contact } from "@/hooks/useContacts";
 import {
@@ -89,19 +91,19 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
       await updateContact.mutateAsync({
         id: contact.id,
         name: formData.name.trim(),
-        email: formData.email.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
-        company: formData.company.trim() || undefined,
-        job_title: formData.job_title.trim() || undefined,
-        notes: formData.notes.trim() || undefined,
+        email: emptyToNull(formData.email),
+        phone: emptyToNull(formData.phone),
+        company: emptyToNull(formData.company),
+        job_title: emptyToNull(formData.job_title),
+        notes: emptyToNull(formData.notes),
         tags: formData.tags
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
-        linkedin_url: formData.linkedin_url.trim() || undefined,
-        facebook_url: formData.facebook_url.trim() || undefined,
-        instagram_url: formData.instagram_url.trim() || undefined,
-        twitter_url: formData.twitter_url.trim() || undefined,
+        linkedin_url: emptyToNull(formData.linkedin_url),
+        facebook_url: emptyToNull(formData.facebook_url),
+        instagram_url: emptyToNull(formData.instagram_url),
+        twitter_url: emptyToNull(formData.twitter_url),
       });
       onOpenChange(false);
     } finally {
@@ -240,11 +242,9 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-phone">Telefone</Label>
-                <Input
-                  id="edit-phone"
-                  type="tel"
+                <PhoneInput
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, phone: val })}
                   placeholder="+351 912 345 678"
                 />
               </div>

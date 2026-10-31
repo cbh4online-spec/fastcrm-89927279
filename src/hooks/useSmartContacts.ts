@@ -1,3 +1,5 @@
+import { fetchAllPaged } from "@/lib/contacts/fetchAllPaged";
+import { buildContactSearchOr, sanitizeIlikeTerm } from "@/lib/contacts/searchFilter";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
@@ -116,6 +118,7 @@ export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typ
         default: sortColumn = "contact_score"; sortAscending = false;
       }
 
+      const buildQuery = () => {
       let query = workspaceClient
         .from("contacts")
         .select(CONTACTS_SELECT_COLUMNS, { count: 'exact' })
@@ -136,13 +139,13 @@ export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typ
         query = query.eq("source", filters.source);
       }
       if (filters?.company) {
-        query = query.ilike("company", `%${filters.company}%`);
+        { const t = sanitizeIlikeTerm(filters.company); if (t) query = query.ilike("company", `%${t}%`); }
       }
       if (filters?.contactType && filters.contactType !== "all") {
         query = query.eq("ai_contact_type", filters.contactType);
       }
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,company.ilike.%${filters.search}%`);
+        { const or = buildContactSearchOr(filters.search); if (or) query = query.or(or); }
       }
 
       // Smart filters at SQL level
@@ -158,17 +161,22 @@ export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typ
         }
       }
 
+      return query;
+      };
+
+      let data: any[] | null = null;
+      let count: number | null = null;
       // Server-side pagination (only when explicitly requested; otherwise fetch all up to 10k)
       if (paginate) {
         const from = (page as number) * (pageSize as number);
         const to = from + (pageSize as number) - 1;
-        query = query.range(from, to);
+        const res = await buildQuery().range(from, to);
+        if (res.error) throw res.error;
+        data = res.data; count = res.count;
       } else {
-        query = query.range(0, 9999);
+        const all = await fetchAllPaged<any>((f, t) => buildQuery().order("id", { ascending: true }).range(f, t));
+        data = all.rows; count = all.count;
       }
-
-      const { data, error, count } = await query;
-      if (error) throw error;
 
       const contacts: SmartContact[] = (data || []).map((c: any) => {
         const lastContact = c.last_contact_at ? new Date(c.last_contact_at) : null;

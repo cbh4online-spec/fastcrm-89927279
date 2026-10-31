@@ -1,3 +1,4 @@
+import { fetchAllPaged } from "@/lib/contacts/fetchAllPaged";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
@@ -92,20 +93,20 @@ export function useContacts(options?: { archiveState?: ContactsArchiveState }) {
     queryFn: async () => {
       if (!currentWorkspace) return [];
 
-      let request = workspaceClient
-        .from("contacts")
-        .select("*")
-        .eq("workspace_id", currentWorkspace.id)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-
-      if (archiveState === "active") request = request.is("archived_at", null);
-      else if (archiveState === "archived") request = request.not("archived_at", "is", null);
-
-      const { data, error } = await request;
-
-      if (error) throw error;
-      return data as Contact[];
+      const build = () => {
+        let request = workspaceClient
+          .from("contacts")
+          .select("*")
+          .eq("workspace_id", currentWorkspace.id)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true });
+        if (archiveState === "active") request = request.is("archived_at", null);
+        else if (archiveState === "archived") request = request.not("archived_at", "is", null);
+        return request;
+      };
+      const { rows } = await fetchAllPaged<Contact>((f, t) => build().range(f, t) as any);
+      return rows;
     },
     enabled: !!currentWorkspace,
   });
