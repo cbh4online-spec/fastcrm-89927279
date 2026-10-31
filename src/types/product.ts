@@ -416,7 +416,10 @@ export interface ProductImage {
 export function calculateProductMargins(product: Product): ProductWithMargins {
   const directCost = product.direct_cost ?? 0;
   const operationalCost = product.operational_cost ?? 0;
-  const basePrice = product.base_price;
+  // Margens sempre sobre o preço líquido (sem IVA).
+  const rawPrice = Number(product.base_price) || 0;
+  const vat = Number(product.tax_rate_estimate_pct ?? 23) || 0;
+  const basePrice = product.tax_included && vat > 0 ? rawPrice / (1 + vat / 100) : rawPrice;
 
   const grossMarginValue = basePrice - directCost;
   const grossMarginPct = basePrice > 0 ? (grossMarginValue / basePrice) * 100 : 0;

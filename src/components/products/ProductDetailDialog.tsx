@@ -215,7 +215,11 @@ export function ProductDetailDialog({
   const netBasePrice = product ? getNetPrice(product) : 0;
   const grossBasePrice = product ? getGrossPrice(product) : 0;
   const priceIncludesVat = Boolean(product?.tax_included);
-  const netDirectCost = product?.direct_cost ?? null;
+  // Custo total = custo direto + custo operacional (convenção do projeto).
+  const netDirectCost =
+    product?.direct_cost != null
+      ? Number(product.direct_cost) + (Number(product.operational_cost) || 0)
+      : null;
 
 
   const handleArchive = async () => {
