@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { calculateProductMargins } from "@/types/product";
 
 const base: any = { base_price: 123, direct_cost: 50, operational_cost: 10, tax_included: true, tax_rate_estimate_pct: 23 };
