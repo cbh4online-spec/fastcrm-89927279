@@ -1,4 +1,5 @@
 import { openWhatsAppChat } from "@/lib/whatsapp/openWhatsAppChat";
+import { ApprovedTemplateButton } from "@/components/whatsapp-pro/meta-templates/ApprovedTemplateButton";
 import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { Phone, Send, Loader2, Search, Users, User, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -278,6 +279,7 @@ export function QuickWhatsAppZapiDialog({ open, onOpenChange }: QuickWhatsAppZap
               Abrir no WhatsApp Web
             </Button>
           )}
+          {isOfficialLine && tab === "dm" && <ApprovedTemplateButton phone={phone} />}
           <Button
             onClick={handleSend}
             disabled={

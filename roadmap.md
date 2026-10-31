@@ -67,3 +67,6 @@
 - [ ] Receber respostas no CRM — exige mudar a estrutura da aplicação (decisão do utilizador).
 
 - Gerir modelos oficiais Meta (feito: criar/listar/apagar). Por fazer: enviar modelo aprovado fora das 24 h a partir da Nova Mensagem/Inbox.
+
+- [x] Gestor de modelos Meta (rascunhos, secções A–E, média, botões, versões, envio de aprovados)
+- [ ] Receber respostas/estados da Meta e correr ações dos botões — bloqueado: requer mudança para stack moderna
