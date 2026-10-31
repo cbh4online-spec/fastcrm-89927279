@@ -204,20 +204,21 @@ export default function IXDashboard() {
               </p>
             </div>
             {/* Atalhos rápidos — estilo IX */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {[
                 { label: "Novo Orçamento", to: "/dashboard/proposals/new" },
                 { label: "Nova Guia de Transporte", to: "/dashboard/invoices/new?type=transport" },
                 { label: "Novo Contacto", to: "/dashboard/contacts/new" },
                 { label: "Novo Item", to: "/dashboard/products?new=1" },
-                { label: "Exportar SAF-T", to: "/dashboard/imports/saft" },
+                { label: "Importar SAF-T", to: "/dashboard/imports/saft" },
                 { label: "Lote de Faturas", to: "/dashboard/invoices?bulk=1" },
               ].map((a) => (
                 <button
+                  type="button"
                   key={a.label}
                   onClick={() => navigate(a.to)}
                   className={cn(
-                    "h-10 px-4 rounded-full border border-border bg-card text-sm font-semibold text-foreground",
+                    "h-10 shrink-0 px-4 rounded-full border border-border bg-card text-sm font-semibold text-foreground",
                     "shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors whitespace-nowrap",
                   )}
                 >
@@ -225,8 +226,9 @@ export default function IXDashboard() {
                 </button>
               ))}
               <button
+                type="button"
                 onClick={() => navigate("/dashboard/invoices/new")}
-                className="h-10 px-5 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
+                className="order-first sm:order-none h-10 shrink-0 px-5 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
               >
                 Nova Fatura
               </button>
