@@ -182,6 +182,13 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
           facebook_url: lead.facebook_url || undefined,
           instagram_url: lead.instagram_url || undefined,
           twitter_url: lead.twitter_url || undefined,
+          tax_id: (lead as any).tax_id || undefined,
+          address: (lead as any).address || undefined,
+          city: (lead as any).city || undefined,
+          postal_code: (lead as any).postal_code || undefined,
+          region: (lead as any).region || undefined,
+          country: (lead as any).country || undefined,
+          website: (lead as any).website || undefined,
           lifecycle_stage: 'lead',
         } as any);
         newEntityId = result.id;
@@ -196,8 +203,17 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
           facebook_url: lead.facebook_url || undefined,
           instagram_url: lead.instagram_url || undefined,
           twitter_url: lead.twitter_url || undefined,
+          tax_id: (lead as any).tax_id || undefined,
+          address: (lead as any).address || undefined,
+          city: (lead as any).city || undefined,
+          postal_code: (lead as any).postal_code || undefined,
+          region: (lead as any).region || undefined,
+          country: (lead as any).country || undefined,
+          website: (lead as any).website || undefined,
+          industry: (lead as any).industry || undefined,
+          cae_codes: (lead as any).cae_codes || undefined,
           entity_type: "empresa",
-        });
+        } as any);
         newEntityId = result.id;
       }
 
