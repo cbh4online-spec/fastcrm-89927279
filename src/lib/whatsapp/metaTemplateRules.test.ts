@@ -11,3 +11,33 @@ describe("modelos Meta", () => {
   it("converte nome", () => expect(toMetaTemplateName("Confirmação Reunião")).toBe("confirmacao_reuniao"));
   it("inclui exemplos no corpo", () => expect(buildMetaComponents(base)[0]).toMatchObject({ type: "BODY", example: { body_text: [["Ana", "FT 2026/12"]] } }));
 });
+
+import { validateMetaTemplateFields as vf, buildMetaComponents as bc, canSendTemplate } from "../../../supabase/functions/_shared/metaTemplateRules";
+describe("gestor de modelos Meta", () => {
+  const base = { name: "aviso", category: "UTILITY" as const, language: "pt_PT", body: "Olá, a sua encomenda já seguiu e chega em breve.", examples: [] };
+  it("rejeita resposta rápida com mais de 25 caracteres", () => {
+    expect(vf({ ...base, buttons: [{ type: "QUICK_REPLY", text: "x".repeat(26) }] }).buttons?.length).toBeGreaterThan(0);
+  });
+  it("rejeita mais de 2 botões de website", () => {
+    const u = { type: "URL" as const, url: "https://a.pt" };
+    expect(vf({ ...base, buttons: [{ ...u, text: "A" }, { ...u, text: "B" }, { ...u, text: "C" }] }).buttons).toContain("No máximo 2 botões de website.");
+  });
+  it("exige ficheiro para cabeçalho de imagem", () => {
+    expect(vf({ ...base, headerType: "IMAGE" }).header).toBeTruthy();
+    expect(vf({ ...base, headerType: "IMAGE", headerHandle: "h1" }).header).toBeUndefined();
+  });
+  it("autenticação usa botão OTP e não texto livre", () => {
+    const c = bc({ ...base, category: "AUTHENTICATION", body: "" }) as any[];
+    expect(c.find((x) => x.type === "BUTTONS").buttons[0].type).toBe("OTP");
+  });
+  it("bloqueia envio de modelo não aprovado", () => {
+    expect(canSendTemplate({ status: "PENDING", category: "UTILITY", optedOut: false, marketingConsent: true }).ok).toBe(false);
+  });
+  it("bloqueia marketing sem consentimento e permite utilidade", () => {
+    expect(canSendTemplate({ status: "APPROVED", category: "MARKETING", optedOut: false, marketingConsent: false }).ok).toBe(false);
+    expect(canSendTemplate({ status: "APPROVED", category: "UTILITY", optedOut: false, marketingConsent: false }).ok).toBe(true);
+  });
+  it("bloqueia contacto com opt-out", () => {
+    expect(canSendTemplate({ status: "APPROVED", category: "UTILITY", optedOut: true, marketingConsent: true }).ok).toBe(false);
+  });
+});
