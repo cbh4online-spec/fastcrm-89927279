@@ -46,6 +46,8 @@ interface FilterSidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
   className?: string;
+  /** Texto do destaque de filtros inteligentes, adaptado ao módulo. */
+  smartFiltersHint?: string;
 }
 
 export function FilterSidebar({
@@ -58,6 +60,7 @@ export function FilterSidebar({
   isOpen = true,
   onClose,
   className,
+  smartFiltersHint = "Os filtros são enriquecidos com IA para priorizar contactos com maior potencial.",
 }: FilterSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -140,7 +143,7 @@ export function FilterSidebar({
             <span className="text-xs font-semibold text-primary">Filtros Inteligentes</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Os filtros são enriquecidos com IA para priorizar contactos com maior potencial.
+            {smartFiltersHint}
           </p>
         </div>
       </div>

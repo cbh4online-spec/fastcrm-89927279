@@ -705,12 +705,13 @@ export function CreateProductDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const priceValue = parseFloat(basePrice) || 0;
-    const costValue = parseFloat(directCost) || 0;
-    
-    // Hard block: price below cost
+    // Valores líquidos (sem IVA) e custos já resolvidos em € — ver cálculo em tempo real acima.
+    const priceValue = price;
+    const costValue = cost;
+
+    // Hard block: preço líquido abaixo do custo direto
     if (priceValue > 0 && costValue > 0 && priceValue < costValue) {
-      toast.error("O preço de venda não pode ser inferior ao custo. Corrija antes de guardar.");
+      toast.error("O preço de venda sem IVA não pode ser inferior ao custo. Corrija antes de guardar.");
       return;
     }
 
@@ -720,13 +721,10 @@ export function CreateProductDialog({
       return;
     }
 
-    // Warning: margin below 10% threshold
-    if (priceValue > 0 && costValue > 0) {
-      const marginPct = ((priceValue - costValue) / costValue) * 100;
-      if (marginPct < 10) {
-        setShowMarginWarning(true);
-        return;
-      }
+    // Warning: margem comercial (sobre PVP líquido, custo total) abaixo de 10%
+    if (priceValue > 0 && costValue > 0 && contributionMarginPct < 10) {
+      setShowMarginWarning(true);
+      return;
     }
     
     await handleActualSubmit();

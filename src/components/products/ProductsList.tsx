@@ -357,6 +357,7 @@ export function ProductsList() {
           }}
           isOpen={state.showFilterSidebar}
           onClose={() => state.setShowFilterSidebar(false)}
+          smartFiltersHint="Combine filtros para encontrar rapidamente artigos sem stock, sem preço ou fora da loja."
         />
       )}
 
