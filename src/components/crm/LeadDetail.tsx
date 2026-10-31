@@ -97,7 +97,7 @@ export function LeadDetail() {
     if (!lead) return;
     await updateLead.mutateAsync({
       id: lead.id,
-      [field]: value || undefined,
+      [field]: value || null,
     });
     toast.success("Campo atualizado");
   }, [lead, updateLead]);

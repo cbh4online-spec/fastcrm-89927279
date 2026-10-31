@@ -98,26 +98,26 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
       await updateLead.mutateAsync({
         id: lead.id,
         name: formData.name.trim(),
-        email: formData.email.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
-        company_name: formData.company_name.trim() || undefined,
-        website: formData.website.trim() || undefined,
-        industry: formData.industry.trim() || undefined,
-        tax_id: formData.tax_id.trim() || undefined,
-        source: formData.source.trim() || undefined,
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() || null,
+        company_name: formData.company_name.trim() || null,
+        website: formData.website.trim() || null,
+        industry: formData.industry.trim() || null,
+        tax_id: formData.tax_id.trim() || null,
+        source: formData.source.trim() || null,
         status: formData.status,
         tags: formData.tags
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
-        notes: formData.notes.trim() || undefined,
-        address: formData.address.trim() || undefined,
-        address_number: formData.address_number.trim() || undefined,
-        address_floor: formData.address_floor.trim() || undefined,
-        postal_code: formData.postal_code.trim() || undefined,
-        city: formData.city.trim() || undefined,
-        region: formData.region.trim() || undefined,
-        country: formData.country.trim() || undefined,
+        notes: formData.notes.trim() || null,
+        address: formData.address.trim() || null,
+        address_number: formData.address_number.trim() || null,
+        address_floor: formData.address_floor.trim() || null,
+        postal_code: formData.postal_code.trim() || null,
+        city: formData.city.trim() || null,
+        region: formData.region.trim() || null,
+        country: formData.country.trim() || null,
       });
       toast.success("Lead atualizado");
       onOpenChange(false);
