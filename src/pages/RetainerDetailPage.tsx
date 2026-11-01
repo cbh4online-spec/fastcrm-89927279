@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Send, ChevronLeft, ChevronRight, Download, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,10 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  useCreateRetainerDraftInvoice, useCreateRetainerWorkItem, useDeleteRetainerEntry, useLinkToRetainer, useRetainerMonthInvoice, useProfileNames, useRetainer, useRetainerEntries, useRetainerLinks,
+  useCreateRetainerDraftInvoice, useCreateRetainerWorkItem, useDeleteRetainerEntry, useLinkToRetainer, useRetainerMonthInvoice, useProfileNames, useRetainer, useRetainerEntries, useRetainerLinks, useSendHoursForApproval,
 } from "@/hooks/useRetainers";
 import type { RetainerEntry } from "@/lib/retainers/retainerUsage";
-import { buildRetainerInvoiceLines, computeRetainerUsage, formatMinutes, isRetainerBillableMonth } from "@/lib/retainers/retainerUsage";
+import { APPROVAL_LABEL, buildRetainerInvoiceLines, computeRetainerUsage, formatMinutes, isRetainerBillableMonth, summarizeApproval } from "@/lib/retainers/retainerUsage";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { lisbonMonthKey } from "@/lib/dates/currentMonth";
@@ -46,6 +46,7 @@ export default function RetainerDetailPage() {
   const link = useLinkToRetainer();
   const del = useDeleteRetainerEntry();
   const createInvoice = useCreateRetainerDraftInvoice();
+  const sendApproval = useSendHoursForApproval();
   const { data: monthInvoice } = useRetainerMonthInvoice(id, monthKey);
   const [invoiceConfirm, setInvoiceConfirm] = useState(false);
   const [pending, setPending] = useState<{ kind: "project" | "ticket"; id: string; retainerId: string | null; label: string; minutes: number | null } | null>(null);
@@ -99,11 +100,14 @@ export default function RetainerDetailPage() {
   const [y, m] = monthKey.split("-").map(Number);
   const { from, to } = monthRange(y, m);
 
+  const approval = summarizeApproval(entries);
+  const toSend = approval.submitted + approval.disputed;
+
   const exportCsv = () => {
-    const header = ["Data", "Tipo", "Projeto/Ticket", "Pessoa", "Descrição", "Minutos", "Horas", "Classificação"];
+    const header = ["Data", "Tipo", "Projeto/Ticket", "Pessoa", "Descrição", "Minutos", "Horas", "Classificação", "Cliente"];
     const rows = [...entries].sort((a, b) => a.date.localeCompare(b.date)).map((e) => [
       e.date, e.source === "project" ? "Projeto" : "Suporte", e.parentLabel, names?.get(e.userId ?? "") ?? "",
-      e.description ?? "", String(e.minutes), (e.minutes / 60).toFixed(2).replace(".", ","), flagged.get(e.id) ?? "",
+      e.description ?? "", String(e.minutes), (e.minutes / 60).toFixed(2).replace(".", ","), flagged.get(e.id) ?? "", APPROVAL_LABEL[e.approval ?? "submitted"],
     ]);
     const csv = [header, ...rows].map((r) => r.map(csvCell).join(";")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
@@ -209,6 +213,20 @@ export default function RetainerDetailPage() {
         })}
       </div>
 
+      <IXCard title="Aprovação do cliente" description="O cliente aprova ou contesta as horas no portal do cliente, em «Projetos & Horas».">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-foreground">
+            <li>Aprovadas: <strong>{formatMinutes(approval.approved)}</strong></li>
+            <li>A aguardar cliente: <strong>{formatMinutes(approval.pending_client)}</strong></li>
+            <li>Contestadas: <strong className={approval.disputed ? "text-destructive" : ""}>{formatMinutes(approval.disputed)}</strong></li>
+            <li>Por enviar: <strong>{formatMinutes(approval.submitted)}</strong></li>
+          </ul>
+          <Button variant="outline" onClick={() => sendApproval.mutate(entries)} disabled={toSend === 0 || sendApproval.isPending || !retainer.company_id}>
+            <Send className="mr-2 h-4 w-4" />Enviar {formatMinutes(toSend)} para aprovação
+          </Button>
+        </div>
+      </IXCard>
+
       <IXCard title="Extrato de horas" description={`${entries.length} registos em ${periodLabel(from, to)}`}
         actions={<Button variant="outline" size="sm" onClick={exportCsv} disabled={entries.length === 0}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>}>
         {entriesLoading ? <p className="text-sm text-muted-foreground">A carregar...</p>
@@ -218,17 +236,19 @@ export default function RetainerDetailPage() {
               <Table>
                 <TableHeader><TableRow>
                   <TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Projeto / Ticket</TableHead>
-                  <TableHead>Pessoa</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Duração</TableHead><TableHead>Conta</TableHead><TableHead />
+                  <TableHead>Pessoa</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Duração</TableHead><TableHead>Conta</TableHead><TableHead>Cliente</TableHead><TableHead />
                 </TableRow></TableHeader>
                 <TableBody>{entries.map((e) => (
                   <TableRow key={e.id}>
                     <TableCell className="whitespace-nowrap">{e.date.split("-").reverse().join("/")}</TableCell>
                     <TableCell>{e.source === "project" ? "Projeto" : "Suporte"}</TableCell>
-                    <TableCell className="max-w-48 truncate">{e.parentLabel}</TableCell>
+                    <TableCell className="max-w-48 truncate" title={e.taskLabel ? `${e.parentLabel} › ${e.taskLabel}` : e.parentLabel}>{e.parentLabel}{e.taskLabel && <span className="block truncate text-xs text-muted-foreground">{e.taskLabel}</span>}</TableCell>
                     <TableCell className="whitespace-nowrap">{names?.get(e.userId ?? "") ?? "—"}</TableCell>
                     <TableCell className="max-w-72 truncate" title={e.description ?? ""}>{e.description ?? "—"}</TableCell>
                     <TableCell className="whitespace-nowrap text-right">{formatMinutes(e.minutes)}</TableCell>
                     <TableCell><Badge variant={flagged.get(e.id)?.includes("Extra") || flagged.get(e.id) === "Parcial extra" ? "destructive" : "outline"}>{flagged.get(e.id)}</Badge></TableCell>
+                    <TableCell className="whitespace-nowrap"><Badge variant={e.approval === "disputed" ? "destructive" : e.approval === "approved" ? "default" : "outline"} title={e.clientNote ?? undefined}>{APPROVAL_LABEL[e.approval ?? "submitted"]}</Badge>
+                      {e.approval === "disputed" && e.clientNote && <span className="block max-w-48 truncate text-xs text-destructive">{e.clientNote}</span>}</TableCell>
                     <TableCell className="whitespace-nowrap">{e.userId === user?.id && (<>
                       <Button variant="ghost" size="icon" aria-label="Corrigir registo" onClick={() => setEditEntry(e)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" aria-label="Apagar registo" onClick={() => del.mutate({ source: e.source, id: e.id })}><Trash2 className="h-4 w-4" /></Button>
