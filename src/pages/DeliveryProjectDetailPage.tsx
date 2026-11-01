@@ -14,6 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Sparkles, AlertTriangle, CheckCircle2, Clock, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { RetainerLinkBadge } from "@/components/retainers/RetainerLinkBadge";
+import { Switch } from "@/components/ui/switch";
+import { useCreateProjectTask, useCreateTicketFromTask } from "@/hooks/useRetainers";
+import { Link } from "react-router-dom";
 
 export default function DeliveryProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +34,10 @@ export default function DeliveryProjectDetailPage() {
   const [blockTitle, setBlockTitle] = useState("");
   const [blockSeverity, setBlockSeverity] = useState("medium");
   const [aiSummary, setAiSummary] = useState<any>(null);
+  const createTask = useCreateProjectTask();
+  const ticketFromTask = useCreateTicketFromTask();
+  const [newTask, setNewTask] = useState("");
+  const [newTaskHours, setNewTaskHours] = useState("");
 
   if (isLoading || !data?.project) return <div className="p-6">A carregar...</div>;
   const p: any = data.project;
@@ -97,6 +104,13 @@ export default function DeliveryProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-2">
+          <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault();
+              createTask.mutate({ projectId: p.id, workspaceId: p.workspace_id, title: newTask, estimatedHours: newTaskHours ? Number(newTaskHours.replace(",", ".")) : null, visible: true },
+                { onSuccess: () => { setNewTask(""); setNewTaskHours(""); } }); }}>
+            <Input aria-label="Nova tarefa" className="min-w-56 flex-1" placeholder="Nova tarefa, ex: Criar campanha de Natal" value={newTask} maxLength={200} onChange={(e) => setNewTask(e.target.value)} />
+            <Input aria-label="Horas estimadas" className="w-32" inputMode="decimal" placeholder="Horas est." value={newTaskHours} onChange={(e) => setNewTaskHours(e.target.value)} />
+            <Button type="submit" disabled={createTask.isPending || newTask.trim().length < 3}>Adicionar tarefa</Button>
+          </form>
           {data.tasks.length === 0 && <p className="text-muted-foreground">Este projeto ainda não tem tarefas.</p>}
           {data.tasks.map((t: any) => (
             <Card key={t.id}><CardContent className="p-4 flex items-center justify-between gap-3">
@@ -106,8 +120,13 @@ export default function DeliveryProjectDetailPage() {
                   {t.required && <Badge variant="outline" className="text-xs">obrigatório</Badge>}
                   {t.visible_to_customer && <Badge variant="outline" className="text-xs">cliente</Badge>}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">{t.task_type} · {t.estimated_hours ?? 0}h</div>
+                <div className="text-xs text-muted-foreground mt-1">{t.task_type} · {Number(t.used_hours ?? 0)}h / {t.estimated_hours ?? 0}h</div>
               </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Switch checked={!!t.visible_to_customer} aria-label="Visível no portal do cliente" onCheckedChange={(v) => updateTask.mutate({ id: t.id, visible_to_customer: v })} />Cliente vê
+              </label>
+              <Button variant="outline" size="sm" disabled={ticketFromTask.isPending}
+                onClick={() => ticketFromTask.mutate({ task: t, project: p })}>Abrir ticket</Button>
               <Select value={t.status} onValueChange={(v) => updateTask.mutate({ id: t.id, status: v, completed_at: v === "completed" ? new Date().toISOString() : null })}>
                 <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
                 <SelectContent>

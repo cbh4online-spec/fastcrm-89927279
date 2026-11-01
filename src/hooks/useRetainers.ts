@@ -381,3 +381,23 @@ export function useCreateTicketFromTask() {
     onError: (e: any) => toast.error(e.message ?? "Erro ao criar ticket"),
   });
 }
+
+/** Cria uma tarefa simples num projeto (por defeito visível ao cliente). */
+export function useCreateProjectTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { projectId: string; workspaceId: string; title: string; estimatedHours?: number | null; visible: boolean }) => {
+      const t = input.title.trim();
+      if (t.length < 3 || t.length > 200) throw new Error("Indique um nome entre 3 e 200 caracteres");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada");
+      const { error } = await db.from("implementation_project_tasks").insert({
+        project_id: input.projectId, workspace_id: input.workspaceId, title: t, created_by: user.id,
+        estimated_hours: input.estimatedHours ?? null, visible_to_customer: input.visible,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Tarefa criada"); qc.invalidateQueries({ queryKey: ["impl-project"] }); qc.invalidateQueries({ queryKey: [KEY] }); },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao criar tarefa"),
+  });
+}
