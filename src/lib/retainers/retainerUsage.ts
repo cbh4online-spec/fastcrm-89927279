@@ -96,3 +96,32 @@ export function isRetainerBillableMonth(
   if (r.end_date && monthKey > r.end_date.slice(0, 7)) return false;
   return true;
 }
+
+export interface RetainerInvoiceLine { description: string; quantity: number; unit_price: number; tax_rate: number; }
+
+/** Marcador único por avença+mês, guardado nas notas, para impedir faturas duplicadas. */
+export function retainerInvoiceTag(retainerId: string, monthKey: string) {
+  return `[avenca:${retainerId}:${monthKey}]`;
+}
+
+/**
+ * Linhas do rascunho de fatura do mês: mensalidade (só se o mês é faturável)
+ * + horas extra (horas decimais arredondadas a 2 casas × taxa). Valores sem IVA.
+ */
+export function buildRetainerInvoiceLines(
+  retainer: { name: string; monthly_fee: number; overage_hourly_rate: number },
+  monthKey: string,
+  usage: Pick<RetainerUsage, "overageMinutes">,
+  feeDue: boolean,
+  taxRate = 23,
+): RetainerInvoiceLine[] {
+  const [y, m] = monthKey.split("-");
+  const period = `${m}/${y}`;
+  const lines: RetainerInvoiceLine[] = [];
+  const fee = Number(retainer.monthly_fee) || 0;
+  if (feeDue && fee > 0) lines.push({ description: `Avença ${retainer.name} — ${period}`, quantity: 1, unit_price: fee, tax_rate: taxRate });
+  const hours = Math.round((usage.overageMinutes / 60) * 100) / 100;
+  const rate = Number(retainer.overage_hourly_rate) || 0;
+  if (hours > 0 && rate > 0) lines.push({ description: `Horas extra ${retainer.name} — ${period} (${formatMinutes(usage.overageMinutes)})`, quantity: hours, unit_price: rate, tax_rate: taxRate });
+  return lines;
+}

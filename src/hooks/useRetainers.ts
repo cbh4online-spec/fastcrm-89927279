@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { monthRange } from "@/lib/dates/monthRange";
-import { lisbonDate, type RetainerEntry } from "@/lib/retainers/retainerUsage";
+import { lisbonDate, retainerInvoiceTag, type RetainerEntry, type RetainerInvoiceLine } from "@/lib/retainers/retainerUsage";
 
 export interface ServiceRetainer {
   id: string;
@@ -190,5 +190,84 @@ export function useDeleteRetainerEntry() {
     },
     onSuccess: () => { toast.success("Registo apagado"); qc.invalidateQueries({ queryKey: [KEY] }); },
     onError: (e: any) => toast.error(e.message ?? "Erro ao apagar"),
+  });
+}
+
+/** Fatura do mês já criada para esta avença (pelo marcador nas notas). */
+export function useRetainerMonthInvoice(retainerId?: string, monthKey?: string) {
+  const { currentWorkspace: ws } = useWorkspace();
+  return useQuery({
+    queryKey: [KEY, "invoice", ws?.id, retainerId, monthKey],
+    enabled: !!ws?.id && !!retainerId && !!monthKey,
+    queryFn: async () => {
+      const { data, error } = await db.from("invoices").select("id, invoice_number, status")
+        .eq("workspace_id", ws!.id).ilike("notes", `%${retainerInvoiceTag(retainerId!, monthKey!)}%`)
+        .order("created_at", { ascending: false }).limit(1);
+      if (error) throw error;
+      return (data?.[0] ?? null) as { id: string; invoice_number: string; status: string } | null;
+    },
+  });
+}
+
+/** Cria um RASCUNHO de fatura (nunca emitida) com mensalidade + horas extra do mês. */
+export function useCreateRetainerDraftInvoice() {
+  const { currentWorkspace: ws } = useWorkspace();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ retainer, monthKey, lines }: { retainer: ServiceRetainer; monthKey: string; lines: RetainerInvoiceLine[] }) => {
+      if (!ws?.id || retainer.workspace_id !== ws.id) throw new Error("Workspace inválido");
+      if (!retainer.company_id) throw new Error("A avença não tem empresa associada");
+      if (lines.length === 0) throw new Error("Nada a faturar neste mês");
+      const tag = retainerInvoiceTag(retainer.id, monthKey);
+      const { data: existing, error: exErr } = await db.from("invoices").select("id, invoice_number")
+        .eq("workspace_id", ws.id).ilike("notes", `%${tag}%`).limit(1);
+      if (exErr) throw exErr;
+      if (existing?.length) throw new Error(`Já existe a fatura ${existing[0].invoice_number} para este mês`);
+
+      const { data: company, error: cErr } = await db.from("companies")
+        .select("id, name, tax_id, email, preferred_contact_email, address, postal_code, city, country, workspace_id")
+        .eq("id", retainer.company_id).maybeSingle();
+      if (cErr) throw cErr;
+      if (!company || company.workspace_id !== ws.id) throw new Error("Empresa não encontrada neste workspace");
+
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) throw new Error("Sessão expirada");
+      const { data: number, error: nErr } = await supabase.rpc("generate_invoice_number", { p_workspace_id: ws.id });
+      if (nErr) throw nErr;
+
+      const r2 = (n: number) => Math.round(n * 100) / 100;
+      const items = lines.map((l, i) => {
+        const net = r2(l.quantity * l.unit_price);
+        const tax = r2(net * l.tax_rate / 100);
+        return { description: l.description, quantity: l.quantity, unit_price: l.unit_price, discount_percent: 0, tax_rate: l.tax_rate, total: net, net_total: net, tax_amount: tax, gross_total: r2(net + tax), position: i };
+      });
+      const subtotal = r2(items.reduce((a, i) => a + i.net_total, 0));
+      const taxAmount = r2(items.reduce((a, i) => a + i.tax_amount, 0));
+      const today = lisbonDate(new Date().toISOString());
+      const due = new Date(); due.setDate(due.getDate() + 30);
+      const [y, m] = monthKey.split("-");
+
+      const { data: inv, error: iErr } = await db.from("invoices").insert({
+        workspace_id: ws.id, invoice_number: number as string, status: "draft",
+        company_id: company.id, client_name: company.name,
+        client_email: company.preferred_contact_email || company.email || null,
+        client_tax_id: company.tax_id || null,
+        client_address: [company.address, company.postal_code, company.city, company.country].filter(Boolean).join(", ") || null,
+        issue_date: today, due_date: lisbonDate(due.toISOString()),
+        subtotal, tax_rate: lines[0].tax_rate, tax_amount: taxAmount, discount_amount: 0, total: r2(subtotal + taxAmount), currency: "EUR",
+        notes: `Avença ${retainer.name} — ${m}/${y}. Rascunho gerado a partir do extrato de horas. ${tag}`,
+        created_by: u.user.id,
+      }).select("id, invoice_number").single();
+      if (iErr) throw iErr;
+      const { error: itErr } = await db.from("invoice_items").insert(items.map((i) => ({ ...i, invoice_id: inv.id })));
+      if (itErr) { await db.from("invoices").delete().eq("id", inv.id); throw itErr; }
+      return inv as { id: string; invoice_number: string };
+    },
+    onSuccess: (inv) => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      toast.success(`Rascunho de fatura ${inv.invoice_number} criado`);
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível criar o rascunho"),
   });
 }
