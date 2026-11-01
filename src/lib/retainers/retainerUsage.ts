@@ -17,6 +17,28 @@ export interface RetainerEntry {
   userId: string | null;
   parentId: string;
   parentLabel: string;
+  /** Estado da aprovação pelo cliente no portal */
+  approval?: ClientApprovalStatus;
+  clientNote?: string | null;
+  taskLabel?: string | null;
+}
+
+export type ClientApprovalStatus = "submitted" | "pending_client" | "approved" | "disputed";
+
+export const APPROVAL_LABEL: Record<ClientApprovalStatus, string> = {
+  submitted: "Interno", pending_client: "A aguardar cliente", approved: "Aprovado", disputed: "Contestado",
+};
+
+/** Registos que podem ser enviados para aprovação (ainda não enviados ou contestados e já corrigidos). */
+export function canSendForApproval(s: ClientApprovalStatus | undefined) {
+  return (s ?? "submitted") === "submitted" || s === "disputed";
+}
+
+/** Minutos faturáveis por estado de aprovação do cliente. */
+export function summarizeApproval(entries: RetainerEntry[]) {
+  const out: Record<ClientApprovalStatus, number> = { submitted: 0, pending_client: 0, approved: 0, disputed: 0 };
+  for (const e of entries) if (e.billable) out[e.approval ?? "submitted"] += e.minutes;
+  return out;
 }
 
 export interface RetainerUsage {

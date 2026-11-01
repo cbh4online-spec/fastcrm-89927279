@@ -21,6 +21,7 @@ const ClientApprovalsPage = lazy(() => import("@/pages/client/ClientApprovalsPag
 const ClientInvoicesPage = lazy(() => import("@/pages/client/ClientInvoicesPage"));
 const ClientFinancialPage = lazy(() => import("@/pages/client/ClientFinancialPage"));
 const ClientContractsPage = lazy(() => import("@/pages/client/ClientContractsPage"));
+const ClientWorkPage = lazy(() => import("@/pages/client/ClientWorkPage"));
 const ClientSupportPage = lazy(() => import("@/pages/client/ClientSupportPage"));
 const ClientTicketDetailPage = lazy(() => import("@/pages/client/ClientTicketDetailPage"));
 const ClientInvitePage = lazy(() => import("@/pages/client/ClientInvitePage"));
@@ -56,6 +57,7 @@ export function ClientPortalRoutes() {
         <Route path="invoices" element={<ClientInvoicesPage />} />
         <Route path="financial" element={<ClientFinancialPage />} />
         <Route path="contracts" element={<ClientContractsPage />} />
+        <Route path="work" element={<ClientWorkPage />} />
         <Route path="support" element={<ClientSupportPage />} />
         <Route path="support/:ticketId" element={<ClientTicketDetailPage />} />
         <Route path="diagnosis" element={<ClientDiagnosisPage />} />

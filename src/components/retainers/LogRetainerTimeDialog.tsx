@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useLogRetainerTime, useUpdateRetainerEntry, type ServiceRetainer } from "@/hooks/useRetainers";
+import { useLogRetainerTime, useProjectTasks, useUpdateRetainerEntry, type ServiceRetainer } from "@/hooks/useRetainers";
 import { lisbonDate, parseDurationInput, type RetainerEntry } from "@/lib/retainers/retainerUsage";
 
 function minutesToInput(m: number) { return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`; }
@@ -20,6 +20,7 @@ export function LogRetainerTimeDialog({ open, onOpenChange, retainer, projects, 
   const log = useLogRetainerTime();
   const update = useUpdateRetainerEntry();
   const [target, setTarget] = useState("");
+  const [taskId, setTaskId] = useState("none");
   const [date, setDate] = useState(lisbonDate(new Date().toISOString()));
   const [duration, setDuration] = useState("");
   const [description, setDescription] = useState("");
@@ -37,6 +38,8 @@ export function LogRetainerTimeDialog({ open, onOpenChange, retainer, projects, 
   }, [open, entry]);
 
   const isProject = target.startsWith("p:");
+  const { data: tasks = [] } = useProjectTasks(!entry && isProject ? target.slice(2) : undefined);
+  useEffect(() => { setTaskId("none"); }, [target]);
   const pending = log.isPending || update.isPending;
   const submit = () => {
     const minutes = parseDurationInput(duration);
@@ -49,7 +52,7 @@ export function LogRetainerTimeDialog({ open, onOpenChange, retainer, projects, 
       return;
     }
     log.mutate({
-      retainer, kind: isProject ? "project" : "ticket", parentId: target.slice(2), date, minutes,
+      retainer, kind: isProject ? "project" : "ticket", parentId: target.slice(2), taskId: taskId === "none" ? null : taskId, date, minutes,
       description, billable: isProject ? billable : true,
     }, done);
   };
@@ -77,6 +80,18 @@ export function LogRetainerTimeDialog({ open, onOpenChange, retainer, projects, 
                 </Select>
               )}
             </div>
+            {!entry && isProject && tasks.length > 0 && (
+              <div>
+                <Label>Tarefa (opcional)</Label>
+                <Select value={taskId} onValueChange={setTaskId}>
+                  <SelectTrigger aria-label="Tarefa"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem tarefa específica</SelectItem>
+                    {tasks.map((t) => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div><Label htmlFor="lt-date">Data</Label><Input id="lt-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
               <div><Label htmlFor="lt-dur">Duração</Label><Input id="lt-dur" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="1:30" /></div>
