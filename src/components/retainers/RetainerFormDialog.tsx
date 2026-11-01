@@ -74,7 +74,7 @@ export function RetainerFormDialog({ open, onOpenChange, retainer, onSaved }: {
               <SelectContent>{companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div><Label htmlFor="r-fee">Mensalidade (€)</Label><Input id="r-fee" inputMode="decimal" value={f.monthly_fee} onChange={set("monthly_fee")} /></div>
             <div><Label htmlFor="r-h">Horas/mês</Label><Input id="r-h" inputMode="decimal" value={f.included_hours} onChange={set("included_hours")} /></div>
             <div><Label htmlFor="r-rate">€/hora extra</Label><Input id="r-rate" inputMode="decimal" value={f.overage_hourly_rate} onChange={set("overage_hourly_rate")} /></div>

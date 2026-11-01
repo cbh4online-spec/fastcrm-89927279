@@ -743,6 +743,13 @@
       "when": 1793569201804,
       "tag": "0105_service_retainers",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1793570067620,
+      "tag": "0106_retainer_link_cascade_and_company_guard",
+      "breakpoints": true
     }
   ]
 }

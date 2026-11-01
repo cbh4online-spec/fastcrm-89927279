@@ -82,3 +82,17 @@ export function parseDurationInput(raw: string): number | null {
   if ((m = s.match(/^(\d+(\.\d+)?)\s*h?$/))) return Math.round(Number(m[1]) * 60);
   return null;
 }
+
+/**
+ * A mensalidade só é devida em meses em que a avença está ativa e dentro do período
+ * (mês ≥ mês de início e, se houver fim, mês ≤ mês de fim). monthKey = "YYYY-MM".
+ */
+export function isRetainerBillableMonth(
+  r: { status: string; start_date: string; end_date?: string | null },
+  monthKey: string,
+): boolean {
+  if (r.status !== "active") return false;
+  if (monthKey < r.start_date.slice(0, 7)) return false;
+  if (r.end_date && monthKey > r.end_date.slice(0, 7)) return false;
+  return true;
+}

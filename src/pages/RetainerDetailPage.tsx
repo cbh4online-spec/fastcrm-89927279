@@ -10,7 +10,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   useDeleteRetainerEntry, useLinkToRetainer, useProfileNames, useRetainer, useRetainerEntries, useRetainerLinks,
 } from "@/hooks/useRetainers";
-import { computeRetainerUsage, formatMinutes } from "@/lib/retainers/retainerUsage";
+import { computeRetainerUsage, formatMinutes, isRetainerBillableMonth } from "@/lib/retainers/retainerUsage";
+import { supabase } from "@/integrations/supabase/client";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { lisbonMonthKey } from "@/lib/dates/currentMonth";
 import { periodLabel, monthRange } from "@/lib/dates/monthRange";
 import { RetainerKpis, RetainerUsageBar } from "@/components/retainers/RetainerUsageSummary";
@@ -37,6 +39,16 @@ export default function RetainerDetailPage() {
   const { data: names } = useProfileNames(entries.map((e) => e.userId ?? ""));
   const link = useLinkToRetainer();
   const del = useDeleteRetainerEntry();
+  const [pending, setPending] = useState<{ kind: "project" | "ticket"; id: string; retainerId: string | null; label: string; minutes: number | null } | null>(null);
+
+  const requestLink = async (kind: "project" | "ticket", pid: string, retainerId: string | null, label: string) => {
+    setPending({ kind, id: pid, retainerId, label, minutes: null });
+    const table = kind === "project" ? "implementation_time_entries" : "support_ticket_time_entries";
+    const col = kind === "project" ? "project_id" : "ticket_id";
+    const { data, error } = await (supabase as any).from(table).select("duration_minutes").eq(col, pid).limit(5000);
+    const total = error ? -1 : (data ?? []).reduce((a: number, r: any) => a + (r.duration_minutes ?? 0), 0);
+    setPending((p) => (p && p.id === pid ? { ...p, minutes: total } : p));
+  };
 
   const usage = useMemo(() => computeRetainerUsage(entries, Number(retainer?.included_hours ?? 0), Number(retainer?.overage_hourly_rate ?? 0)), [entries, retainer]);
 
@@ -107,7 +119,7 @@ export default function RetainerDetailPage() {
         <Button variant="outline" size="icon" aria-label="Mês seguinte" onClick={() => setMonthKey(shiftMonth(monthKey, 1))}><ChevronRight className="h-4 w-4" /></Button>
       </div>
 
-      <RetainerKpis usage={usage} monthlyFee={Number(retainer.monthly_fee)} />
+      <RetainerKpis usage={usage} monthlyFee={Number(retainer.monthly_fee)} feeDue={isRetainerBillableMonth(retainer, monthKey)} />
       <IXCard title="Consumo do mês" description="Cor cheia = projetos · cor clara = suporte. As horas não passam para o mês seguinte.">
         <RetainerUsageBar usage={usage} />
         {usage.level === "warning" && <p className="mt-3 text-sm text-foreground">Já gastou mais de 75% das horas deste mês.</p>}
@@ -117,7 +129,7 @@ export default function RetainerDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <IXCard title="Projetos ligados" actions={freeProjects.length > 0 && (
-          <Select value="" onValueChange={(v) => link.mutate({ kind: "project", id: v, retainerId: retainer.id })}>
+          <Select value="" onValueChange={(v) => requestLink("project", v, retainer.id, freeProjects.find((p) => p.id === v)?.title ?? "projeto")}>
             <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Ligar projeto" /></SelectTrigger>
             <SelectContent>{freeProjects.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectContent>
           </Select>
@@ -126,13 +138,13 @@ export default function RetainerDetailPage() {
             <ul className="divide-y divide-border">{linkedProjects.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2 py-2">
                 <Link to={`/dashboard/delivery/projects/${p.id}`} className="truncate text-sm hover:underline">{p.title}</Link>
-                <Button variant="ghost" size="icon" aria-label={`Desligar ${p.title}`} onClick={() => link.mutate({ kind: "project", id: p.id, retainerId: null })}><X className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" aria-label={`Desligar ${p.title}`} onClick={() => requestLink("project", p.id, null, p.title)}><X className="h-4 w-4" /></Button>
               </li>))}
             </ul>
           )}
         </IXCard>
         <IXCard title="Tickets de suporte ligados" actions={freeTickets.length > 0 && (
-          <Select value="" onValueChange={(v) => link.mutate({ kind: "ticket", id: v, retainerId: retainer.id })}>
+          <Select value="" onValueChange={(v) => { const t = freeTickets.find((x) => x.id === v); requestLink("ticket", v, retainer.id, t?.subject ?? "ticket"); }}>
             <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Ligar ticket" /></SelectTrigger>
             <SelectContent>{freeTickets.map((t) => <SelectItem key={t.id} value={t.id}>{t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</SelectItem>)}</SelectContent>
           </Select>
@@ -141,7 +153,7 @@ export default function RetainerDetailPage() {
             <ul className="divide-y divide-border">{linkedTickets.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-2 py-2">
                 <Link to={`/dashboard/helpdesk/tickets/${t.id}`} className="truncate text-sm hover:underline">{t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</Link>
-                <Button variant="ghost" size="icon" aria-label={`Desligar ${t.subject}`} onClick={() => link.mutate({ kind: "ticket", id: t.id, retainerId: null })}><X className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" aria-label={`Desligar ${t.subject}`} onClick={() => requestLink("ticket", t.id, null, t.subject)}><X className="h-4 w-4" /></Button>
               </li>))}
             </ul>
           )}
@@ -177,6 +189,28 @@ export default function RetainerDetailPage() {
             </div>
           )}
       </IXCard>
+
+      <AlertDialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{pending?.retainerId ? "Ligar à avença" : "Desligar da avença"}: {pending?.label}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pending?.minutes == null ? "A contar o tempo já registado..."
+                : pending.minutes < 0 ? "Não foi possível contar o tempo já registado."
+                : pending.minutes === 0 ? "Ainda não há tempo registado aqui."
+                : pending.retainerId ? `${formatMinutes(pending.minutes)} já registadas passam a contar para esta avença, nos meses em que foram feitas.`
+                : `${formatMinutes(pending.minutes)} registadas deixam de contar para esta avença.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={pending?.minutes == null || link.isPending}
+              onClick={() => { if (pending) link.mutate({ kind: pending.kind, id: pending.id, retainerId: pending.retainerId }); setPending(null); }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <RetainerFormDialog open={editOpen} onOpenChange={setEditOpen} retainer={retainer} />
       <LogRetainerTimeDialog open={logOpen} onOpenChange={setLogOpen} retainer={retainer}
