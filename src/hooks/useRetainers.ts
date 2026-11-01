@@ -370,7 +370,7 @@ export function useCreateTicketFromTask() {
       if (!user) throw new Error("Sessão expirada");
       const { data, error } = await db.from("support_tickets").insert({
         workspace_id: input.project.workspace_id, subject: input.task.title.slice(0, 200),
-        description: input.task.description ?? null, status: "open", priority: "medium",
+        description: input.task.description ?? null,
         company_id: input.project.company_id ?? null, contact_id: input.project.contact_id ?? null,
         retainer_id: input.project.retainer_id ?? null, project_id: input.project.id, task_id: input.task.id, created_by: user.id,
       }).select("id").single();
