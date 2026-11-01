@@ -157,6 +157,27 @@ export function useLinkToRetainer() {
   });
 }
 
+/** Cria um projeto ou ticket novo já ligado à avença (mesmo workspace e empresa). */
+export function useCreateRetainerWorkItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ retainer, kind, title }: { retainer: ServiceRetainer; kind: "project" | "ticket"; title: string }) => {
+      const t = title.trim();
+      if (t.length < 3 || t.length > 200) throw new Error("Indique um nome entre 3 e 200 caracteres");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada");
+      const base = { workspace_id: retainer.workspace_id, company_id: retainer.company_id, retainer_id: retainer.id };
+      const res = kind === "project"
+        ? await db.from("implementation_projects").insert({ ...base, title: t, created_by: user.id }).select("id").single()
+        : await db.from("support_tickets").insert({ ...base, subject: t, created_by: user.id }).select("id").single();
+      if (res.error) throw res.error;
+      return res.data.id as string;
+    },
+    onSuccess: (_id, v) => { toast.success(v.kind === "project" ? "Projeto criado e ligado" : "Ticket criado e ligado"); qc.invalidateQueries({ queryKey: [KEY] }); },
+    onError: (e: any) => toast.error(e.message ?? "Não foi possível criar"),
+  });
+}
+
 export function useLogRetainerTime() {
   const qc = useQueryClient();
   return useMutation({
