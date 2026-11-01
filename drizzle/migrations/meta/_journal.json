@@ -757,6 +757,13 @@
       "when": 1793573679994,
       "tag": "0107_retainer_tasks_client_hours_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1793573747444,
+      "tag": "0108_fix_portal_ticket_subject",
+      "breakpoints": true
     }
   ]
 }
