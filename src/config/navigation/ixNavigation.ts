@@ -225,6 +225,7 @@ export const IX_NAV_SECTIONS: IXNavSection[] = [
           // People / Suporte / Operações
           { key: "onboarding-projects" },
           { key: "delivery-projects" },
+          { key: "service-retainers" },
           { key: "customer-success" },
         ],
       },
