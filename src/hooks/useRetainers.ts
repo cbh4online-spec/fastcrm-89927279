@@ -243,7 +243,7 @@ export function useCreateRetainerDraftInvoice() {
       });
       const subtotal = r2(items.reduce((a, i) => a + i.net_total, 0));
       const taxAmount = r2(items.reduce((a, i) => a + i.tax_amount, 0));
-      const today = lisbonDate(new Date());
+      const today = lisbonDate(new Date().toISOString());
       const due = new Date(); due.setDate(due.getDate() + 30);
       const [y, m] = monthKey.split("-");
 
@@ -253,7 +253,7 @@ export function useCreateRetainerDraftInvoice() {
         client_email: company.preferred_contact_email || company.email || null,
         client_tax_id: company.tax_id || null,
         client_address: [company.address, company.postal_code, company.city, company.country].filter(Boolean).join(", ") || null,
-        issue_date: today, due_date: lisbonDate(due),
+        issue_date: today, due_date: lisbonDate(due.toISOString()),
         subtotal, tax_rate: lines[0].tax_rate, tax_amount: taxAmount, discount_amount: 0, total: r2(subtotal + taxAmount), currency: "EUR",
         notes: `Avença ${retainer.name} — ${m}/${y}. Rascunho gerado a partir do extrato de horas. ${tag}`,
         created_by: u.user.id,
