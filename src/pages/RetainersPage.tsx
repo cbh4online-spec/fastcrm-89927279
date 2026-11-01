@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, ExternalLink, Copy, Users } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { matchesSearch } from "@/lib/search/normalize";
 import { IXCard } from "@/components/entity/ix/IXCard";
@@ -52,7 +53,12 @@ export default function RetainersPage() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Avenças</h1>
           <p className="mt-1 text-muted-foreground">Horas incluídas, tempo gasto em projetos e suporte, e horas extra a faturar neste mês.</p>
         </div>
-        <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova avença</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild><a href="/client/login" target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" />Portal do cliente</a></Button>
+          <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/client/login`); toast.success("Link do portal copiado"); }}><Copy className="mr-2 h-4 w-4" />Copiar link</Button>
+          <Button variant="outline" asChild><Link to="/dashboard/client-users"><Users className="mr-2 h-4 w-4" />Acessos do cliente</Link></Button>
+          <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova avença</Button>
+        </div>
       </div>
 
       {retainers.length > 0 && (
