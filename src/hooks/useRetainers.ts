@@ -211,8 +211,8 @@ export function useUpdateRetainerEntry() {
       if (input.minutes <= 0 || input.minutes > 24 * 60) throw new Error("Duração inválida (máx. 24h)");
       if (input.description.length > 2000) throw new Error("Descrição demasiado longa");
       const patch = input.source === "project"
-        ? { entry_date: input.date, duration_minutes: input.minutes, description: input.description.trim() || null, billable: input.billable }
-        : { started_at: `${input.date}T12:00:00Z`, duration_minutes: input.minutes, description: input.description.trim() || null };
+        ? { entry_date: input.date, duration_minutes: input.minutes, description: input.description.trim() || null, billable: input.billable, client_approval_status: "submitted" }
+        : { started_at: `${input.date}T12:00:00Z`, duration_minutes: input.minutes, description: input.description.trim() || null, client_approval_status: "submitted" };
       const table = input.source === "project" ? "implementation_time_entries" : "support_ticket_time_entries";
       const { data, error } = await db.from(table).update(patch).eq("id", input.id).select("id");
       if (error) throw error;
