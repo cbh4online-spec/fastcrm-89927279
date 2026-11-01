@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { RetainerLinkBadge } from "@/components/retainers/RetainerLinkBadge";
 import { Switch } from "@/components/ui/switch";
 import { useCreateProjectTask, useCreateTicketFromTask } from "@/hooks/useRetainers";
-import { Link } from "react-router-dom";
 
 export default function DeliveryProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
