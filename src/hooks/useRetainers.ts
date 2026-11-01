@@ -88,10 +88,10 @@ export function useRetainerEntries(retainerId: string | undefined, monthKey: str
       const toTs = new Date(`${to}T23:59:59Z`); toTs.setUTCDate(toTs.getUTCDate() + 1);
       const [proj, tick] = await Promise.all([
         db.from("implementation_time_entries")
-          .select("id, project_id, user_id, entry_date, duration_minutes, billable, description, implementation_projects(title)")
+          .select("id, project_id, task_id, user_id, entry_date, duration_minutes, billable, description, client_approval_status, client_note, implementation_projects(title), implementation_project_tasks(title)")
           .eq("retainer_id", retainerId).gte("entry_date", from).lte("entry_date", to).limit(5000),
         db.from("support_ticket_time_entries")
-          .select("id, ticket_id, user_id, created_at, started_at, duration_minutes, description, support_tickets(subject, ticket_number)")
+          .select("id, ticket_id, user_id, created_at, started_at, duration_minutes, description, client_approval_status, client_note, support_tickets(subject, ticket_number)")
           .eq("retainer_id", retainerId).gte("created_at", fromTs.toISOString()).lte("created_at", toTs.toISOString()).limit(5000),
       ]);
       if (proj.error) throw proj.error;
@@ -101,10 +101,12 @@ export function useRetainerEntries(retainerId: string | undefined, monthKey: str
           id: r.id, source: "project" as const, date: r.entry_date, minutes: r.duration_minutes ?? 0,
           billable: r.billable !== false, description: r.description, userId: r.user_id,
           parentId: r.project_id, parentLabel: r.implementation_projects?.title ?? "Projeto",
+          approval: r.client_approval_status ?? "submitted", clientNote: r.client_note, taskLabel: r.implementation_project_tasks?.title ?? null,
         })),
         ...(tick.data ?? []).map((r: any) => ({
           id: r.id, source: "ticket" as const, date: lisbonDate(r.started_at ?? r.created_at), minutes: r.duration_minutes ?? 0,
           billable: true, description: r.description, userId: r.user_id, parentId: r.ticket_id,
+          approval: r.client_approval_status ?? "submitted", clientNote: r.client_note,
           parentLabel: r.support_tickets ? `${r.support_tickets.ticket_number ? `#${r.support_tickets.ticket_number} ` : ""}${r.support_tickets.subject ?? ""}` : "Ticket",
         })),
       ];
@@ -182,7 +184,7 @@ export function useLogRetainerTime() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
-      retainer: ServiceRetainer; kind: "project" | "ticket"; parentId: string;
+      retainer: ServiceRetainer; kind: "project" | "ticket"; parentId: string; taskId?: string | null;
       date: string; minutes: number; description: string; billable: boolean;
     }) => {
       if (input.minutes <= 0 || input.minutes > 24 * 60) throw new Error("Duração inválida (máx. 24h)");
@@ -192,7 +194,7 @@ export function useLogRetainerTime() {
       const base = { workspace_id: input.retainer.workspace_id, user_id: user.id, retainer_id: input.retainer.id,
         duration_minutes: input.minutes, description: input.description.trim() || null };
       const res = input.kind === "project"
-        ? await db.from("implementation_time_entries").insert({ ...base, project_id: input.parentId, entry_date: input.date, billable: input.billable, activity_type: "retainer" })
+        ? await db.from("implementation_time_entries").insert({ ...base, project_id: input.parentId, task_id: input.taskId || null, entry_date: input.date, billable: input.billable, activity_type: "retainer" })
         : await db.from("support_ticket_time_entries").insert({ ...base, ticket_id: input.parentId, entry_type: "manual", started_at: `${input.date}T12:00:00Z`, hourly_rate: input.retainer.overage_hourly_rate });
       if (res.error) throw res.error;
     },
@@ -325,5 +327,57 @@ export function useCreateRetainerDraftInvoice() {
       toast.success(`Rascunho de fatura ${inv.invoice_number} criado`);
     },
     onError: (e: Error) => toast.error(e.message || "Não foi possível criar o rascunho"),
+  });
+}
+
+/** Envia registos faturáveis do mês para aprovação do cliente no portal. */
+export function useSendHoursForApproval() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (entries: RetainerEntry[]) => {
+      const pick = (src: "project" | "ticket") => entries.filter((e) => e.source === src && e.billable && (e.approval === "submitted" || e.approval === "disputed" || !e.approval)).map((e) => e.id);
+      const p = pick("project"), t = pick("ticket");
+      if (!p.length && !t.length) throw new Error("Não há horas por enviar neste mês");
+      const patch = { client_approval_status: "pending_client" };
+      if (p.length) { const r = await db.from("implementation_time_entries").update(patch).in("id", p); if (r.error) throw r.error; }
+      if (t.length) { const r = await db.from("support_ticket_time_entries").update(patch).in("id", t); if (r.error) throw r.error; }
+      return p.length + t.length;
+    },
+    onSuccess: (n) => { toast.success(`${n} registos enviados ao cliente para aprovação`); qc.invalidateQueries({ queryKey: [KEY] }); },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao enviar"),
+  });
+}
+
+/** Tarefas de um projeto (para escolher onde registar tempo). */
+export function useProjectTasks(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [KEY, "tasks", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await db.from("implementation_project_tasks").select("id, title, status").eq("project_id", projectId).order("sort_order").limit(500);
+      if (error) throw error;
+      return (data ?? []) as { id: string; title: string; status: string }[];
+    },
+  });
+}
+
+/** Abre um ticket de suporte a partir de uma tarefa (herda projeto, empresa e avença). */
+export function useCreateTicketFromTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { task: { id: string; title: string; description?: string | null }; project: { id: string; workspace_id: string; company_id?: string | null; contact_id?: string | null; retainer_id?: string | null } }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada");
+      const { data, error } = await db.from("support_tickets").insert({
+        workspace_id: input.project.workspace_id, subject: input.task.title.slice(0, 200),
+        description: input.task.description ?? null, status: "open", priority: "medium",
+        company_id: input.project.company_id ?? null, contact_id: input.project.contact_id ?? null,
+        retainer_id: input.project.retainer_id ?? null, project_id: input.project.id, task_id: input.task.id, created_by: user.id,
+      }).select("id").single();
+      if (error) throw error;
+      return data.id as string;
+    },
+    onSuccess: () => { toast.success("Ticket criado a partir da tarefa"); qc.invalidateQueries({ queryKey: [KEY] }); qc.invalidateQueries({ queryKey: ["implementation-project"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao criar ticket"),
   });
 }
