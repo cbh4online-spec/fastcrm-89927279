@@ -34,14 +34,18 @@ export function RetainerUsageBar({ usage, compact }: { usage: RetainerUsage; com
   );
 }
 
-export function RetainerKpis({ usage, monthlyFee }: { usage: RetainerUsage; monthlyFee: number }) {
+export function RetainerKpis({ usage, monthlyFee, feeDue = true }: { usage: RetainerUsage; monthlyFee: number; feeDue?: boolean }) {
+  const fee = feeDue ? monthlyFee : 0;
+  const hint = !feeDue
+    ? (usage.overageCost > 0 ? "sem mensalidade neste mês · só horas extra" : "sem mensalidade neste mês")
+    : usage.overageCost > 0 ? `inclui ${eur(usage.overageCost)} extra` : "só mensalidade";
   const items = [
     { label: "Plafond do mês", value: formatMinutes(usage.includedMinutes) },
     { label: "Projetos", value: formatMinutes(usage.projectMinutes) },
     { label: "Suporte", value: formatMinutes(usage.ticketMinutes) },
     { label: "Saldo disponível", value: formatMinutes(usage.remainingMinutes) },
     { label: "Horas extra", value: formatMinutes(usage.overageMinutes), danger: usage.overageMinutes > 0 },
-    { label: "A faturar no mês", value: eur(monthlyFee + usage.overageCost), hint: usage.overageCost > 0 ? `inclui ${eur(usage.overageCost)} extra` : "só mensalidade" },
+    { label: "A faturar no mês", value: eur(fee + usage.overageCost), hint },
   ];
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
