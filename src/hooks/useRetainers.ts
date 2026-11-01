@@ -200,13 +200,16 @@ export function useUpdateRetainerEntry() {
   });
 }
 
-/** Nome da avença ligada (para mostrar em projetos e tickets). */
-export function useRetainerBadge(retainerId?: string | null) {
+/** Avença ligada a um projeto ou ticket (para mostrar nas fichas). */
+export function useRetainerBadge(kind: "project" | "ticket", parentId?: string | null) {
   return useQuery({
-    queryKey: [KEY, "badge", retainerId],
-    enabled: !!retainerId,
+    queryKey: [KEY, "badge", kind, parentId],
+    enabled: !!parentId,
     queryFn: async () => {
-      const { data } = await db.from("service_retainers").select("id, name").eq("id", retainerId!).maybeSingle();
+      const table = kind === "project" ? "implementation_projects" : "support_tickets";
+      const { data: parent } = await db.from(table).select("retainer_id").eq("id", parentId!).maybeSingle();
+      if (!parent?.retainer_id) return null;
+      const { data } = await db.from("service_retainers").select("id, name").eq("id", parent.retainer_id).maybeSingle();
       return data as { id: string; name: string } | null;
     },
   });
