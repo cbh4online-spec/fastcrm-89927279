@@ -46,3 +46,12 @@ describe("avença: consumo mensal", () => {
     expect(parseDurationInput("abc")).toBeNull();
   });
 });
+
+import { isRetainerBillableMonth } from "@/lib/retainers/retainerUsage";
+describe("avença: mensalidade só em meses ativos", () => {
+  const r = { status: "active", start_date: "2026-12-01", end_date: null };
+  it("mês antes do início não tem mensalidade", () => expect(isRetainerBillableMonth(r, "2026-11")).toBe(false));
+  it("mês de início tem mensalidade", () => expect(isRetainerBillableMonth(r, "2026-12")).toBe(true));
+  it("depois do fim não tem mensalidade", () => expect(isRetainerBillableMonth({ ...r, end_date: "2027-03-15" }, "2027-04")).toBe(false));
+  it("pausada não tem mensalidade", () => expect(isRetainerBillableMonth({ ...r, status: "paused" }, "2026-12")).toBe(false));
+});
