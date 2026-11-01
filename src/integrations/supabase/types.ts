@@ -48809,6 +48809,10 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           billable: boolean
+          client_approval_status: string
+          client_note: string | null
+          client_reviewed_at: string | null
+          client_reviewed_by: string | null
           created_at: string
           description: string | null
           duration_minutes: number
@@ -48827,6 +48831,10 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           billable?: boolean
+          client_approval_status?: string
+          client_note?: string | null
+          client_reviewed_at?: string | null
+          client_reviewed_by?: string | null
           created_at?: string
           description?: string | null
           duration_minutes: number
@@ -48845,6 +48853,10 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           billable?: boolean
+          client_approval_status?: string
+          client_note?: string | null
+          client_reviewed_at?: string | null
+          client_reviewed_by?: string | null
           created_at?: string
           description?: string | null
           duration_minutes?: number
@@ -92867,6 +92879,10 @@ export type Database = {
       }
       support_ticket_time_entries: {
         Row: {
+          client_approval_status: string
+          client_note: string | null
+          client_reviewed_at: string | null
+          client_reviewed_by: string | null
           cost: number | null
           created_at: string
           description: string | null
@@ -92883,6 +92899,10 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          client_approval_status?: string
+          client_note?: string | null
+          client_reviewed_at?: string | null
+          client_reviewed_by?: string | null
           cost?: number | null
           created_at?: string
           description?: string | null
@@ -92899,6 +92919,10 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          client_approval_status?: string
+          client_note?: string | null
+          client_reviewed_at?: string | null
+          client_reviewed_by?: string | null
           cost?: number | null
           created_at?: string
           description?: string | null
@@ -92973,6 +92997,7 @@ export type Database = {
           first_response_at: string | null
           id: string
           priority: Database["public"]["Enums"]["support_ticket_priority"]
+          project_id: string | null
           resolved_at: string | null
           retainer_id: string | null
           satisfaction_comment: string | null
@@ -92981,6 +93006,7 @@ export type Database = {
           status: Database["public"]["Enums"]["support_ticket_status"]
           subject: string
           tags: string[] | null
+          task_id: string | null
           ticket_number: number
           total_cost: number
           total_time_minutes: number
@@ -93001,6 +93027,7 @@ export type Database = {
           first_response_at?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          project_id?: string | null
           resolved_at?: string | null
           retainer_id?: string | null
           satisfaction_comment?: string | null
@@ -93009,6 +93036,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["support_ticket_status"]
           subject: string
           tags?: string[] | null
+          task_id?: string | null
           ticket_number?: number
           total_cost?: number
           total_time_minutes?: number
@@ -93029,6 +93057,7 @@ export type Database = {
           first_response_at?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          project_id?: string | null
           resolved_at?: string | null
           retainer_id?: string | null
           satisfaction_comment?: string | null
@@ -93037,6 +93066,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["support_ticket_status"]
           subject?: string
           tags?: string[] | null
+          task_id?: string | null
           ticket_number?: number
           total_cost?: number
           total_time_minutes?: number
@@ -93046,10 +93076,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "support_tickets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "support_tickets_retainer_id_fkey"
             columns: ["retainer_id"]
             isOneToOne: false
             referencedRelation: "service_retainers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "implementation_project_tasks"
             referencedColumns: ["id"]
           },
           {
@@ -110781,6 +110825,28 @@ export type Database = {
           message_id: number
           payload: Json
           source_queue: string
+        }
+        Returns: number
+      }
+      portal_client_user: {
+        Args: { _workspace: string }
+        Returns: {
+          can_approve: boolean
+          client_user_id: string
+          company_id: string
+        }[]
+      }
+      portal_list_hours: {
+        Args: { _from: string; _to: string; _workspace: string }
+        Returns: Json
+      }
+      portal_list_work: { Args: { _workspace: string }; Returns: Json }
+      portal_review_hours: {
+        Args: {
+          _decision: string
+          _items: Json
+          _note?: string
+          _workspace: string
         }
         Returns: number
       }

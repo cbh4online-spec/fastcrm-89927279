@@ -750,6 +750,13 @@
       "when": 1793570067620,
       "tag": "0106_retainer_link_cascade_and_company_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1793573679994,
+      "tag": "0107_retainer_tasks_client_hours_approval",
+      "breakpoints": true
     }
   ]
 }
