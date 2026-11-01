@@ -3,12 +3,12 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  useCreateRetainerDraftInvoice, useDeleteRetainerEntry, useLinkToRetainer, useRetainerMonthInvoice, useProfileNames, useRetainer, useRetainerEntries, useRetainerLinks,
+  useCreateRetainerDraftInvoice, useCreateRetainerWorkItem, useDeleteRetainerEntry, useLinkToRetainer, useRetainerMonthInvoice, useProfileNames, useRetainer, useRetainerEntries, useRetainerLinks,
 } from "@/hooks/useRetainers";
 import type { RetainerEntry } from "@/lib/retainers/retainerUsage";
 import { buildRetainerInvoiceLines, computeRetainerUsage, formatMinutes, isRetainerBillableMonth } from "@/lib/retainers/retainerUsage";
@@ -18,6 +18,7 @@ import { lisbonMonthKey } from "@/lib/dates/currentMonth";
 import { periodLabel, monthRange } from "@/lib/dates/monthRange";
 import { RetainerKpis, RetainerUsageBar } from "@/components/retainers/RetainerUsageSummary";
 import { RetainerFormDialog } from "@/components/retainers/RetainerFormDialog";
+import { AddWorkItemDialog } from "@/components/retainers/AddWorkItemDialog";
 import { LogRetainerTimeDialog } from "@/components/retainers/LogRetainerTimeDialog";
 
 function shiftMonth(key: string, delta: number) {
@@ -36,6 +37,8 @@ export default function RetainerDetailPage() {
   const [logOpen, setLogOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<RetainerEntry | null>(null);
   const [vatRate, setVatRate] = useState("23");
+  const [addKind, setAddKind] = useState<"project" | "ticket" | null>(null);
+  const createItem = useCreateRetainerWorkItem();
   const { data: retainer, isLoading } = useRetainer(id);
   const { data: entries = [], isLoading: entriesLoading, error: entriesError } = useRetainerEntries(id, monthKey);
   const { data: links } = useRetainerLinks(retainer);
@@ -85,9 +88,9 @@ export default function RetainerDetailPage() {
   const sameCo = (x: any) => !!retainer.company_id && x.company_id === retainer.company_id;
   const freeProjects = (links?.projects ?? []).filter((p) => !p.retainer_id);
   const freeTickets = (links?.tickets ?? []).filter((t) => !t.retainer_id);
-  const coProjects = freeProjects.filter(sameCo), otherProjects = freeProjects.filter((p) => !sameCo(p));
-  const coTickets = freeTickets.filter(sameCo), otherTickets = freeTickets.filter((t) => !sameCo(t));
-  const coLabel = retainer.companies?.name ? `De ${retainer.companies.name}` : "Da empresa da avença";
+  const addItems = addKind === "project"
+    ? freeProjects.map((p) => ({ id: p.id, label: p.title, sameCompany: sameCo(p) }))
+    : freeTickets.map((t) => ({ id: t.id, label: `${t.ticket_number ? `#${t.ticket_number} ` : ""}${t.subject}`, sameCompany: sameCo(t) }));
   const feeDue = isRetainerBillableMonth(retainer, monthKey);
   const invoiceLines = buildRetainerInvoiceLines(
     { name: retainer.name, monthly_fee: Number(retainer.monthly_fee), overage_hourly_rate: Number(retainer.overage_hourly_rate) },
@@ -182,42 +185,28 @@ export default function RetainerDetailPage() {
       </IXCard>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <IXCard title="Projetos ligados" actions={freeProjects.length > 0 && (
-          <Select value="" onValueChange={(v) => requestLink("project", v, retainer.id, freeProjects.find((p) => p.id === v)?.title ?? "projeto")}>
-            <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Ligar projeto" /></SelectTrigger>
-            <SelectContent>
-              {coProjects.length > 0 && <SelectGroup><SelectLabel>{coLabel}</SelectLabel>{coProjects.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectGroup>}
-              {otherProjects.length > 0 && <SelectGroup><SelectLabel>Outros projetos</SelectLabel>{otherProjects.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectGroup>}
-            </SelectContent>
-          </Select>
-        )}>
-          {linkedProjects.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum projeto ligado. Crie um em Operações → Implementação e ligue-o aqui.</p> : (
-            <ul className="divide-y divide-border">{linkedProjects.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-2 py-2">
-                <Link to={`/dashboard/delivery/projects/${p.id}`} className="truncate text-sm hover:underline">{p.title}</Link>
-                <Button variant="ghost" size="icon" aria-label={`Desligar ${p.title}`} onClick={() => requestLink("project", p.id, null, p.title)}><X className="h-4 w-4" /></Button>
-              </li>))}
-            </ul>
-          )}
-        </IXCard>
-        <IXCard title="Tickets de suporte ligados" actions={freeTickets.length > 0 && (
-          <Select value="" onValueChange={(v) => { const t = freeTickets.find((x) => x.id === v); requestLink("ticket", v, retainer.id, t?.subject ?? "ticket"); }}>
-            <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Ligar ticket" /></SelectTrigger>
-            <SelectContent>
-              {coTickets.length > 0 && <SelectGroup><SelectLabel>{coLabel}</SelectLabel>{coTickets.map((t) => <SelectItem key={t.id} value={t.id}>{t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</SelectItem>)}</SelectGroup>}
-              {otherTickets.length > 0 && <SelectGroup><SelectLabel>Outros tickets</SelectLabel>{otherTickets.map((t) => <SelectItem key={t.id} value={t.id}>{t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</SelectItem>)}</SelectGroup>}
-            </SelectContent>
-          </Select>
-        )}>
-          {linkedTickets.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum ticket ligado. O tempo registado nos tickets ligados conta para esta avença.</p> : (
-            <ul className="divide-y divide-border">{linkedTickets.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-2 py-2">
-                <Link to={`/dashboard/helpdesk/tickets/${t.id}`} className="truncate text-sm hover:underline">{t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</Link>
-                <Button variant="ghost" size="icon" aria-label={`Desligar ${t.subject}`} onClick={() => requestLink("ticket", t.id, null, t.subject)}><X className="h-4 w-4" /></Button>
-              </li>))}
-            </ul>
-          )}
-        </IXCard>
+        {(["project", "ticket"] as const).map((kind) => {
+          const linked = kind === "project" ? linkedProjects.map((p) => ({ id: p.id, label: p.title, href: `/dashboard/delivery/projects/${p.id}` }))
+            : linkedTickets.map((t) => ({ id: t.id, label: `${t.ticket_number ? `#${t.ticket_number} ` : ""}${t.subject}`, href: `/dashboard/helpdesk/tickets/${t.id}` }));
+          return (
+            <IXCard key={kind} title={kind === "project" ? "Projetos" : "Tickets de suporte"}
+              actions={<Button variant="outline" size="sm" onClick={() => setAddKind(kind)}><Plus className="mr-1 h-4 w-4" />Adicionar</Button>}>
+              {linked.length === 0 ? (
+                <div className="space-y-3 py-2">
+                  <p className="text-sm text-muted-foreground">{kind === "project" ? "Ainda sem projetos. Crie um para começar a registar horas." : "Ainda sem tickets. Os pedidos do cliente contam para a avença."}</p>
+                  <Button size="sm" onClick={() => setAddKind(kind)}><Plus className="mr-1 h-4 w-4" />{kind === "project" ? "Criar ou ligar projeto" : "Criar ou ligar ticket"}</Button>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">{linked.map((x) => (
+                  <li key={x.id} className="flex items-center justify-between gap-2 py-2">
+                    <Link to={x.href} className="truncate text-sm hover:underline">{x.label}</Link>
+                    <Button variant="ghost" size="icon" aria-label={`Desligar ${x.label}`} onClick={() => requestLink(kind, x.id, null, x.label)}><X className="h-4 w-4" /></Button>
+                  </li>))}
+                </ul>
+              )}
+            </IXCard>
+          );
+        })}
       </div>
 
       <IXCard title="Extrato de horas" description={`${entries.length} registos em ${periodLabel(from, to)}`}
@@ -274,6 +263,10 @@ export default function RetainerDetailPage() {
       </AlertDialog>
 
       <LogRetainerTimeDialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)} retainer={retainer} entry={editEntry} projects={[]} tickets={[]} />
+      <AddWorkItemDialog open={!!addKind} onOpenChange={(o) => !o && setAddKind(null)} kind={addKind ?? "project"}
+        companyName={retainer.companies?.name} items={addItems} creating={createItem.isPending}
+        onCreate={(title) => addKind && createItem.mutate({ retainer, kind: addKind, title }, { onSuccess: () => setAddKind(null) })}
+        onPick={(i) => { if (addKind) requestLink(addKind, i.id, retainer.id, i.label); setAddKind(null); }} />
       <RetainerFormDialog open={editOpen} onOpenChange={setEditOpen} retainer={retainer} />
       <LogRetainerTimeDialog open={logOpen} onOpenChange={setLogOpen} retainer={retainer}
         projects={linkedProjects.map((p) => ({ id: p.id, title: p.title }))}
