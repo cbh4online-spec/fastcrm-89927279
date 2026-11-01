@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Headphones, MessageSquare, History, Link2, Trash2, Clock } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { RetainerLinkBadge } from "@/components/retainers/RetainerLinkBadge";
 
 export default function HelpdeskTicketDetail() {
   const { id } = useParams<{ id: string }>();
@@ -91,6 +92,7 @@ export default function HelpdeskTicketDetail() {
           <h1 className="font-semibold text-lg truncate">
             #{ticket.ticket_number} — {ticket.subject}
           </h1>
+          <RetainerLinkBadge kind="ticket" id={ticket.id} />
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>

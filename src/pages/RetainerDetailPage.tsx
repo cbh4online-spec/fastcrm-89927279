@@ -1,15 +1,16 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useCreateRetainerDraftInvoice, useDeleteRetainerEntry, useLinkToRetainer, useRetainerMonthInvoice, useProfileNames, useRetainer, useRetainerEntries, useRetainerLinks,
 } from "@/hooks/useRetainers";
+import type { RetainerEntry } from "@/lib/retainers/retainerUsage";
 import { buildRetainerInvoiceLines, computeRetainerUsage, formatMinutes, isRetainerBillableMonth } from "@/lib/retainers/retainerUsage";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -33,6 +34,8 @@ export default function RetainerDetailPage() {
   const [monthKey, setMonthKey] = useState(lisbonMonthKey());
   const [editOpen, setEditOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  const [editEntry, setEditEntry] = useState<RetainerEntry | null>(null);
+  const [vatRate, setVatRate] = useState("23");
   const { data: retainer, isLoading } = useRetainer(id);
   const { data: entries = [], isLoading: entriesLoading, error: entriesError } = useRetainerEntries(id, monthKey);
   const { data: links } = useRetainerLinks(retainer);
@@ -79,12 +82,16 @@ export default function RetainerDetailPage() {
 
   const linkedProjects = (links?.projects ?? []).filter((p) => p.retainer_id === retainer.id);
   const linkedTickets = (links?.tickets ?? []).filter((t) => t.retainer_id === retainer.id);
+  const sameCo = (x: any) => !!retainer.company_id && x.company_id === retainer.company_id;
   const freeProjects = (links?.projects ?? []).filter((p) => !p.retainer_id);
   const freeTickets = (links?.tickets ?? []).filter((t) => !t.retainer_id);
+  const coProjects = freeProjects.filter(sameCo), otherProjects = freeProjects.filter((p) => !sameCo(p));
+  const coTickets = freeTickets.filter(sameCo), otherTickets = freeTickets.filter((t) => !sameCo(t));
+  const coLabel = retainer.companies?.name ? `De ${retainer.companies.name}` : "Da empresa da avença";
   const feeDue = isRetainerBillableMonth(retainer, monthKey);
   const invoiceLines = buildRetainerInvoiceLines(
     { name: retainer.name, monthly_fee: Number(retainer.monthly_fee), overage_hourly_rate: Number(retainer.overage_hourly_rate) },
-    monthKey, usage, feeDue);
+    monthKey, usage, feeDue, Number(vatRate));
   const invoiceNet = invoiceLines.reduce((a, l) => a + Math.round(l.quantity * l.unit_price * 100) / 100, 0);
   const [y, m] = monthKey.split("-").map(Number);
   const { from, to } = monthRange(y, m);
@@ -139,9 +146,15 @@ export default function RetainerDetailPage() {
             <ul className="space-y-1 text-sm text-foreground">{invoiceLines.map((l) => (
               <li key={l.description}>{l.description}: {l.quantity.toLocaleString("pt-PT")} × {l.unit_price.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}</li>
             ))}<li className="font-medium">Total sem IVA: {invoiceNet.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}</li></ul>
+            <div className="flex flex-wrap items-center gap-2">
+            <Select value={vatRate} onValueChange={setVatRate}>
+              <SelectTrigger className="h-9 w-36" aria-label="Taxa de IVA"><SelectValue /></SelectTrigger>
+              <SelectContent>{["23", "13", "6", "0"].map((v) => <SelectItem key={v} value={v}>{v === "0" ? "Isento (0%)" : `IVA ${v}%`}</SelectItem>)}</SelectContent>
+            </Select>
             <Button onClick={() => setInvoiceConfirm(true)} disabled={!retainer.company_id || createInvoice.isPending}>
               <FileText className="mr-2 h-4 w-4" />Criar rascunho de fatura
             </Button>
+            </div>
           </div>
         )}
         {!retainer.company_id && <p className="mt-2 text-sm text-destructive">Associe uma empresa à avença para poder faturar.</p>}
@@ -152,7 +165,7 @@ export default function RetainerDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Criar rascunho de fatura</AlertDialogTitle>
             <AlertDialogDescription>
-              Será criado um rascunho para {retainer.companies?.name ?? "a empresa"} de {invoiceNet.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })} + IVA 23%. Não é emitido nem enviado ao cliente; pode rever e alterar em Faturas.
+              Será criado um rascunho para {retainer.companies?.name ?? "a empresa"} de {invoiceNet.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })} + {vatRate === "0" ? "isento de IVA" : `IVA ${vatRate}%`}. Não é emitido nem enviado ao cliente; pode rever e alterar em Faturas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -172,7 +185,10 @@ export default function RetainerDetailPage() {
         <IXCard title="Projetos ligados" actions={freeProjects.length > 0 && (
           <Select value="" onValueChange={(v) => requestLink("project", v, retainer.id, freeProjects.find((p) => p.id === v)?.title ?? "projeto")}>
             <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Ligar projeto" /></SelectTrigger>
-            <SelectContent>{freeProjects.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {coProjects.length > 0 && <SelectGroup><SelectLabel>{coLabel}</SelectLabel>{coProjects.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectGroup>}
+              {otherProjects.length > 0 && <SelectGroup><SelectLabel>Outros projetos</SelectLabel>{otherProjects.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectGroup>}
+            </SelectContent>
           </Select>
         )}>
           {linkedProjects.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum projeto ligado. Crie um em Operações → Implementação e ligue-o aqui.</p> : (
@@ -187,7 +203,10 @@ export default function RetainerDetailPage() {
         <IXCard title="Tickets de suporte ligados" actions={freeTickets.length > 0 && (
           <Select value="" onValueChange={(v) => { const t = freeTickets.find((x) => x.id === v); requestLink("ticket", v, retainer.id, t?.subject ?? "ticket"); }}>
             <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Ligar ticket" /></SelectTrigger>
-            <SelectContent>{freeTickets.map((t) => <SelectItem key={t.id} value={t.id}>{t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {coTickets.length > 0 && <SelectGroup><SelectLabel>{coLabel}</SelectLabel>{coTickets.map((t) => <SelectItem key={t.id} value={t.id}>{t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</SelectItem>)}</SelectGroup>}
+              {otherTickets.length > 0 && <SelectGroup><SelectLabel>Outros tickets</SelectLabel>{otherTickets.map((t) => <SelectItem key={t.id} value={t.id}>{t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</SelectItem>)}</SelectGroup>}
+            </SelectContent>
           </Select>
         )}>
           {linkedTickets.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum ticket ligado. O tempo registado nos tickets ligados conta para esta avença.</p> : (
@@ -221,9 +240,10 @@ export default function RetainerDetailPage() {
                     <TableCell className="max-w-72 truncate" title={e.description ?? ""}>{e.description ?? "—"}</TableCell>
                     <TableCell className="whitespace-nowrap text-right">{formatMinutes(e.minutes)}</TableCell>
                     <TableCell><Badge variant={flagged.get(e.id)?.includes("Extra") || flagged.get(e.id) === "Parcial extra" ? "destructive" : "outline"}>{flagged.get(e.id)}</Badge></TableCell>
-                    <TableCell>{e.userId === user?.id && (
+                    <TableCell className="whitespace-nowrap">{e.userId === user?.id && (<>
+                      <Button variant="ghost" size="icon" aria-label="Corrigir registo" onClick={() => setEditEntry(e)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" aria-label="Apagar registo" onClick={() => del.mutate({ source: e.source, id: e.id })}><Trash2 className="h-4 w-4" /></Button>
-                    )}</TableCell>
+                    </>)}</TableCell>
                   </TableRow>))}
                 </TableBody>
               </Table>
@@ -253,6 +273,7 @@ export default function RetainerDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <LogRetainerTimeDialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)} retainer={retainer} entry={editEntry} projects={[]} tickets={[]} />
       <RetainerFormDialog open={editOpen} onOpenChange={setEditOpen} retainer={retainer} />
       <LogRetainerTimeDialog open={logOpen} onOpenChange={setLogOpen} retainer={retainer}
         projects={linkedProjects.map((p) => ({ id: p.id, title: p.title }))}

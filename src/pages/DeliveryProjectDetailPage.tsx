@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Sparkles, AlertTriangle, CheckCircle2, Clock, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { RetainerLinkBadge } from "@/components/retainers/RetainerLinkBadge";
 
 export default function DeliveryProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +49,7 @@ export default function DeliveryProjectDetailPage() {
           <div className="flex gap-2 mt-2">
             <Badge>{p.status}</Badge>
             <Badge variant="outline">{p.health_status}</Badge>
+            <RetainerLinkBadge kind="project" id={p.id} />
             <Badge variant="outline">{p.priority}</Badge>
           </div>
         </div>

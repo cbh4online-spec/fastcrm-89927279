@@ -74,3 +74,14 @@ describe("rascunho de fatura da avença", () => {
     expect(retainerInvoiceTag("a", "2026-11")).not.toBe(retainerInvoiceTag("a", "2026-12"));
   });
 });
+
+describe("IVA escolhido no rascunho", () => {
+  it("aplica a taxa escolhida (6%) a todas as linhas", () => {
+    const l = buildRetainerInvoiceLines({ name: "X", monthly_fee: 100, overage_hourly_rate: 40 }, "2026-11", { overageMinutes: 60 }, true, 6);
+    expect(l.map((x) => x.tax_rate)).toEqual([6, 6]);
+  });
+  it("isento (0%) fica a 0", () => {
+    const l = buildRetainerInvoiceLines({ name: "X", monthly_fee: 100, overage_hourly_rate: 40 }, "2026-11", { overageMinutes: 0 }, true, 0);
+    expect(l[0].tax_rate).toBe(0);
+  });
+});

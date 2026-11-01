@@ -180,6 +180,41 @@ export function useLogRetainerTime() {
   });
 }
 
+/** Corrige um registo de tempo existente (duração, data, descrição, faturável). */
+export function useUpdateRetainerEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { source: "project" | "ticket"; id: string; date: string; minutes: number; description: string; billable: boolean }) => {
+      if (input.minutes <= 0 || input.minutes > 24 * 60) throw new Error("Duração inválida (máx. 24h)");
+      if (input.description.length > 2000) throw new Error("Descrição demasiado longa");
+      const patch = input.source === "project"
+        ? { entry_date: input.date, duration_minutes: input.minutes, description: input.description.trim() || null, billable: input.billable }
+        : { started_at: `${input.date}T12:00:00Z`, duration_minutes: input.minutes, description: input.description.trim() || null };
+      const table = input.source === "project" ? "implementation_time_entries" : "support_ticket_time_entries";
+      const { data, error } = await db.from(table).update(patch).eq("id", input.id).select("id");
+      if (error) throw error;
+      if (!data?.length) throw new Error("Sem permissão para alterar este registo");
+    },
+    onSuccess: () => { toast.success("Registo atualizado"); qc.invalidateQueries({ queryKey: [KEY] }); qc.invalidateQueries({ queryKey: ["ticket-time-entries"] }); },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
+  });
+}
+
+/** Avença ligada a um projeto ou ticket (para mostrar nas fichas). */
+export function useRetainerBadge(kind: "project" | "ticket", parentId?: string | null) {
+  return useQuery({
+    queryKey: [KEY, "badge", kind, parentId],
+    enabled: !!parentId,
+    queryFn: async () => {
+      const table = kind === "project" ? "implementation_projects" : "support_tickets";
+      const { data: parent } = await db.from(table).select("retainer_id").eq("id", parentId!).maybeSingle();
+      if (!parent?.retainer_id) return null;
+      const { data } = await db.from("service_retainers").select("id, name").eq("id", parent.retainer_id).maybeSingle();
+      return data as { id: string; name: string } | null;
+    },
+  });
+}
+
 export function useDeleteRetainerEntry() {
   const qc = useQueryClient();
   return useMutation({
