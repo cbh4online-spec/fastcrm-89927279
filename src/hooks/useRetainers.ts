@@ -377,7 +377,7 @@ export function useCreateTicketFromTask() {
       if (error) throw error;
       return data.id as string;
     },
-    onSuccess: () => { toast.success("Ticket criado a partir da tarefa"); qc.invalidateQueries({ queryKey: [KEY] }); qc.invalidateQueries({ queryKey: ["implementation-project"] }); },
+    onSuccess: () => { toast.success("Ticket criado a partir da tarefa"); qc.invalidateQueries({ queryKey: [KEY] }); qc.invalidateQueries({ queryKey: ["impl-project"] }); },
     onError: (e: any) => toast.error(e.message ?? "Erro ao criar ticket"),
   });
 }
