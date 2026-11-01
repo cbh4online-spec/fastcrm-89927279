@@ -736,6 +736,13 @@
       "when": 1793456827967,
       "tag": "0104_whatsapp_meta_templates_manager",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1793569201804,
+      "tag": "0105_service_retainers",
+      "breakpoints": true
     }
   ]
 }

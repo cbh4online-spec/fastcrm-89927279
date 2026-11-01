@@ -41,6 +41,8 @@ const WorkspacePlanPage = lazy(() => import("@/pages/WorkspacePlanPage"));
 const OnboardingProjectsPage = lazy(() => import("@/pages/OnboardingProjectsPage"));
 const OnboardingProjectDetailPage = lazy(() => import("@/pages/OnboardingProjectDetailPage"));
 const DeliveryProjectsPage = lazy(() => import("@/pages/DeliveryProjectsPage"));
+const RetainersPage = lazy(() => import("@/pages/RetainersPage"));
+const RetainerDetailPage = lazy(() => import("@/pages/RetainerDetailPage"));
 const DeliveryProjectDetailPage = lazy(() => import("@/pages/DeliveryProjectDetailPage"));
 const CustomerSuccessPage = lazy(() => import("@/pages/CustomerSuccessPage"));
 const CustomerAccountDetailPage = lazy(() => import("@/pages/CustomerAccountDetailPage"));
@@ -96,6 +98,8 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/onboarding" element={<OnboardingProjectsPage />} />
       <Route path="/dashboard/onboarding/:id" element={<OnboardingProjectDetailPage />} />
       <Route path="/dashboard/delivery/projects" element={<DeliveryProjectsPage />} />
+      <Route path="/dashboard/retainers" element={<RetainersPage />} />
+      <Route path="/dashboard/retainers/:id" element={<RetainerDetailPage />} />
       <Route path="/dashboard/delivery/projects/:id" element={<DeliveryProjectDetailPage />} />
       <Route path="/dashboard/customer-success" element={<CustomerSuccessPage />} />
       <Route path="/dashboard/customer-success/:id" element={<CustomerAccountDetailPage />} />

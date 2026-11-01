@@ -48639,6 +48639,7 @@ export type Database = {
           project_number: string | null
           project_type: string
           proposal_id: string | null
+          retainer_id: string | null
           risks: Json
           sales_request_id: string | null
           scope_summary: string | null
@@ -48681,6 +48682,7 @@ export type Database = {
           project_number?: string | null
           project_type?: string
           proposal_id?: string | null
+          retainer_id?: string | null
           risks?: Json
           sales_request_id?: string | null
           scope_summary?: string | null
@@ -48723,6 +48725,7 @@ export type Database = {
           project_number?: string | null
           project_type?: string
           proposal_id?: string | null
+          retainer_id?: string | null
           risks?: Json
           sales_request_id?: string | null
           scope_summary?: string | null
@@ -48736,7 +48739,15 @@ export type Database = {
           used_hours?: number
           workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "implementation_projects_retainer_id_fkey"
+            columns: ["retainer_id"]
+            isOneToOne: false
+            referencedRelation: "service_retainers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       implementation_scope_changes: {
         Row: {
@@ -48804,6 +48815,7 @@ export type Database = {
           entry_date: string
           id: string
           project_id: string
+          retainer_id: string | null
           task_id: string | null
           updated_at: string
           user_id: string
@@ -48821,6 +48833,7 @@ export type Database = {
           entry_date: string
           id?: string
           project_id: string
+          retainer_id?: string | null
           task_id?: string | null
           updated_at?: string
           user_id: string
@@ -48838,6 +48851,7 @@ export type Database = {
           entry_date?: string
           id?: string
           project_id?: string
+          retainer_id?: string | null
           task_id?: string | null
           updated_at?: string
           user_id?: string
@@ -48849,6 +48863,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "implementation_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "implementation_time_entries_retainer_id_fkey"
+            columns: ["retainer_id"]
+            isOneToOne: false
+            referencedRelation: "service_retainers"
             referencedColumns: ["id"]
           },
           {
@@ -84348,6 +84369,103 @@ export type Database = {
           },
         ]
       }
+      service_retainers: {
+        Row: {
+          company_id: string | null
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          id: string
+          included_hours: number
+          monthly_fee: number
+          name: string
+          notes: string | null
+          overage_hourly_rate: number
+          start_date: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          included_hours?: number
+          monthly_fee?: number
+          name: string
+          notes?: string | null
+          overage_hourly_rate?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          included_hours?: number
+          monthly_fee?: number
+          name?: string
+          notes?: string | null
+          overage_hourly_rate?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_retainers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_retainers_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_retainers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_retainers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "service_retainers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_retainers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_team_assignments: {
         Row: {
           created_at: string
@@ -92757,6 +92875,7 @@ export type Database = {
           entry_type: string
           hourly_rate: number | null
           id: string
+          retainer_id: string | null
           started_at: string | null
           ticket_id: string
           updated_at: string
@@ -92772,6 +92891,7 @@ export type Database = {
           entry_type?: string
           hourly_rate?: number | null
           id?: string
+          retainer_id?: string | null
           started_at?: string | null
           ticket_id: string
           updated_at?: string
@@ -92787,6 +92907,7 @@ export type Database = {
           entry_type?: string
           hourly_rate?: number | null
           id?: string
+          retainer_id?: string | null
           started_at?: string | null
           ticket_id?: string
           updated_at?: string
@@ -92794,6 +92915,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "support_ticket_time_entries_retainer_id_fkey"
+            columns: ["retainer_id"]
+            isOneToOne: false
+            referencedRelation: "service_retainers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "support_ticket_time_entries_ticket_id_fkey"
             columns: ["ticket_id"]
@@ -92846,6 +92974,7 @@ export type Database = {
           id: string
           priority: Database["public"]["Enums"]["support_ticket_priority"]
           resolved_at: string | null
+          retainer_id: string | null
           satisfaction_comment: string | null
           satisfaction_rating: number | null
           sla_deadline: string | null
@@ -92873,6 +93002,7 @@ export type Database = {
           id?: string
           priority?: Database["public"]["Enums"]["support_ticket_priority"]
           resolved_at?: string | null
+          retainer_id?: string | null
           satisfaction_comment?: string | null
           satisfaction_rating?: number | null
           sla_deadline?: string | null
@@ -92900,6 +93030,7 @@ export type Database = {
           id?: string
           priority?: Database["public"]["Enums"]["support_ticket_priority"]
           resolved_at?: string | null
+          retainer_id?: string | null
           satisfaction_comment?: string | null
           satisfaction_rating?: number | null
           sla_deadline?: string | null
@@ -92914,6 +93045,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "support_tickets_retainer_id_fkey"
+            columns: ["retainer_id"]
+            isOneToOne: false
+            referencedRelation: "service_retainers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "support_tickets_workspace_id_fkey"
             columns: ["workspace_id"]
