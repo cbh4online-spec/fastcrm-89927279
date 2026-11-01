@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import { Route, Navigate } from "react-router-dom";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 const Inbox = lazy(() => import("@/pages/Inbox"));
 const InboxSnippets = lazy(() => import("@/pages/InboxSnippets"));
@@ -97,10 +98,10 @@ export function CommunicationRoutes() {
       <Route path="/dashboard/settings/workspace-plan" element={<WorkspacePlanPage />} />
       <Route path="/dashboard/onboarding" element={<OnboardingProjectsPage />} />
       <Route path="/dashboard/onboarding/:id" element={<OnboardingProjectDetailPage />} />
-      <Route path="/dashboard/delivery/projects" element={<DeliveryProjectsPage />} />
-      <Route path="/dashboard/retainers" element={<RetainersPage />} />
-      <Route path="/dashboard/retainers/:id" element={<RetainerDetailPage />} />
-      <Route path="/dashboard/delivery/projects/:id" element={<DeliveryProjectDetailPage />} />
+      <Route path="/dashboard/delivery/projects" element={<DashboardLayout><DeliveryProjectsPage /></DashboardLayout>} />
+      <Route path="/dashboard/retainers" element={<DashboardLayout><RetainersPage /></DashboardLayout>} />
+      <Route path="/dashboard/retainers/:id" element={<DashboardLayout><RetainerDetailPage /></DashboardLayout>} />
+      <Route path="/dashboard/delivery/projects/:id" element={<DashboardLayout><DeliveryProjectDetailPage /></DashboardLayout>} />
       <Route path="/dashboard/customer-success" element={<CustomerSuccessPage />} />
       <Route path="/dashboard/customer-success/:id" element={<CustomerAccountDetailPage />} />
       <Route path="/admin/kernel" element={<KernelAdminPage />} />
