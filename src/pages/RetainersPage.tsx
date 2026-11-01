@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { normalizeSearch } from "@/lib/text/normalize";
+import { matchesSearch } from "@/lib/search/normalize";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useRetainers, useRetainerEntries, type ServiceRetainer } from "@/hooks/useRetainers";
 import { computeRetainerUsage } from "@/lib/retainers/retainerUsage";
@@ -42,9 +42,8 @@ export default function RetainersPage() {
   const [status, setStatus] = useState<"active" | "paused" | "ended" | "all">("active");
   const counts = { active: 0, paused: 0, ended: 0, all: retainers.length } as Record<string, number>;
   retainers.forEach((r) => { counts[r.status] = (counts[r.status] ?? 0) + 1; });
-  const nq = normalizeSearch(q.trim());
   const shown = retainers.filter((r) => (status === "all" || r.status === status)
-    && (!nq || normalizeSearch(`${r.name} ${r.companies?.name ?? ""}`).includes(nq)));
+    && (!q.trim() || matchesSearch([r.name, r.companies?.name ?? ""], q)));
 
   return (
     <div className="container mx-auto space-y-6 p-6">
