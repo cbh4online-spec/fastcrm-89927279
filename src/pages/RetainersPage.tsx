@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { normalizeSearch } from "@/lib/text/normalize";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useRetainers, useRetainerEntries, type ServiceRetainer } from "@/hooks/useRetainers";
 import { computeRetainerUsage } from "@/lib/retainers/retainerUsage";
@@ -36,6 +38,13 @@ export default function RetainersPage() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const monthKey = lisbonMonthKey();
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<"active" | "paused" | "ended" | "all">("active");
+  const counts = { active: 0, paused: 0, ended: 0, all: retainers.length } as Record<string, number>;
+  retainers.forEach((r) => { counts[r.status] = (counts[r.status] ?? 0) + 1; });
+  const nq = normalizeSearch(q.trim());
+  const shown = retainers.filter((r) => (status === "all" || r.status === status)
+    && (!nq || normalizeSearch(`${r.name} ${r.companies?.name ?? ""}`).includes(nq)));
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -47,6 +56,23 @@ export default function RetainersPage() {
         <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova avença</Button>
       </div>
 
+      {retainers.length > 0 && (
+        <div className="space-y-3">
+          <div className="relative max-w-md">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pesquisar avença ou empresa" aria-label="Pesquisar avenças" className="h-12 rounded-full pl-10" />
+          </div>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
+            {(["active", "paused", "ended", "all"] as const).map((k) => (
+              <button key={k} type="button" onClick={() => setStatus(k)} aria-pressed={status === k}
+                className={`rounded-full border px-3 py-1 text-sm ${status === k ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}>
+                {k === "all" ? "Todas" : k === "active" ? "Ativas" : k === "paused" ? "Pausadas" : "Terminadas"} ({counts[k] ?? 0})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <IXCard>
         {isLoading ? <p className="text-sm text-muted-foreground">A carregar...</p>
           : error ? <p className="text-sm text-destructive">Não foi possível carregar as avenças.</p>
@@ -55,8 +81,10 @@ export default function RetainersPage() {
               <p className="text-sm text-muted-foreground">Ainda não há avenças. Crie a primeira para começar a controlar as horas.</p>
               <Button variant="outline" onClick={() => setOpen(true)}>Criar avença</Button>
             </div>
+          ) : shown.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma avença corresponde à pesquisa ou ao filtro.</p>
           ) : (
-            <div className="divide-y divide-border">{retainers.map((r) => <RetainerRow key={r.id} r={r} monthKey={monthKey} />)}</div>
+            <div className="divide-y divide-border">{shown.map((r) => <RetainerRow key={r.id} r={r} monthKey={monthKey} />)}</div>
           )}
       </IXCard>
 
