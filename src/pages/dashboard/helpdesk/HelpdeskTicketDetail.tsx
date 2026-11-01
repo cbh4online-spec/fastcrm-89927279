@@ -92,6 +92,7 @@ export default function HelpdeskTicketDetail() {
           <h1 className="font-semibold text-lg truncate">
             #{ticket.ticket_number} — {ticket.subject}
           </h1>
+          <RetainerLinkBadge kind="ticket" id={ticket.id} />
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>

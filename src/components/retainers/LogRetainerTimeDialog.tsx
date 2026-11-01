@@ -6,14 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useLogRetainerTime, type ServiceRetainer } from "@/hooks/useRetainers";
-import { lisbonDate, parseDurationInput } from "@/lib/retainers/retainerUsage";
+import { useLogRetainerTime, useUpdateRetainerEntry, type ServiceRetainer } from "@/hooks/useRetainers";
+import { lisbonDate, parseDurationInput, type RetainerEntry } from "@/lib/retainers/retainerUsage";
 
-export function LogRetainerTimeDialog({ open, onOpenChange, retainer, projects, tickets }: {
+function minutesToInput(m: number) { return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`; }
+
+export function LogRetainerTimeDialog({ open, onOpenChange, retainer, projects, tickets, entry }: {
   open: boolean; onOpenChange: (o: boolean) => void; retainer: ServiceRetainer;
   projects: { id: string; title: string }[]; tickets: { id: string; subject: string; ticket_number?: string | null }[];
+  /** Quando presente, o diálogo corrige este registo em vez de criar um novo. */
+  entry?: RetainerEntry | null;
 }) {
   const log = useLogRetainerTime();
+  const update = useUpdateRetainerEntry();
   const [target, setTarget] = useState("");
   const [date, setDate] = useState(lisbonDate(new Date().toISOString()));
   const [duration, setDuration] = useState("");
@@ -21,38 +26,56 @@ export function LogRetainerTimeDialog({ open, onOpenChange, retainer, projects, 
   const [billable, setBillable] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => { if (open) { setErr(null); setDuration(""); setDescription(""); setBillable(true); } }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    setErr(null);
+    if (entry) {
+      setTarget(`${entry.source === "project" ? "p" : "t"}:${entry.parentId}`);
+      setDate(entry.date); setDuration(minutesToInput(entry.minutes));
+      setDescription(entry.description ?? ""); setBillable(entry.billable);
+    } else { setDuration(""); setDescription(""); setBillable(true); }
+  }, [open, entry]);
 
   const isProject = target.startsWith("p:");
+  const pending = log.isPending || update.isPending;
   const submit = () => {
     const minutes = parseDurationInput(duration);
     if (!target) return setErr("Escolha o projeto ou ticket");
     if (!minutes || minutes <= 0) return setErr("Duração inválida. Ex: 1:30, 1h30 ou 45m");
     if (!description.trim()) return setErr("Descreva o trabalho feito");
+    const done = { onSuccess: () => onOpenChange(false) };
+    if (entry) {
+      update.mutate({ source: entry.source, id: entry.id, date, minutes, description, billable: isProject ? billable : true }, done);
+      return;
+    }
     log.mutate({
       retainer, kind: isProject ? "project" : "ticket", parentId: target.slice(2), date, minutes,
       description, billable: isProject ? billable : true,
-    }, { onSuccess: () => onOpenChange(false) });
+    }, done);
   };
 
-  const empty = projects.length === 0 && tickets.length === 0;
+  const empty = !entry && projects.length === 0 && tickets.length === 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Registar tempo</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{entry ? "Corrigir registo" : "Registar tempo"}</DialogTitle></DialogHeader>
         {empty ? (
           <p className="text-sm text-muted-foreground">Ligue primeiro um projeto ou um ticket de suporte a esta avença.</p>
         ) : (
           <div className="space-y-4">
             <div>
               <Label>Onde foi feito</Label>
-              <Select value={target} onValueChange={setTarget}>
-                <SelectTrigger><SelectValue placeholder="Escolher projeto ou ticket" /></SelectTrigger>
-                <SelectContent>
-                  {projects.map((p) => <SelectItem key={p.id} value={`p:${p.id}`}>Projeto · {p.title}</SelectItem>)}
-                  {tickets.map((t) => <SelectItem key={t.id} value={`t:${t.id}`}>Suporte · {t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {entry ? (
+                <p className="text-sm text-foreground">{entry.source === "project" ? "Projeto" : "Suporte"} · {entry.parentLabel}</p>
+              ) : (
+                <Select value={target} onValueChange={setTarget}>
+                  <SelectTrigger><SelectValue placeholder="Escolher projeto ou ticket" /></SelectTrigger>
+                  <SelectContent>
+                    {projects.map((p) => <SelectItem key={p.id} value={`p:${p.id}`}>Projeto · {p.title}</SelectItem>)}
+                    {tickets.map((t) => <SelectItem key={t.id} value={`t:${t.id}`}>Suporte · {t.ticket_number ? `#${t.ticket_number} ` : ""}{t.subject}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label htmlFor="lt-date">Data</Label><Input id="lt-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
@@ -70,7 +93,7 @@ export function LogRetainerTimeDialog({ open, onOpenChange, retainer, projects, 
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          {!empty && <Button onClick={submit} disabled={log.isPending}>{log.isPending ? "A registar..." : "Registar"}</Button>}
+          {!empty && <Button onClick={submit} disabled={pending}>{pending ? "A guardar..." : entry ? "Guardar" : "Registar"}</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>
