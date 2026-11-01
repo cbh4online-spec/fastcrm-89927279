@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,9 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  useDeleteRetainerEntry, useLinkToRetainer, useProfileNames, useRetainer, useRetainerEntries, useRetainerLinks,
+  useCreateRetainerDraftInvoice, useDeleteRetainerEntry, useLinkToRetainer, useRetainerMonthInvoice, useProfileNames, useRetainer, useRetainerEntries, useRetainerLinks,
 } from "@/hooks/useRetainers";
-import { computeRetainerUsage, formatMinutes, isRetainerBillableMonth } from "@/lib/retainers/retainerUsage";
+import { buildRetainerInvoiceLines, computeRetainerUsage, formatMinutes, isRetainerBillableMonth } from "@/lib/retainers/retainerUsage";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { lisbonMonthKey } from "@/lib/dates/currentMonth";
@@ -39,6 +39,9 @@ export default function RetainerDetailPage() {
   const { data: names } = useProfileNames(entries.map((e) => e.userId ?? ""));
   const link = useLinkToRetainer();
   const del = useDeleteRetainerEntry();
+  const createInvoice = useCreateRetainerDraftInvoice();
+  const { data: monthInvoice } = useRetainerMonthInvoice(id, monthKey);
+  const [invoiceConfirm, setInvoiceConfirm] = useState(false);
   const [pending, setPending] = useState<{ kind: "project" | "ticket"; id: string; retainerId: string | null; label: string; minutes: number | null } | null>(null);
 
   const requestLink = async (kind: "project" | "ticket", pid: string, retainerId: string | null, label: string) => {
@@ -78,6 +81,11 @@ export default function RetainerDetailPage() {
   const linkedTickets = (links?.tickets ?? []).filter((t) => t.retainer_id === retainer.id);
   const freeProjects = (links?.projects ?? []).filter((p) => !p.retainer_id);
   const freeTickets = (links?.tickets ?? []).filter((t) => !t.retainer_id);
+  const feeDue = isRetainerBillableMonth(retainer, monthKey);
+  const invoiceLines = buildRetainerInvoiceLines(
+    { name: retainer.name, monthly_fee: Number(retainer.monthly_fee), overage_hourly_rate: Number(retainer.overage_hourly_rate) },
+    monthKey, usage, feeDue);
+  const invoiceNet = invoiceLines.reduce((a, l) => a + Math.round(l.quantity * l.unit_price * 100) / 100, 0);
   const [y, m] = monthKey.split("-").map(Number);
   const { from, to } = monthRange(y, m);
 
@@ -119,7 +127,40 @@ export default function RetainerDetailPage() {
         <Button variant="outline" size="icon" aria-label="Mês seguinte" onClick={() => setMonthKey(shiftMonth(monthKey, 1))}><ChevronRight className="h-4 w-4" /></Button>
       </div>
 
-      <RetainerKpis usage={usage} monthlyFee={Number(retainer.monthly_fee)} feeDue={isRetainerBillableMonth(retainer, monthKey)} />
+      <RetainerKpis usage={usage} monthlyFee={Number(retainer.monthly_fee)} feeDue={feeDue} />
+
+      <IXCard title="Faturação do mês" description="Cria um rascunho de fatura com a mensalidade e as horas extra. Reveja e emita-o em Faturas.">
+        {monthInvoice ? (
+          <p className="text-sm text-foreground">Já existe a fatura <Link className="font-medium underline" to={`/dashboard/invoices/${monthInvoice.id}`}>{monthInvoice.invoice_number}</Link> ({monthInvoice.status === "draft" ? "rascunho" : monthInvoice.status}) para este mês.</p>
+        ) : invoiceLines.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nada a faturar neste mês.</p>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <ul className="space-y-1 text-sm text-foreground">{invoiceLines.map((l) => (
+              <li key={l.description}>{l.description}: {l.quantity.toLocaleString("pt-PT")} × {l.unit_price.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}</li>
+            ))}<li className="font-medium">Total sem IVA: {invoiceNet.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}</li></ul>
+            <Button onClick={() => setInvoiceConfirm(true)} disabled={!retainer.company_id || createInvoice.isPending}>
+              <FileText className="mr-2 h-4 w-4" />Criar rascunho de fatura
+            </Button>
+          </div>
+        )}
+        {!retainer.company_id && <p className="mt-2 text-sm text-destructive">Associe uma empresa à avença para poder faturar.</p>}
+      </IXCard>
+
+      <AlertDialog open={invoiceConfirm} onOpenChange={setInvoiceConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Criar rascunho de fatura</AlertDialogTitle>
+            <AlertDialogDescription>
+              Será criado um rascunho para {retainer.companies?.name ?? "a empresa"} de {invoiceNet.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })} + IVA 23%. Não é emitido nem enviado ao cliente; pode rever e alterar em Faturas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => createInvoice.mutate({ retainer, monthKey, lines: invoiceLines })}>Criar rascunho</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <IXCard title="Consumo do mês" description="Cor cheia = projetos · cor clara = suporte. As horas não passam para o mês seguinte.">
         <RetainerUsageBar usage={usage} />
         {usage.level === "warning" && <p className="mt-3 text-sm text-foreground">Já gastou mais de 75% das horas deste mês.</p>}

@@ -55,3 +55,22 @@ describe("avença: mensalidade só em meses ativos", () => {
   it("depois do fim não tem mensalidade", () => expect(isRetainerBillableMonth({ ...r, end_date: "2027-03-15" }, "2027-04")).toBe(false));
   it("pausada não tem mensalidade", () => expect(isRetainerBillableMonth({ ...r, status: "paused" }, "2026-12")).toBe(false));
 });
+
+import { buildRetainerInvoiceLines, retainerInvoiceTag } from "@/lib/retainers/retainerUsage";
+describe("rascunho de fatura da avença", () => {
+  const r = { name: "Pharliss", monthly_fee: 300, overage_hourly_rate: 40 };
+  it("inclui mensalidade e horas extra (90 min = 1,5 h × 40 €)", () => {
+    const l = buildRetainerInvoiceLines(r, "2026-11", { overageMinutes: 90 }, true);
+    expect(l.map((x) => [x.quantity, x.unit_price])).toEqual([[1, 300], [1.5, 40]]);
+  });
+  it("mês não faturável: só horas extra", () => {
+    const l = buildRetainerInvoiceLines(r, "2026-11", { overageMinutes: 60 }, false);
+    expect(l).toHaveLength(1); expect(l[0].unit_price).toBe(40);
+  });
+  it("sem extra nem mensalidade: nada a faturar", () => {
+    expect(buildRetainerInvoiceLines(r, "2026-11", { overageMinutes: 0 }, false)).toEqual([]);
+  });
+  it("marcador é único por avença e mês", () => {
+    expect(retainerInvoiceTag("a", "2026-11")).not.toBe(retainerInvoiceTag("a", "2026-12"));
+  });
+});
