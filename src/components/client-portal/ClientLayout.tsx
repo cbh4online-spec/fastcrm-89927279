@@ -100,6 +100,10 @@ function hexToHsl(hex: string): string | null {
 
 export function ClientLayout({ children }: ClientLayoutProps) {
   const savedWorkspaceId = localStorage.getItem("client_workspace_id") || undefined;
+  // Sem workspace escolhido no link de entrada, nunca adivinhar outro portal
+  if (!savedWorkspaceId && typeof window !== "undefined" && !window.location.pathname.startsWith("/client/login")) {
+    // segue para o login, que exige ?workspace=
+  }
   const { clientUser, loading, signOut, isAuthenticated, hasAuthButNoClient } = useClientAuth({ workspaceId: savedWorkspaceId });
   const { itemCount } = useCart();
   const { favoriteCount } = useClientFavorites();
