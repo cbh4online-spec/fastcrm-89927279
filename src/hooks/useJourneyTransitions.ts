@@ -1,3 +1,4 @@
+import { matchesJourneySegment } from "@/lib/studentJourney/segments";
 import { useMemo, useCallback } from "react";
 import { useProfiles, useEnrollments } from "./useStudentJourney";
 import { supabase } from "@/integrations/supabase/client";
@@ -147,19 +148,9 @@ export function useJourneyTransitions() {
     journeyProfiles.forEach(jp => {
       stats[jp.currentState]++;
       
-      if (jp.isActivationCandidate) {
-        stats.activationCandidates++;
-      }
-      
-      // Ready for contact: high priority states or overdue follow-ups
-      if (jp.activationPriority <= 2 && jp.activationScore > 60) {
-        stats.readyForContact++;
-      }
-      
-      // At risk: approaching inactivity threshold
-      if (jp.daysSinceLastActivity > JOURNEY_TIMING_CONFIG.inactivityThresholdDays - 14) {
-        stats.atRisk++;
-      }
+      if (matchesJourneySegment(jp, "activation")) stats.activationCandidates++;
+      if (matchesJourneySegment(jp, "ready_contact")) stats.readyForContact++;
+      if (matchesJourneySegment(jp, "at_risk")) stats.atRisk++;
     });
     
     return stats;
