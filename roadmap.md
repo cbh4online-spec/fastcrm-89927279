@@ -70,3 +70,8 @@
 
 - [x] Gestor de modelos Meta (rascunhos, secções A–E, média, botões, versões, envio de aprovados)
 - [ ] Receber respostas/estados da Meta e correr ações dos botões — bloqueado: requer mudança para stack moderna
+
+## Portal de serviços (2026-11-02)
+- [x] Completar o resumo de avenças, projetos, suporte e horas no portal de serviços, sem alterar o portal de loja; nove testes passaram e compilação sem erros.
+- [x] Validar saldo partilhado, exclusão de tempo não faturável, horas extra e recusa da sessão sem acesso (42501, sem dados); função sem acesso anónimo.
+- [ ] Confirmar resumo e navegação com cliente autorizado do Método PARE — a sessão disponível não tem perfil de cliente neste workspace.
