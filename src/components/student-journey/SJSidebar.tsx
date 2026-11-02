@@ -19,6 +19,8 @@ import {
 
 interface SJSidebarProps {
   onOpenAssistant?: () => void;
+  onNavigate?: () => void;
+  className?: string;
 }
 
 const menuItems = [
@@ -55,7 +57,7 @@ const menuItems = [
   },
 ];
 
-export function SJSidebar({ onOpenAssistant }: SJSidebarProps) {
+export function SJSidebar({ onOpenAssistant, onNavigate, className }: SJSidebarProps) {
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -67,7 +69,7 @@ export function SJSidebar({ onOpenAssistant }: SJSidebarProps) {
   };
 
   return (
-    <div className="w-64 border-r border-border bg-muted/30 flex flex-col h-full">
+    <div className={cn("w-64 border-r border-border bg-muted/30 flex flex-col h-full", className)}>
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2 mb-3">
@@ -94,7 +96,7 @@ export function SJSidebar({ onOpenAssistant }: SJSidebarProps) {
       <ScrollArea className="flex-1 p-2">
         <div className="space-y-1">
           {menuItems.map((item) => (
-            <Link key={item.id} to={item.path}>
+            <Link key={item.id} to={item.path} onClick={onNavigate}>
               <Button
                 variant="ghost"
                 className={cn(
