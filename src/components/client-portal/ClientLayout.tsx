@@ -33,6 +33,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
+import { portalModeFor, isAllowedInServicesPortal } from "@/lib/clientPortal/portalMode";
 
 interface ClientLayoutProps {
   children: ReactNode;
@@ -106,12 +107,14 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const location = useLocation();
   const [workspaceBranding, setWorkspaceBranding] = useState<WorkspaceBranding | null>(null);
 
+  const portalMode = portalModeFor(clientUser?.workspace_id ?? savedWorkspaceId);
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
+      if (portalMode === "services" && !isAllowedInServicesPortal(item.path)) return false;
       if (!item.requiredPermission) return true;
       return permissions[item.requiredPermission];
     });
-  }, [permissions]);
+  }, [permissions, portalMode]);
   
   // Fetch workspace branding and apply dynamic theming
   useEffect(() => {
@@ -173,6 +176,11 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     return <Navigate to="/client/login" replace />;
   }
 
+  // Portal de serviços: nunca mostrar loja, catálogo ou conteúdos cosméticos
+  if (portalMode === "services" && !isAllowedInServicesPortal(location.pathname)) {
+    return <Navigate to="/client/work" replace />;
+  }
+
   const portalName = workspaceBranding?.name ? `Portal ${workspaceBranding.name}` : "Portal Cliente";
 
   return (
@@ -181,7 +189,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
       <header className="sticky top-0 z-50 border-b border-[hsl(var(--editorial-border))]/70 bg-[hsl(var(--editorial-cream))]/85 backdrop-blur-xl">
         <div className="container flex h-20 items-center justify-between">
           {/* Logo */}
-          <Link to="/client/dashboard" className="flex items-center gap-3">
+          <Link to={portalMode === "services" ? "/client/work" : "/client/dashboard"} className="flex items-center gap-3">
             {workspaceBranding?.logo_url ? (
               <img
                 src={workspaceBranding.logo_url}
