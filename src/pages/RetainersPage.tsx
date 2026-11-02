@@ -12,6 +12,8 @@ import { computeRetainerUsage } from "@/lib/retainers/retainerUsage";
 import { lisbonMonthKey } from "@/lib/dates/currentMonth";
 import { RetainerUsageBar } from "@/components/retainers/RetainerUsageSummary";
 import { RetainerFormDialog } from "@/components/retainers/RetainerFormDialog";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { clientPortalUrl } from "@/lib/clientPortal/portalUrl";
 
 const STATUS: Record<string, string> = { active: "Ativa", paused: "Pausada", ended: "Terminada" };
 const eur = (v: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
@@ -39,6 +41,8 @@ export default function RetainersPage() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const monthKey = lisbonMonthKey();
+  const { currentWorkspace } = useWorkspace();
+  const portalUrl = currentWorkspace?.slug ? clientPortalUrl(window.location.origin, currentWorkspace.slug) : null;
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"active" | "paused" | "ended" | "all">("active");
   const counts = { active: 0, paused: 0, ended: 0, all: retainers.length } as Record<string, number>;
@@ -54,8 +58,8 @@ export default function RetainersPage() {
           <p className="mt-1 text-muted-foreground">Horas incluídas, tempo gasto em projetos e suporte, e horas extra a faturar neste mês.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild><a href="/client/login" target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" />Portal do cliente</a></Button>
-          <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/client/login`); toast.success("Link do portal copiado"); }}><Copy className="mr-2 h-4 w-4" />Copiar link</Button>
+          <Button variant="outline" disabled={!portalUrl} asChild={!!portalUrl}>{portalUrl ? <a href={portalUrl} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" />Portal do cliente</a> : <span><ExternalLink className="mr-2 h-4 w-4" />Portal do cliente</span>}</Button>
+          <Button variant="outline" disabled={!portalUrl} onClick={() => { if (!portalUrl) return; navigator.clipboard?.writeText(portalUrl); toast.success(`Link do portal de ${currentWorkspace?.name} copiado`); }}><Copy className="mr-2 h-4 w-4" />Copiar link</Button>
           <Button variant="outline" asChild><Link to="/dashboard/client-users"><Users className="mr-2 h-4 w-4" />Acessos do cliente</Link></Button>
           <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova avença</Button>
         </div>
