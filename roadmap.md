@@ -70,3 +70,7 @@
 
 - [x] Gestor de modelos Meta (rascunhos, secções A–E, média, botões, versões, envio de aprovados)
 - [ ] Receber respostas/estados da Meta e correr ações dos botões — bloqueado: requer mudança para stack moderna
+
+## Portal de serviços (2026-11-02)
+- [ ] Completar o resumo de avenças, projetos, suporte e horas no portal de serviços, sem alterar o portal de loja.
+- [ ] Validar cálculos, isolamento e navegação; confirmar o acesso com uma conta de cliente autorizada.
