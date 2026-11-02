@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useB2BEmailTemplates, B2B_TEMPLATE_TYPES } from "@/hooks/useB2BEmailTemplates";
 import { B2BEmailTemplateEditor } from "./B2BEmailTemplateEditor";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { toast } from "sonner";
 
 interface B2BEmailTemplatesManagerProps {
@@ -111,7 +112,7 @@ export function B2BEmailTemplatesManager({ workspaceId }: B2BEmailTemplatesManag
             invoice_number: "FT-TEST-001",
             amount: "1.250,00",
             due_date: "31/03/2026",
-            portal_url: window.location.origin + "/client/login",
+            portal_url: getPublicBaseUrl() + "/client/login",
             last_order_date: "01/03/2026",
             top_products: "Produto A, Produto B",
             month: "Março",
