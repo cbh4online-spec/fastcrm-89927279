@@ -1,3 +1,4 @@
+import { matchesJourneySegment } from "@/lib/studentJourney/segments";
 import { useMemo, useCallback } from "react";
 import { useProfiles, useEnrollments } from "./useStudentJourney";
 import { supabase } from "@/integrations/supabase/client";
