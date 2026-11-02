@@ -61,7 +61,9 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
         setError("Erro ao carregar perfil de cliente");
         setClientUser(null);
       } else {
-        setClientUser(data as ClientUser | null);
+        // Nunca aceitar um perfil de cliente de outro workspace
+        const row = data as ClientUser | null;
+        setClientUser(row && (!config?.workspaceId || row.workspace_id === config.workspaceId) ? row : null);
         setError(null);
       }
     } catch (err) {
@@ -225,7 +227,7 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
     error,
     signIn,
     signOut,
-    isAuthenticated: !!user && !!clientUser,
+    isAuthenticated: !!user && !!clientUser && (!config?.workspaceId || clientUser.workspace_id === config.workspaceId),
     hasAuthButNoClient,
   };
 }
