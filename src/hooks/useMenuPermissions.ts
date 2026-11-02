@@ -39,7 +39,7 @@ export function useMenuPermissions() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const { data: profilePerms } = useQuery({
+  const { data: profilePerms, isLoading: profileLoading } = useQuery({
     queryKey: ["profile-menu-permissions", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
@@ -109,6 +109,7 @@ export function useMenuPermissions() {
   return {
     permissions,
     isLoading,
+    profileLoading: !!currentWorkspace?.id && profileLoading,
     error,
     currentUserRole,
     canAccessMenu,

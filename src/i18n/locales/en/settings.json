@@ -31,10 +31,8 @@
   "webhooks": "Webhooks",
   "savedSuccessfully": "Saved successfully",
   "saveFailed": "Failed to save",
-
   "personal": "Personal",
   "advanced": "Advanced",
-
   "nav_profile": "Profile",
   "nav_appearance": "Appearance",
   "nav_notifications": "Notifications",
@@ -50,7 +48,6 @@
   "nav_extensions": "Extensions",
   "nav_developer": "Developer",
   "nav_callIntelligence": "Call Intelligence",
-
   "profile_title": "Profile",
   "profile_description": "Manage your personal details",
   "profile_infoBanner": "Changes apply to all your workspaces",
@@ -75,7 +72,6 @@
   "profile_error": "Error updating profile",
   "profile_logout": "Log Out",
   "profile_logoutDesc": "Sign out of your account on this device",
-
   "appearance_title": "Appearance",
   "appearance_description": "Customize the interface and visual preferences",
   "appearance_theme": "Theme",
@@ -89,7 +85,6 @@
   "appearance_dateFormatDesc": "How dates are displayed",
   "appearance_currency": "Currency",
   "appearance_currencyDesc": "Default currency for monetary values",
-
   "notifications_title": "Notifications",
   "notifications_description": "Configure how you receive notifications",
   "notifications_email": "Email Notifications",
@@ -104,9 +99,7 @@
   "notifications_dealUpdatesDesc": "Notify when deals change stage",
   "notifications_mentions": "Mentions",
   "notifications_mentionsDesc": "Notify when you are mentioned in comments",
-
   "nav_emailCalendar": "Email & Calendar",
-
   "emailCalendar_title": "Email & Calendar Accounts",
   "emailCalendar_description": "Manage and sync your email and calendar accounts",
   "emailCalendar_connectedAccounts": "Connected accounts",
@@ -133,13 +126,11 @@
   "emailCalendar_defaultAccountDesc": "Choose which account is used when composing new emails",
   "emailCalendar_noAccounts": "No accounts connected",
   "emailCalendar_noAccountsDesc": "Connect an email account to start sending and receiving emails",
-
   "searchPlaceholder": "Search settings...",
   "noResults": "No results found",
   "resultsFound": "{{count}} result found",
   "resultsFound_plural": "{{count}} results found",
   "noMatchingCategories": "No matching categories",
-
   "callIntel_title": "Call Intelligence",
   "callIntel_description": "Manage your call recording and AI analysis settings",
   "callIntel_autoRecord": "Auto-record meetings",
@@ -166,5 +157,7 @@
   "callIntel_retentionDays": "days",
   "callIntel_insightsTemplate": "Default insights template",
   "callIntel_insightsTemplateDesc": "The selected template will be automatically applied to your meetings.",
-  "callIntel_saved": "Call intelligence settings saved"
+  "callIntel_saved": "Call intelligence settings saved",
+  "nav_profilePermissions": "Profile Permissions",
+  "nav_profilePermissions_desc": "Choose which menus each sales role can see."
 }

@@ -7,6 +7,7 @@ import { resolveRouteVisibility, isGlobalAdminPath } from "@/config/menuOverride
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { useCapability } from "@/hooks/useCapability";
+import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 
 /**
  * Páginas de configuração de pagamentos que o owner/admin do workspace tem de
@@ -42,6 +43,7 @@ export function MenuVisibilityGuard({ children }: { children: ReactNode }) {
   const { map, isReady, error } = useMenuOverrideMap();
   const { isSuperAdmin, isLoading: roleLoading } = useUserRole();
   const canManageIntegrations = useCapability("integrations.manage");
+  const { canAccessMenu, profileLoading } = useMenuPermissions();
 
   const state = useMemo(() => {
     // Administração global: um super admin tem sempre acesso, independentemente
@@ -59,8 +61,15 @@ export function MenuVisibilityGuard({ children }: { children: ReactNode }) {
     if (resolved !== "visible" && canManageIntegrations && OWNER_ESSENTIAL_ROUTE_KEYS.has(entry.key)) {
       return "visible" as const;
     }
-    return resolved;
-  }, [isReady, location.pathname, map, isSuperAdmin, roleLoading, canManageIntegrations]);
+    if (resolved !== "visible") return resolved;
+    // Permissões por perfil comercial: o menu oculto também não abre por link.
+    if (OWNER_ESSENTIAL_ROUTE_KEYS.has(entry.key) && canManageIntegrations) return "visible" as const;
+    if (profileLoading) return "pending" as const;
+    const keyAllowed = canAccessMenu(entry.key);
+    const menuKeyAllowed = entry.menuKey ? canAccessMenu(entry.menuKey) : true;
+    if (!keyAllowed || !menuKeyAllowed) return "hidden" as const;
+    return "visible" as const;
+  }, [isReady, location.pathname, map, isSuperAdmin, roleLoading, canManageIntegrations, canAccessMenu, profileLoading]);
 
   if (state === "pending") {
     return (

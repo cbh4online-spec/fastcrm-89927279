@@ -31,10 +31,8 @@
   "webhooks": "Webhooks",
   "savedSuccessfully": "Enregistré avec succès",
   "saveFailed": "Erreur lors de l'enregistrement",
-
   "personal": "Personnel",
   "advanced": "Avancé",
-
   "nav_profile": "Profil",
   "nav_appearance": "Apparence",
   "nav_notifications": "Notifications",
@@ -50,7 +48,6 @@
   "nav_extensions": "Extensions",
   "nav_developer": "Développeur",
   "nav_callIntelligence": "Call Intelligence",
-
   "profile_title": "Profil",
   "profile_description": "Gérer vos informations personnelles",
   "profile_infoBanner": "Les modifications s'appliquent à tous vos workspaces",
@@ -75,7 +72,6 @@
   "profile_error": "Erreur lors de la mise à jour du profil",
   "profile_logout": "Déconnexion",
   "profile_logoutDesc": "Se déconnecter de votre compte sur cet appareil",
-
   "appearance_title": "Apparence",
   "appearance_description": "Personnaliser l'interface et les préférences visuelles",
   "appearance_theme": "Thème",
@@ -89,7 +85,6 @@
   "appearance_dateFormatDesc": "Comment les dates sont affichées",
   "appearance_currency": "Devise",
   "appearance_currencyDesc": "Devise par défaut pour les valeurs monétaires",
-
   "notifications_title": "Notifications",
   "notifications_description": "Configurer comment vous recevez les notifications",
   "notifications_email": "Notifications par Email",
@@ -104,9 +99,7 @@
   "notifications_dealUpdatesDesc": "Notifier quand les deals changent d'étape",
   "notifications_mentions": "Mentions",
   "notifications_mentionsDesc": "Notifier quand vous êtes mentionné dans les commentaires",
-
   "nav_emailCalendar": "Email & Calendrier",
-
   "emailCalendar_title": "Comptes Email & Calendrier",
   "emailCalendar_description": "Gérer et synchroniser vos comptes email et calendrier",
   "emailCalendar_connectedAccounts": "Comptes connectés",
@@ -133,13 +126,11 @@
   "emailCalendar_defaultAccountDesc": "Choisissez quel compte est utilisé pour rédiger de nouveaux emails",
   "emailCalendar_noAccounts": "Aucun compte connecté",
   "emailCalendar_noAccountsDesc": "Connectez un compte email pour commencer à envoyer et recevoir des emails",
-
   "searchPlaceholder": "Rechercher dans les paramètres...",
   "noResults": "Aucun résultat trouvé",
   "resultsFound": "{{count}} résultat trouvé",
   "resultsFound_plural": "{{count}} résultats trouvés",
   "noMatchingCategories": "Aucune catégorie correspondante",
-
   "callIntel_title": "Call Intelligence",
   "callIntel_description": "Gérer les paramètres d'enregistrement d'appels et d'analyse IA",
   "callIntel_autoRecord": "Enregistrer les réunions automatiquement",
@@ -166,5 +157,7 @@
   "callIntel_retentionDays": "jours",
   "callIntel_insightsTemplate": "Modèle d'insights par défaut",
   "callIntel_insightsTemplateDesc": "Le modèle sélectionné sera automatiquement appliqué à vos réunions.",
-  "callIntel_saved": "Paramètres Call Intelligence enregistrés"
+  "callIntel_saved": "Paramètres Call Intelligence enregistrés",
+  "nav_profilePermissions": "Permissions par profil",
+  "nav_profilePermissions_desc": "Définissez les menus visibles pour chaque fonction commerciale."
 }
