@@ -516,6 +516,8 @@ export function analyzeSaftText(xml: string): {
     total_net: number;
     total_tax: number;
     cancelled: number;
+    series_summary: SaftSeriesSummary[];
+    audit_alerts: SaftAuditAlert[];
   };
   invoiceNos: string[];
 } {
