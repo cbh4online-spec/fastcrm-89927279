@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import type { JourneySegmentKey } from "@/lib/studentJourney/segments";
 import { 
   Users, GraduationCap, TrendingUp, Pause, 
   Crown, UserCheck, Clock, Target 
@@ -18,6 +20,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
   const kpis = [
     {
       label: "Alunos Ativos",
+      segment: "active_student" as JourneySegmentKey,
       value: stats.active_student,
       subtext: "Em formação",
       icon: Users,
@@ -26,6 +29,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
     },
     {
       label: "Concluídos Ativos",
+      segment: "completed_active" as JourneySegmentKey,
       value: stats.completed_active,
       subtext: "Prontos para ativação!",
       icon: GraduationCap,
@@ -35,6 +39,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
     },
     {
       label: "Elegíveis Progressão",
+      segment: "eligible_progression" as JourneySegmentKey,
       value: stats.eligible_progression,
       subtext: `Após ${JOURNEY_TIMING_CONFIG.coolingPeriodDays}d de reflexão`,
       icon: TrendingUp,
@@ -44,6 +49,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
     },
     {
       label: "Alumni Estratégico",
+      segment: "strategic_alumni" as JourneySegmentKey,
       value: stats.strategic_alumni,
       subtext: "Alto valor",
       icon: Crown,
@@ -52,6 +58,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
     },
     {
       label: "Inativos",
+      segment: "inactive" as JourneySegmentKey,
       value: stats.inactive,
       subtext: `>${JOURNEY_TIMING_CONFIG.churnThresholdDays}d sem atividade`,
       icon: Pause,
@@ -61,6 +68,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
     },
     {
       label: "Para Ativar",
+      segment: "activation" as JourneySegmentKey,
       value: stats.activationCandidates,
       subtext: "Oportunidades imediatas",
       icon: Target,
@@ -70,6 +78,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
     },
     {
       label: "Prontos p/ Contacto",
+      segment: "ready_contact" as JourneySegmentKey,
       value: stats.readyForContact,
       subtext: "Ação imediata",
       icon: UserCheck,
@@ -78,6 +87,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
     },
     {
       label: "Em Risco",
+      segment: "at_risk" as JourneySegmentKey,
       value: stats.atRisk,
       subtext: "Requerem atenção",
       icon: Clock,
@@ -106,10 +116,15 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
       {kpis.map((kpi, idx) => (
+        <Link
+          key={idx}
+          to={`/dashboard/student-journey/profiles?segment=${kpi.segment}`}
+          aria-label={`Ver ${kpi.label} (${kpi.value})`}
+          className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
         <Card 
-          key={idx} 
           className={cn(
-            "transition-all hover:shadow-md",
+            "h-full cursor-pointer transition-all hover:shadow-md hover:border-primary/40",
             kpi.highlight && "ring-2 ring-primary/20",
             kpi.warning && kpi.value > 0 && "ring-2 ring-red-200 dark:ring-red-900/50"
           )}
@@ -123,6 +138,7 @@ export function JourneyKPIs({ stats, totalProfiles, isLoading }: JourneyKPIsProp
             <p className="text-xs text-muted-foreground truncate">{kpi.subtext}</p>
           </CardContent>
         </Card>
+        </Link>
       ))}
     </div>
   );

@@ -68,13 +68,16 @@ import { CreateEnrollmentDialog } from "@/components/student-journey/CreateEnrol
 import { GenerateMessageDialog } from "@/components/student-journey/GenerateMessageDialog";
 import { AddInterestDialog } from "@/components/student-journey/AddInterestDialog";
 import { Link, useSearchParams } from "react-router-dom";
+import { isJourneySegmentKey, matchesJourneySegment, JOURNEY_SEGMENT_LABELS } from "@/lib/studentJourney/segments";
 import type { SJProfile } from "@/types/studentJourney";
 
 export default function SJProfiles() {
   const { profiles, isLoading, deleteProfile } = useProfiles();
   const { journeyProfiles } = useJourneyTransitions();
   const { courses } = useCourses();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const segmentParam = searchParams.get("segment");
+  const segment = isJourneySegmentKey(segmentParam) ? segmentParam : null;
 
   // Map journey states to database lifecycle stages
   const stateToStageMap: Record<string, LifecycleStage> = {
@@ -158,6 +161,7 @@ export default function SJProfiles() {
         activationScore: journeyProfile?.activationScore || 0,
         daysSinceCompletion: journeyProfile?.daysSinceLastCompletion,
         completedCourses: journeyProfile?.completedEnrollments || 0,
+        journey: journeyProfile,
       };
     });
   }, [profiles, journeyProfiles]);
@@ -200,10 +204,11 @@ export default function SJProfiles() {
         matchesFollowUp = false;
       }
 
-      return matchesSearch && matchesStage && matchesRisk && matchesPotential && 
+      const matchesSegment = !segment || (!!p.journey && matchesJourneySegment(p.journey, segment));
+      return matchesSegment && matchesSearch && matchesStage && matchesRisk && matchesPotential && 
              matchesInterest && matchesTime && matchesFollowUp;
     });
-  }, [enrichedProfiles, searchQuery, stageFilter, riskFilter, potentialFilter, 
+  }, [enrichedProfiles, segment, searchQuery, stageFilter, riskFilter, potentialFilter, 
       interestFilter, timeFilter, hasFollowUpFilter]);
 
   // Sorted profiles
