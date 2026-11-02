@@ -306,6 +306,10 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
       pushLog({ entity_type: "invoice", source_key: inv.invoice_no, source_hash: inv.hash, action: "skipped_duplicate", target_id: existId });
       continue;
     }
+    if (!["FT", "FS", "FR", "ND", "NC"].includes(String(inv.invoice_type ?? "").toUpperCase())) {
+      pushLog({ entity_type: "invoice", source_key: inv.invoice_no, action: "skipped", error_message: `Documento não fiscal (${inv.invoice_type}) — não importado como fatura` });
+      continue;
+    }
     const cust = customerMap.get(inv.customer_id);
     const custName = customerNameById.get(inv.customer_id) ?? "Consumidor final";
 

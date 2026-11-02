@@ -12,6 +12,7 @@ export interface SeriesRow {
   net: number;
   tax: number;
   total: number;
+  fiscal?: boolean;
 }
 export interface AuditAlert {
   kind: string;
@@ -32,6 +33,9 @@ const ALERT_LABELS: Record<string, string> = {
   duplicate_in_file: "Duplicado no ficheiro",
 };
 
+const FISCAL = new Set(["FT", "FS", "FR", "ND", "NC"]);
+const isFiscal = (r: SeriesRow) => r.fiscal ?? FISCAL.has(r.document_type.toUpperCase());
+
 const eur = (n: number) => new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 
 export function SafTSeriesSummary({ rows, alerts, existing }: { rows?: SeriesRow[]; alerts?: AuditAlert[]; existing?: number }) {
@@ -42,7 +46,8 @@ export function SafTSeriesSummary({ rows, alerts, existing }: { rows?: SeriesRow
       </Card>
     );
   }
-  const tot = rows.reduce(
+  const nonFiscal = rows.filter((r) => !isFiscal(r));
+  const tot = rows.filter(isFiscal).reduce(
     (a, r) => ({ count: a.count + r.count, cancelled: a.cancelled + r.cancelled, gross_value: a.gross_value + r.gross_value,
       discount: a.discount + r.discount, net: a.net + r.net, tax: a.tax + r.tax, total: a.total + r.total }),
     { count: 0, cancelled: 0, gross_value: 0, discount: 0, net: 0, tax: 0, total: 0 },
@@ -74,9 +79,9 @@ export function SafTSeriesSummary({ rows, alerts, existing }: { rows?: SeriesRow
             </thead>
             <tbody className="tabular-nums">
               {rows.map((r) => (
-                <tr key={`${r.document_type}|${r.serie}`} className="border-t">
+                <tr key={`${r.document_type}|${r.serie}`} className={`border-t ${isFiscal(r) ? "" : "text-muted-foreground"}`}>
                   <td className="px-3 py-1.5 font-medium">{r.serie}</td>
-                  <td className="px-3 py-1.5">{DOC_LABELS[r.document_type] ?? r.document_type} <span className="text-muted-foreground">({r.document_type})</span></td>
+                  <td className="px-3 py-1.5">{DOC_LABELS[r.document_type] ?? r.document_type} <span className="text-muted-foreground">({r.document_type})</span>{!isFiscal(r) && <Badge variant="outline" className="ml-2 text-[10px]">Não fiscal</Badge>}</td>
                   <td className="px-3 py-1.5 text-right">{r.count}</td>
                   <td className="px-3 py-1.5 text-right">{eur(r.gross_value)}</td>
                   <td className="px-3 py-1.5 text-right">{eur(r.discount)}</td>
@@ -89,7 +94,7 @@ export function SafTSeriesSummary({ rows, alerts, existing }: { rows?: SeriesRow
             </tbody>
             <tfoot className="tabular-nums font-semibold border-t-2 bg-muted/30">
               <tr>
-                <td className="px-3 py-2" colSpan={2}>Totais</td>
+                <td className="px-3 py-2" colSpan={2}>Totais (só documentos fiscais)</td>
                 <td className="px-3 py-2 text-right">{tot.count}</td>
                 <td className="px-3 py-2 text-right">{eur(tot.gross_value)}</td>
                 <td className="px-3 py-2 text-right">{eur(tot.discount)}</td>
@@ -98,6 +103,13 @@ export function SafTSeriesSummary({ rows, alerts, existing }: { rows?: SeriesRow
                 <td className="px-3 py-2 text-right">{eur(tot.total)}</td>
                 <td className="px-3 py-2 text-right">{tot.cancelled}</td>
               </tr>
+              {nonFiscal.length > 0 && (
+                <tr className="text-xs font-normal text-muted-foreground">
+                  <td className="px-3 py-2" colSpan={9}>
+                    {nonFiscal.reduce((a, r) => a + r.count, 0)} documento(s) não fiscais (pró-formas, orçamentos, guias…) não entram nos totais nem na faturação.
+                  </td>
+                </tr>
+              )}
             </tfoot>
           </table>
         </div>

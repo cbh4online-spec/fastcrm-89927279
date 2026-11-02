@@ -516,6 +516,7 @@ export function analyzeSaftText(xml: string): {
     total_net: number;
     total_tax: number;
     cancelled: number;
+    non_fiscal: number;
     series_summary: SaftSeriesSummary[];
     audit_alerts: SaftAuditAlert[];
   };
@@ -543,6 +544,7 @@ export function analyzeSaftText(xml: string): {
     total_net: 0,
     total_tax: 0,
     cancelled: 0,
+    non_fiscal: 0,
   };
   const invoiceNos: string[] = [];
   const series = new Map<string, SaftSeriesSummary>();
@@ -562,16 +564,23 @@ export function analyzeSaftText(xml: string): {
     const gross = toNum(tagValue(docTotals, "GrossTotal"));
     const net = toNum(tagValue(docTotals, "NetTotal"));
     const tax = toNum(tagValue(docTotals, "TaxPayable"));
-    stats.invoices++;
-    stats.invoice_lines += countTags(fragment, "Line");
-    stats.total_gross += gross;
-    stats.total_net += net;
-    stats.total_tax += tax;
-    if (status === "A") stats.cancelled++;
-    if (no) invoiceNos.push(no);
-
     const docType = (kind === "work" ? tagValue(fragment, "WorkType") : tagValue(fragment, "InvoiceType"))
       ?? (no ? no.split(/\s+/)[0] : "") ?? "";
+    const fiscal = kind === "invoice" && FISCAL_DOC_TYPES.has(docType.toUpperCase());
+    if (fiscal) {
+      stats.invoices++;
+      stats.invoice_lines += countTags(fragment, "Line");
+      if (status === "A") stats.cancelled++;
+      else {
+        const sg = docType.toUpperCase() === "NC" ? -1 : 1;
+        stats.total_gross += sg * gross;
+        stats.total_net += sg * net;
+        stats.total_tax += sg * tax;
+      }
+    } else {
+      stats.non_fiscal++;
+    }
+    if (no) invoiceNos.push(no);
     const serie = parseSerie(no) ?? "—";
     const date = tagValue(fragment, kind === "work" ? "WorkDate" : "InvoiceDate");
     let discount = 0;
@@ -580,7 +589,7 @@ export function analyzeSaftText(xml: string): {
     const key = `${docType}|${serie}`;
     const row = series.get(key) ?? {
       document_type: docType, serie, count: 0, cancelled: 0,
-      gross_value: 0, discount: 0, net: 0, tax: 0, total: 0,
+      gross_value: 0, discount: 0, net: 0, tax: 0, total: 0, fiscal,
     };
     row.count++;
     if (status === "A") {
@@ -640,7 +649,12 @@ export interface SaftSeriesSummary {
   net: number;
   tax: number;
   total: number;
+  /** false para pró-formas, orçamentos e restantes documentos de conferência. */
+  fiscal: boolean;
 }
+
+/** Documentos de faturação com relevância fiscal (contam para totais). */
+export const FISCAL_DOC_TYPES = new Set(["FT", "FS", "FR", "ND", "NC"]);
 
 export interface SaftAuditAlert {
   kind: "totals_mismatch" | "negative_total" | "out_of_period" | "missing_number" | "duplicate_in_file";
