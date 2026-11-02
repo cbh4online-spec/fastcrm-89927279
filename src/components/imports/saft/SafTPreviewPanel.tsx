@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { SaftImport } from "@/hooks/imports/useSaftImport";
+import { SafTSeriesSummary } from "./SafTSeriesSummary";
 
 export function SafTPreviewPanel({ imp }: { imp: SaftImport }) {
   const s = imp.stats ?? {};
@@ -66,6 +67,7 @@ export function SafTPreviewPanel({ imp }: { imp: SaftImport }) {
           </div>
         )}
       </Card>
+      <SafTSeriesSummary rows={s.series_summary} alerts={s.audit_alerts} existing={s.existing_invoices} />
     </div>
   );
 }

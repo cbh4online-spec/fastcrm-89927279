@@ -516,6 +516,8 @@ export function analyzeSaftText(xml: string): {
     total_net: number;
     total_tax: number;
     cancelled: number;
+    series_summary: SaftSeriesSummary[];
+    audit_alerts: SaftAuditAlert[];
   };
   invoiceNos: string[];
 } {
@@ -543,6 +545,10 @@ export function analyzeSaftText(xml: string): {
     cancelled: 0,
   };
   const invoiceNos: string[] = [];
+  const series = new Map<string, SaftSeriesSummary>();
+  const alerts: SaftAuditAlert[] = [];
+  const pushAlert = (a: SaftAuditAlert) => { if (alerts.length < 200) alerts.push(a); };
+  const r2 = (n: number) => Math.round(n * 100) / 100;
 
   const consumeDocument = (fragment: string, kind: "invoice" | "work") => {
     const docTotals = tagFragment(fragment, "DocumentTotals") ?? "";
@@ -553,13 +559,51 @@ export function analyzeSaftText(xml: string): {
     const status = kind === "work"
       ? tagValue(docStatus, "WorkStatus") ?? tagValue(docStatus, "InvoiceStatus")
       : tagValue(docStatus, "InvoiceStatus");
+    const gross = toNum(tagValue(docTotals, "GrossTotal"));
+    const net = toNum(tagValue(docTotals, "NetTotal"));
+    const tax = toNum(tagValue(docTotals, "TaxPayable"));
     stats.invoices++;
     stats.invoice_lines += countTags(fragment, "Line");
-    stats.total_gross += toNum(tagValue(docTotals, "GrossTotal"));
-    stats.total_net += toNum(tagValue(docTotals, "NetTotal"));
-    stats.total_tax += toNum(tagValue(docTotals, "TaxPayable"));
+    stats.total_gross += gross;
+    stats.total_net += net;
+    stats.total_tax += tax;
     if (status === "A") stats.cancelled++;
     if (no) invoiceNos.push(no);
+
+    const docType = (kind === "work" ? tagValue(fragment, "WorkType") : tagValue(fragment, "InvoiceType"))
+      ?? (no ? no.split(/\s+/)[0] : "") ?? "";
+    const serie = parseSerie(no) ?? "—";
+    const date = tagValue(fragment, kind === "work" ? "WorkDate" : "InvoiceDate");
+    let discount = 0;
+    for (const m of fragment.matchAll(/<SettlementAmount>([^<]*)<\/SettlementAmount>/gi)) discount += toNum(m[1]);
+
+    const key = `${docType}|${serie}`;
+    const row = series.get(key) ?? {
+      document_type: docType, serie, count: 0, cancelled: 0,
+      gross_value: 0, discount: 0, net: 0, tax: 0, total: 0,
+    };
+    row.count++;
+    if (status === "A") {
+      row.cancelled++;
+    } else {
+      const sign = docType === "NC" ? -1 : 1;
+      row.gross_value += sign * (net + discount);
+      row.discount += discount;
+      row.net += sign * net;
+      row.tax += sign * tax;
+      row.total += sign * gross;
+    }
+    series.set(key, row);
+
+    if (status !== "A") {
+      const diff = Math.abs(net + tax - gross);
+      if (diff > 0.05) pushAlert({ kind: "totals_mismatch", document_no: no ?? null, detail: `Incidência + IVA difere do total em ${diff.toFixed(2)} €` });
+      if (gross < 0) pushAlert({ kind: "negative_total", document_no: no ?? null, detail: `Total negativo (${gross.toFixed(2)} €)` });
+    }
+    if (date && header.period_start && header.period_end && (date < header.period_start || date > header.period_end)) {
+      pushAlert({ kind: "out_of_period", document_no: no ?? null, detail: `Data ${date} fora do período ${header.period_start} → ${header.period_end}` });
+    }
+    if (!no) pushAlert({ kind: "missing_number", document_no: null, detail: "Documento sem número" });
   };
 
   const invoiceRe = /<Invoice(?:\s[^>]*)?>[\s\S]*?<\/Invoice>/gi;
@@ -573,5 +617,40 @@ export function analyzeSaftText(xml: string): {
     stats.payments += pays.length;
   }
 
-  return { header, stats, invoiceNos };
+  const seen = new Set<string>();
+  for (const n of invoiceNos) {
+    if (seen.has(n)) pushAlert({ kind: "duplicate_in_file", document_no: n, detail: "Número repetido no ficheiro" });
+    seen.add(n);
+  }
+
+  const series_summary = [...series.values()]
+    .map((r) => ({ ...r, gross_value: r2(r.gross_value), discount: r2(r.discount), net: r2(r.net), tax: r2(r.tax), total: r2(r.total) }))
+    .sort((a, b) => a.serie.localeCompare(b.serie) || a.document_type.localeCompare(b.document_type));
+
+  return { header, stats: { ...stats, series_summary, audit_alerts: alerts }, invoiceNos };
+}
+
+export interface SaftSeriesSummary {
+  document_type: string;
+  serie: string;
+  count: number;
+  cancelled: number;
+  gross_value: number;
+  discount: number;
+  net: number;
+  tax: number;
+  total: number;
+}
+
+export interface SaftAuditAlert {
+  kind: "totals_mismatch" | "negative_total" | "out_of_period" | "missing_number" | "duplicate_in_file";
+  document_no: string | null;
+  detail: string;
+}
+
+/** "FT V100/123" → "V100"; "FT 2026A/5" → "2026A". */
+export function parseSerie(no: string | null | undefined): string | null {
+  if (!no) return null;
+  const m = no.trim().match(/^\S+\s+(.+)\/[^/]+$/);
+  return m ? m[1].trim() : null;
 }
