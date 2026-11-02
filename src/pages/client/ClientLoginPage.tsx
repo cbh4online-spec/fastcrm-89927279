@@ -72,7 +72,9 @@ export default function ClientLoginPage() {
 
   // Handle navigation when authenticated - simplified logic
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    // Só entra depois de saber o workspace do link, para não abrir o portal de outra conta
+    if (!isAuthenticated || !user || !workspaceResolved || workspaceNotFound) return;
+    if (workspaceSlug && !workspaceId) return;
     
     const handleAuthenticatedUser = async () => {
       try {
@@ -129,6 +131,17 @@ export default function ClientLoginPage() {
       });
     }
   }, [hasAuthButNoClient, user, workspaceId]);
+
+  if (workspaceNotFound) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Este link do portal não é válido. Peça um novo link ao seu gestor.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   if (loading || !workspaceResolved) {
     return (
