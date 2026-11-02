@@ -419,6 +419,11 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
       ? (openGroups[section.key] !== undefined ? openGroups[section.key] : hasActive || section.key === "inicio")
       : true;
 
+    // Itens que não pertencem a nenhuma sub-secção (ex.: verticais como
+    // "Jornada do Aluno" movidas para Aplicações) não podem ser descartados.
+    const subKeys = new Set(section.subSections.flatMap((s) => s.items.map((i) => i.key)));
+    const looseItems = section.items.filter((i) => !subKeys.has(i.key));
+
     const bodyContent = showSubHeaders ? (
       <div className="space-y-2 mt-0.5">
         {section.subSections.map((sub) => (
@@ -431,6 +436,16 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
             </div>
           </div>
         ))}
+        {looseItems.length > 0 && (
+          <div role="group" aria-label="Outras aplicações">
+            <div className="px-3 pt-1.5 pb-1">
+              <SidebarSectionLabel>Outras</SidebarSectionLabel>
+            </div>
+            <div className="space-y-1">
+              {looseItems.map((item) => renderLink(item, true))}
+            </div>
+          </div>
+        )}
       </div>
     ) : (
       <div className="space-y-1 mt-0.5">

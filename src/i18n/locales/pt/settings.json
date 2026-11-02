@@ -31,10 +31,8 @@
   "webhooks": "Webhooks",
   "savedSuccessfully": "Guardado com sucesso",
   "saveFailed": "Erro ao guardar",
-
   "personal": "Pessoal",
   "advanced": "Avançado",
-
   "nav_profile": "Perfil",
   "nav_appearance": "Aparência",
   "nav_notifications": "Notificações",
@@ -50,7 +48,6 @@
   "nav_extensions": "Extensões",
   "nav_developer": "Developer",
   "nav_callIntelligence": "Call Intelligence",
-
   "profile_title": "Perfil",
   "profile_description": "Gerir os seus dados pessoais",
   "profile_infoBanner": "As alterações aplicam-se a todos os seus workspaces",
@@ -75,7 +72,6 @@
   "profile_error": "Erro ao atualizar perfil",
   "profile_logout": "Terminar Sessão",
   "profile_logoutDesc": "Sair da sua conta neste dispositivo",
-
   "appearance_title": "Aparência",
   "appearance_description": "Personalizar a interface e preferências visuais",
   "appearance_theme": "Tema",
@@ -89,7 +85,6 @@
   "appearance_dateFormatDesc": "Como as datas são apresentadas",
   "appearance_currency": "Moeda",
   "appearance_currencyDesc": "Moeda predefinida para valores monetários",
-
   "notifications_title": "Notificações",
   "notifications_description": "Configurar como recebe notificações",
   "notifications_email": "Notificações por Email",
@@ -104,9 +99,7 @@
   "notifications_dealUpdatesDesc": "Notificar quando negócios mudam de etapa",
   "notifications_mentions": "Menções",
   "notifications_mentionsDesc": "Notificar quando é mencionado em comentários",
-
   "nav_emailCalendar": "Email & Calendário",
-
   "emailCalendar_title": "Contas de Email & Calendário",
   "emailCalendar_description": "Gerir e sincronizar as suas contas de email e calendário",
   "emailCalendar_connectedAccounts": "Contas conectadas",
@@ -133,13 +126,11 @@
   "emailCalendar_defaultAccountDesc": "Escolha qual conta é usada ao compor novos emails",
   "emailCalendar_noAccounts": "Nenhuma conta conectada",
   "emailCalendar_noAccountsDesc": "Conecte uma conta de email para começar a enviar e receber emails",
-
   "searchPlaceholder": "Pesquisar definições...",
   "noResults": "Nenhum resultado encontrado",
   "resultsFound": "{{count}} resultado encontrado",
   "resultsFound_plural": "{{count}} resultados encontrados",
   "noMatchingCategories": "Sem categorias correspondentes",
-
   "callIntel_title": "Call Intelligence",
   "callIntel_description": "Gerir as definições de gravação de chamadas e análise por IA",
   "callIntel_autoRecord": "Gravar reuniões automaticamente",
@@ -166,5 +157,7 @@
   "callIntel_retentionDays": "dias",
   "callIntel_insightsTemplate": "Template de insights predefinido",
   "callIntel_insightsTemplateDesc": "O template selecionado será automaticamente aplicado às suas reuniões.",
-  "callIntel_saved": "Definições de Call Intelligence guardadas"
+  "callIntel_saved": "Definições de Call Intelligence guardadas",
+  "nav_profilePermissions": "Permissões por Perfil",
+  "nav_profilePermissions_desc": "Defina que menus cada função comercial (Vendedor, Gestor, CEO…) pode ver."
 }
