@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
+import { ServicesOverview } from "@/components/client-portal/ServicesOverview";
+import { portalModeFor } from "@/lib/clientPortal/portalMode";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,8 @@ function shiftMonth(key: string, d: number) {
 
 export default function ClientWorkPage() {
   const workspaceId = localStorage.getItem("client_workspace_id");
+  const isServices = portalModeFor(workspaceId) === "services";
+  const [activeTab, setActiveTab] = useState(isServices ? "overview" : "projects");
   const qc = useQueryClient();
   const [monthKey, setMonthKey] = useState(lisbonMonthKey());
   const [y, m] = monthKey.split("-").map(Number);
@@ -100,14 +104,23 @@ export default function ClientWorkPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Projetos & Horas</h1>
-          <p className="text-muted-foreground">Acompanhe as tarefas, os pedidos de suporte e aprove as horas de cada mês.</p>
+          <p className="text-muted-foreground">{periodLabel(from, to)}</p>
         </div>
-        <Tabs defaultValue={pending.length ? "hours" : "projects"}>
-          <TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="flex h-auto w-full flex-wrap justify-start sm:w-fit">
+            {isServices && <TabsTrigger value="overview">Resumo</TabsTrigger>}
             <TabsTrigger value="projects">Projetos e tarefas</TabsTrigger>
             <TabsTrigger value="tickets">Tickets ({work.data?.tickets.length ?? 0})</TabsTrigger>
             <TabsTrigger value="hours">Aprovar horas{pending.length ? ` (${pending.length})` : ""}</TabsTrigger>
           </TabsList>
+
+          {isServices && <TabsContent value="overview">
+            <ServicesOverview workspaceId={workspaceId} monthKey={monthKey}
+              projects={(work.data?.projects ?? []).filter((p) => !["completed", "cancelled"].includes(p.status)).length}
+              tickets={(work.data?.tickets ?? []).filter((t) => !["resolved", "closed", "cancelled"].includes(t.status)).length}
+              pendingMinutes={totals.pending_client} hoursLoading={hours.isLoading} hoursError={hours.isError}
+              canApprove={canApprove} onOpen={setActiveTab} />
+          </TabsContent>}
 
           <TabsContent value="projects" className="space-y-4">
             {(work.data?.projects ?? []).length === 0 && <Card><CardContent className="p-6 text-muted-foreground">Ainda não há projetos.</CardContent></Card>}
@@ -126,7 +139,7 @@ export default function ClientWorkPage() {
                           <p className="text-xs text-muted-foreground">
                             {formatMinutes(t.used_minutes ?? 0)} gastas{t.estimated_hours ? ` de ${t.estimated_hours}h previstas` : ""}
                             {t.due_at ? ` · prazo ${new Date(t.due_at).toLocaleDateString("pt-PT")}` : ""}
-                            {ticketsByTask.get(t.id)?.length ? ` · ${ticketsByTask.get(t.id)!.length} ticket(s)` : ""}
+                            {ticketsByTask.get(t.id)?.length ? ` · ${ticketsByTask.get(t.id)?.length} ticket(s)` : ""}
                           </p>
                         </div>
                         <Badge variant={t.status === "completed" ? "default" : t.status === "waiting_customer" ? "destructive" : "outline"}>{TASK_STATUS[t.status] ?? t.status}</Badge>
@@ -141,7 +154,7 @@ export default function ClientWorkPage() {
           <TabsContent value="tickets">
             <Card><CardContent className="p-0">
               {(work.data?.tickets ?? []).length === 0 ? <p className="p-6 text-muted-foreground">Sem tickets.</p> : (
-                <ul className="divide-y divide-border">{work.data!.tickets.map((t) => (
+                <ul className="divide-y divide-border">{(work.data?.tickets ?? []).map((t) => (
                   <li key={t.id} className="flex items-center justify-between gap-2 p-4">
                     <div><p className="text-sm font-medium text-foreground">{t.number ? `#${t.number} ` : ""}{t.title}</p>
                       <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-PT")}</p></div>
@@ -171,7 +184,8 @@ export default function ClientWorkPage() {
               </div>
             )}
             <Card><CardContent className="overflow-x-auto p-0">
-              {hours.isLoading ? <p className="p-6 text-muted-foreground">A carregar...</p>
+              {hours.isError ? <div role="alert" className="space-y-2 p-6"><p className="text-destructive">Não foi possível carregar as horas deste mês.</p><Button variant="outline" onClick={() => hours.refetch()}>Tentar novamente</Button></div>
+                : hours.isLoading ? <p className="p-6 text-muted-foreground">A carregar...</p>
                 : rows.length === 0 ? <p className="p-6 text-muted-foreground">Não há horas enviadas para aprovação neste mês.</p> : (
                 <Table>
                   <TableHeader><TableRow>
