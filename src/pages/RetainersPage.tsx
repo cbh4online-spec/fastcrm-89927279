@@ -14,6 +14,7 @@ import { RetainerUsageBar } from "@/components/retainers/RetainerUsageSummary";
 import { RetainerFormDialog } from "@/components/retainers/RetainerFormDialog";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { clientPortalUrl } from "@/lib/clientPortal/portalUrl";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 
 const STATUS: Record<string, string> = { active: "Ativa", paused: "Pausada", ended: "Terminada" };
 const eur = (v: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
@@ -42,7 +43,7 @@ export default function RetainersPage() {
   const navigate = useNavigate();
   const monthKey = lisbonMonthKey();
   const { currentWorkspace } = useWorkspace();
-  const portalUrl = currentWorkspace?.slug ? clientPortalUrl(window.location.origin, currentWorkspace.slug) : null;
+  const portalUrl = currentWorkspace?.slug ? clientPortalUrl(getPublicBaseUrl(), currentWorkspace.slug) : null;
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"active" | "paused" | "ended" | "all">("active");
   const counts = { active: 0, paused: 0, ended: 0, all: retainers.length } as Record<string, number>;
