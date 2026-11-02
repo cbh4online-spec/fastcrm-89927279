@@ -10,13 +10,16 @@ import { Users, ExternalLink, Settings, BarChart3, ShoppingCart } from "lucide-r
 import { Link } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { portalModeFor } from "@/lib/clientPortal/portalMode";
+import { clientPortalUrl } from "@/lib/clientPortal/portalUrl";
 
 export default function ClientUsersPage() {
   const { currentWorkspace } = useWorkspace();
   const [activeTab, setActiveTab] = useState("overview");
 
+  const isServices = portalModeFor(currentWorkspace?.id) === "services";
   const portalUrl = currentWorkspace?.slug
-    ? `${getPublicBaseUrl()}/client/login?workspace=${currentWorkspace.slug}`
+    ? clientPortalUrl(getPublicBaseUrl(), currentWorkspace.slug, isServices ? "/client/work" : "/client/dashboard")
     : `${getPublicBaseUrl()}/client/login`;
 
   const openPortal = () => {
@@ -30,10 +33,12 @@ export default function ClientUsersPage() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Users className="h-6 w-6" />
-              Clientes B2B
+              {isServices ? "Acessos ao portal de tickets e avenças" : "Clientes B2B"}
             </h1>
             <p className="text-muted-foreground">
-              Gerir clientes profissionais e seus acessos ao portal
+              {isServices
+                ? "Quem do cliente pode ver projetos, abrir tickets e aprovar horas"
+                : "Gerir clientes profissionais e seus acessos ao portal"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -41,12 +46,12 @@ export default function ClientUsersPage() {
               <ExternalLink className="h-4 w-4 mr-2" />
               Ver Portal
             </Button>
-            <Button variant="outline" asChild>
+            {!isServices && <Button variant="outline" asChild>
               <Link to="/dashboard/b2b-portal">
                 <Settings className="h-4 w-4 mr-2" />
                 Configurar
               </Link>
-            </Button>
+            </Button>}
             <InviteClientDialog />
           </div>
         </div>
@@ -61,10 +66,10 @@ export default function ClientUsersPage() {
               <Users className="h-4 w-4" />
               Clientes
             </TabsTrigger>
-            <TabsTrigger value="commercial" className="gap-1.5">
+            {!isServices && <TabsTrigger value="commercial" className="gap-1.5">
               <ShoppingCart className="h-4 w-4" />
               Comercial
-            </TabsTrigger>
+            </TabsTrigger>}
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">

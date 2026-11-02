@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { safePortalNext } from "@/lib/clientPortal/portalUrl";
+import { portalModeFor, portalLandingPath } from "@/lib/clientPortal/portalMode";
 import { supabase } from "@/integrations/supabase/client";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,8 @@ export default function ClientLoginPage() {
     resolveWorkspace();
   }, [workspaceSlug]);
   
+  const portalMode = portalModeFor(workspaceId);
+  const landingPath = portalLandingPath(portalMode, nextPath);
   const { signIn, signOut, loading, error, isAuthenticated, user, hasAuthButNoClient } = useClientAuth({ workspaceId });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -83,16 +86,16 @@ export default function ClientLoginPage() {
         if (currentUser?.user_metadata?.requires_password_change) {
           navigate("/client/set-password", { replace: true });
         } else {
-          navigate(nextPath, { replace: true });
+          navigate(landingPath, { replace: true });
         }
       } catch (error) {
         console.error("Error checking user status:", error);
-        navigate(nextPath, { replace: true });
+        navigate(landingPath, { replace: true });
       }
     };
     
     handleAuthenticatedUser();
-  }, [isAuthenticated, user, navigate, workspaceResolved, workspaceNotFound, workspaceSlug, workspaceId, nextPath]);
+  }, [isAuthenticated, user, navigate, workspaceResolved, workspaceNotFound, workspaceSlug, workspaceId, landingPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +191,9 @@ export default function ClientLoginPage() {
           </div>
           <CardTitle className="text-2xl">Portal do Cliente</CardTitle>
           <CardDescription>
-            Aceda ao catálogo de produtos e faça as suas encomendas
+            {portalMode === "services"
+              ? "Acompanhe projetos, tickets de suporte e aprove as horas da sua avença"
+              : "Aceda ao catálogo de produtos e faça as suas encomendas"}
           </CardDescription>
         </CardHeader>
         <CardContent>
