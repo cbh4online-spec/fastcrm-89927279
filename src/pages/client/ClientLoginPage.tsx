@@ -92,7 +92,7 @@ export default function ClientLoginPage() {
     };
     
     handleAuthenticatedUser();
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, workspaceResolved, workspaceNotFound, workspaceSlug, workspaceId, nextPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
