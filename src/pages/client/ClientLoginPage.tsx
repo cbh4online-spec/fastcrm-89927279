@@ -15,11 +15,17 @@ export default function ClientLoginPage() {
   const [searchParams] = useSearchParams();
   const workspaceSlug = searchParams.get("workspace");
   
+  const nextPath = safePortalNext(searchParams.get("next"));
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(() => {
-    // Try to get from localStorage on initial load
+    // Com ?workspace= na URL, nunca reaproveitar o workspace guardado de outra visita
+    if (workspaceSlug) {
+      localStorage.removeItem("client_workspace_id");
+      return undefined;
+    }
     return localStorage.getItem("client_workspace_id") || undefined;
   });
   const [workspaceResolved, setWorkspaceResolved] = useState(!workspaceSlug);
+  const [workspaceNotFound, setWorkspaceNotFound] = useState(false);
   
   // Resolve workspace slug to ID
   useEffect(() => {
@@ -38,6 +44,8 @@ export default function ClientLoginPage() {
       if (data) {
         setWorkspaceId(data.id);
         localStorage.setItem("client_workspace_id", data.id);
+      } else {
+        setWorkspaceNotFound(true);
       }
       setWorkspaceResolved(true);
     };
