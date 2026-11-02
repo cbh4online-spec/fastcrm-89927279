@@ -15,3 +15,14 @@ describe("portal do cliente por tipo de workspace", () => {
     expect(isAllowedInServicesPortal("/client/support/abc")).toBe(true);
   });
 });
+
+import { portalLandingPath } from "../portalMode";
+describe("destino depois do login", () => {
+  it("serviços vai para Projetos & Horas mesmo se o link pedir a loja", () => {
+    expect(portalLandingPath("services", "/client/dashboard")).toBe("/client/work");
+    expect(portalLandingPath("services", "/client/support")).toBe("/client/support");
+  });
+  it("a loja B2B mantém o destino pedido", () => {
+    expect(portalLandingPath("store", "/client/dashboard")).toBe("/client/dashboard");
+  });
+});

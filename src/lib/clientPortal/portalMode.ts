@@ -27,3 +27,9 @@ export const SERVICES_PORTAL_PATHS = [
 export function isAllowedInServicesPortal(pathname: string): boolean {
   return SERVICES_PORTAL_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
+
+/** Destino seguro depois do login: o portal de serviços nunca abre a loja B2B. */
+export function portalLandingPath(mode: ClientPortalMode, requested: string): string {
+  if (mode === "services") return isAllowedInServicesPortal(requested) ? requested : "/client/work";
+  return requested;
+}
