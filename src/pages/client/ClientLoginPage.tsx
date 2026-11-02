@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
+import { safePortalNext } from "@/lib/clientPortal/portalUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,17 @@ export default function ClientLoginPage() {
   const [searchParams] = useSearchParams();
   const workspaceSlug = searchParams.get("workspace");
   
+  const nextPath = safePortalNext(searchParams.get("next"));
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(() => {
-    // Try to get from localStorage on initial load
+    // Com ?workspace= na URL, nunca reaproveitar o workspace guardado de outra visita
+    if (workspaceSlug) {
+      localStorage.removeItem("client_workspace_id");
+      return undefined;
+    }
     return localStorage.getItem("client_workspace_id") || undefined;
   });
   const [workspaceResolved, setWorkspaceResolved] = useState(!workspaceSlug);
+  const [workspaceNotFound, setWorkspaceNotFound] = useState(false);
   
   // Resolve workspace slug to ID
   useEffect(() => {
@@ -38,6 +45,8 @@ export default function ClientLoginPage() {
       if (data) {
         setWorkspaceId(data.id);
         localStorage.setItem("client_workspace_id", data.id);
+      } else {
+        setWorkspaceNotFound(true);
       }
       setWorkspaceResolved(true);
     };
@@ -63,7 +72,9 @@ export default function ClientLoginPage() {
 
   // Handle navigation when authenticated - simplified logic
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    // Só entra depois de saber o workspace do link, para não abrir o portal de outra conta
+    if (!isAuthenticated || !user || !workspaceResolved || workspaceNotFound) return;
+    if (workspaceSlug && !workspaceId) return;
     
     const handleAuthenticatedUser = async () => {
       try {
@@ -72,16 +83,16 @@ export default function ClientLoginPage() {
         if (currentUser?.user_metadata?.requires_password_change) {
           navigate("/client/set-password", { replace: true });
         } else {
-          navigate("/client/dashboard", { replace: true });
+          navigate(nextPath, { replace: true });
         }
       } catch (error) {
         console.error("Error checking user status:", error);
-        navigate("/client/dashboard", { replace: true });
+        navigate(nextPath, { replace: true });
       }
     };
     
     handleAuthenticatedUser();
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, workspaceResolved, workspaceNotFound, workspaceSlug, workspaceId, nextPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +131,17 @@ export default function ClientLoginPage() {
       });
     }
   }, [hasAuthButNoClient, user, workspaceId]);
+
+  if (workspaceNotFound) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Este link do portal não é válido. Peça um novo link ao seu gestor.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   if (loading || !workspaceResolved) {
     return (
