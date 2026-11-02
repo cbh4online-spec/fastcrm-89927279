@@ -4,7 +4,8 @@ import { SJCopilotDrawer } from "./SJCopilotDrawer";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Navigate } from "react-router-dom";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
-import { Loader2, Lock, GraduationCap } from "lucide-react";
+import { Loader2, Lock, GraduationCap, Menu, Sparkles } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -17,6 +18,7 @@ export function SJLayout({ children }: SJLayoutProps) {
   const { currentWorkspace } = useWorkspace();
   const { installedModuleIds, isLoading } = useWorkspaceModules();
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (!currentWorkspace) {
     return <Navigate to="/dashboard" replace />;
