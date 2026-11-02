@@ -110841,6 +110841,10 @@ export type Database = {
         Returns: Json
       }
       portal_list_work: { Args: { _workspace: string }; Returns: Json }
+      portal_retainer_summary: {
+        Args: { _month: string; _workspace: string }
+        Returns: Json
+      }
       portal_review_hours: {
         Args: {
           _decision: string

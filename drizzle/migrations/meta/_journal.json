@@ -764,6 +764,13 @@
       "when": 1793573747444,
       "tag": "0108_fix_portal_ticket_subject",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1793583912721,
+      "tag": "0109_portal_retainer_month_summary",
+      "breakpoints": true
     }
   ]
 }
