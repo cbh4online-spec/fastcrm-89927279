@@ -359,6 +359,24 @@ export default function SJProfiles() {
 
   return (
     <div className="space-y-6">
+      {segment && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+          <span>
+            Filtro ativo: <strong>{JOURNEY_SEGMENT_LABELS[segment]}</strong> ({filteredProfiles.length})
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              const next = new URLSearchParams(searchParams);
+              next.delete("segment");
+              setSearchParams(next);
+            }}
+          >
+            Limpar filtro
+          </Button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Perfis de Alunos</h1>
