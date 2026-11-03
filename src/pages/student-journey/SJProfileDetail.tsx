@@ -168,10 +168,22 @@ export default function SJProfileDetail() {
         onOpenCopilot={() => setCopilotDrawerOpen(true)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Profile Info */}
-        <div className="space-y-6">
-          {/* Contact Info */}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 lg:col-span-2">
+          <Tabs value={activeTab} onValueChange={setTab}>
+            <div className="overflow-x-auto">
+              <TabsList className="inline-flex w-max">
+                {visibleTabs.map((t) => (
+                  <TabsTrigger key={t.id} value={t.id} className="gap-2 whitespace-nowrap">
+                    <t.icon className="h-4 w-4" aria-hidden />
+                    {t.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <TabsContent value="profile" className="mt-4 space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -228,37 +240,6 @@ export default function SJProfileDetail() {
               )}
             </CardContent>
           </Card>
-
-          {/* Interests */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Interesses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {profile.primary_interest && (
-                <div className="mb-3">
-                  <p className="text-xs text-muted-foreground mb-1">Principal</p>
-                  <Badge variant="default">{profile.primary_interest}</Badge>
-                </div>
-              )}
-              {profile.interests && profile.interests.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {profile.interests.map((interest, idx) => (
-                    <Badge key={idx} variant="secondary">
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhum interesse definido</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Journey Progress Card */}
-          <JourneyProgressCard journeyProfile={journeyProfile} />
-
-          {/* Status Info */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Estado</CardTitle>
@@ -284,27 +265,41 @@ export default function SJProfileDetail() {
               )}
             </CardContent>
           </Card>
-        </div>
+            </TabsContent>
 
-        {/* Right Column - Tabs */}
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="enrollments">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="enrollments" className="gap-2">
-                <GraduationCap className="h-4 w-4" />
-                Inscrições ({enrollments.length})
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="gap-2">
-                <Clock className="h-4 w-4" />
-                Timeline ({touchpoints.length})
-              </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Tarefas ({openTasks.length})
-              </TabsTrigger>
-            </TabsList>
+            <TabsContent value="interests" className="mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Interesses</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => setInterestDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Gerir
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {profile.primary_interest && (
+                <div className="mb-3">
+                  <p className="text-xs text-muted-foreground mb-1">Principal</p>
+                  <Badge variant="default">{profile.primary_interest}</Badge>
+                </div>
+              )}
+              {profile.interests && profile.interests.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {profile.interests.map((interest, idx) => (
+                    <Badge key={idx} variant="secondary">
+                      {interest}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum interesse definido</p>
+              )}
+            </CardContent>
+          </Card>
+            </TabsContent>
 
-            {/* Enrollments Tab */}
             <TabsContent value="enrollments" className="mt-4">
               <Card>
                 <CardHeader className="pb-3">
@@ -354,6 +349,20 @@ export default function SJProfileDetail() {
                                 </Badge>
                               </div>
                             </div>
+                            <div className="mt-2 flex flex-wrap gap-1 text-xs">
+                              {(["admin_status", "pedagogic_status", "financial_status"] as const).map((k) => (
+                                <Badge key={k} variant="outline" className="font-normal">
+                                  {STATUS_AXIS_LABEL[k]}: {(enrollment as any)[k] ?? "—"}
+                                </Badge>
+                              ))}
+                              {(enrollment as any).duplicate_approved && (
+                                <Badge variant="outline" className="font-normal">Duplicado aprovado</Badge>
+                              )}
+                            </div>
+                            <div className="hidden">
+                              <div>
+                              </div>
+                            </div>
                             <div className="mt-3">
                               <div className="flex items-center justify-between text-sm mb-1">
                                 <span className="text-muted-foreground">Progresso</span>
@@ -386,8 +395,23 @@ export default function SJProfileDetail() {
               </Card>
             </TabsContent>
 
-            {/* Timeline Tab */}
-            <TabsContent value="timeline" className="mt-4">
+            <TabsContent value="path" className="mt-4">
+              <PathTab enrollments={enrollments} />
+            </TabsContent>
+
+            {financeAllowed && (
+              <TabsContent value="finance" className="mt-4">
+                <FinanceTab
+                  enrollments={enrollments}
+                  data={financeQuery.data}
+                  isLoading={financeQuery.isLoading}
+                  isError={financeQuery.isError}
+                  allowed={financeAllowed}
+                />
+              </TabsContent>
+            )}
+
+            <TabsContent value="communications" className="mt-4">
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -454,8 +478,18 @@ export default function SJProfileDetail() {
               </Card>
             </TabsContent>
 
-            {/* Tasks Tab */}
-            <TabsContent value="tasks" className="mt-4">
+            <TabsContent value="certification" className="mt-4">
+              <CertificationTab
+                enrollments={enrollments}
+                attendance={attendanceQuery.data ?? []}
+                certificates={certificatesQuery.data ?? []}
+                isLoading={attendanceQuery.isLoading || certificatesQuery.isLoading}
+                isError={attendanceQuery.isError || certificatesQuery.isError}
+              />
+            </TabsContent>
+
+            <TabsContent value="progression" className="mt-4 space-y-4">
+              <JourneyProgressCard journeyProfile={journeyProfile} />
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -507,6 +541,10 @@ export default function SJProfileDetail() {
             </TabsContent>
           </Tabs>
         </div>
+
+        <aside className="min-w-0" aria-label="Linha temporal do aluno">
+          <StudentTimeline events={timelineEvents} isLoading={attendanceQuery.isLoading} />
+        </aside>
       </div>
 
       {/* Dialogs */}
@@ -556,6 +594,11 @@ export default function SJProfileDetail() {
           contactId={profile?.contact_id || undefined}
         />
       )}
+      <AddInterestDialog
+        open={interestDialogOpen}
+        onOpenChange={setInterestDialogOpen}
+        profile={profile}
+      />
       <SJCopilotDrawer
         open={copilotDrawerOpen}
         onOpenChange={setCopilotDrawerOpen}
