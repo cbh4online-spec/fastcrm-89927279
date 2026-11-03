@@ -51,9 +51,22 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isSuperAdmin } = useWorkspace();
+  const { isSuperAdmin, workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const { data: invoice, isLoading } = useInvoice(id);
   const { data: items, isLoading: itemsLoading } = useInvoiceItems(id);
+  // Se não existir na organização atual, descobrir (via RLS) a que organização pertence.
+  const { data: owner, isLoading: ownerLoading } = useQuery({
+    queryKey: ["invoice-owner-workspace", id],
+    enabled: !!id && !isLoading && !invoice,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("workspace_id")
+        .eq("id", id!)
+        .maybeSingle();
+      return data as { workspace_id: string } | null;
+    },
+  });
   const markAsPaid = useMarkInvoicePaid();
   const sendInvoice = useSendInvoice();
   const forceStatus = useForceInvoiceStatus();
@@ -116,11 +129,27 @@ export default function InvoiceDetail() {
   }
 
   if (!invoice) {
+    const otherWorkspace = owner?.workspace_id
+      ? workspaces.find((w) => w.id === owner.workspace_id && w.id !== currentWorkspace?.id)
+      : undefined;
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <div className="flex flex-col items-center justify-center h-96 space-y-4 text-center px-4">
           <FileText className="w-16 h-16 text-muted-foreground/30" />
-          <p className="text-muted-foreground">Fatura não encontrada</p>
+          {otherWorkspace ? (
+            <>
+              <p className="text-muted-foreground">
+                Esta fatura pertence à organização <strong>{otherWorkspace.name}</strong>.
+              </p>
+              <Button onClick={() => setCurrentWorkspace(otherWorkspace)}>
+                Mudar para {otherWorkspace.name}
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground">
+              {ownerLoading ? "A procurar a fatura…" : "Fatura não encontrada"}
+            </p>
+          )}
           <Button variant="outline" onClick={() => navigate("/dashboard/invoices")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar às faturas
