@@ -85903,6 +85903,60 @@ export type Database = {
           },
         ]
       }
+      sj_enrollment_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          enrollment_id: string
+          id: string
+          installment_id: string | null
+          method: string
+          paid_on: string
+          reference: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          enrollment_id: string
+          id?: string
+          installment_id?: string | null
+          method: string
+          paid_on: string
+          reference?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          enrollment_id?: string
+          id?: string
+          installment_id?: string | null
+          method?: string
+          paid_on?: string
+          reference?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_enrollment_payments_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sj_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_enrollment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "sj_installments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_enrollments: {
         Row: {
           admin_status: string | null
@@ -85913,6 +85967,7 @@ export type Database = {
           course_id: string
           created_at: string | null
           discount_amount: number
+          discount_reason: string | null
           duplicate_approved: boolean
           duplicate_approved_by: string | null
           financial_status: string | null
@@ -85942,6 +85997,7 @@ export type Database = {
           course_id: string
           created_at?: string | null
           discount_amount?: number
+          discount_reason?: string | null
           duplicate_approved?: boolean
           duplicate_approved_by?: string | null
           financial_status?: string | null
@@ -85971,6 +86027,7 @@ export type Database = {
           course_id?: string
           created_at?: string | null
           discount_amount?: number
+          discount_reason?: string | null
           duplicate_approved?: boolean
           duplicate_approved_by?: string | null
           financial_status?: string | null
@@ -111591,9 +111648,46 @@ export type Database = {
         Args: { _roles: string[]; _workspace_id: string }
         Returns: boolean
       }
+      sj_link_invoice: {
+        Args: {
+          _allocated: number
+          _enrollment_id: string
+          _invoice_id: string
+        }
+        Returns: string
+      }
       sj_match_profile_to_contact: {
         Args: { p_profile_id: string }
         Returns: string
+      }
+      sj_reallocate_payments: {
+        Args: { _enrollment_id: string }
+        Returns: undefined
+      }
+      sj_recompute_financial_status: {
+        Args: { _enrollment_id: string }
+        Returns: string
+      }
+      sj_register_payment: {
+        Args: {
+          _amount: number
+          _enrollment_id: string
+          _method: string
+          _paid_on: string
+          _reference: string
+        }
+        Returns: string
+      }
+      sj_set_payment_plan: {
+        Args: {
+          _agreed: number
+          _base: number
+          _discount: number
+          _discount_reason: string
+          _enrollment_id: string
+          _installments: Json
+        }
+        Returns: undefined
       }
       skip_optout_recipients: {
         Args: { p_campaign_id: string }
