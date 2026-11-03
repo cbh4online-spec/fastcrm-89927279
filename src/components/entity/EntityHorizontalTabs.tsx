@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
