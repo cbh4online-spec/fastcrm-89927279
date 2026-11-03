@@ -523,6 +523,12 @@ async function processImport(admin: any, imp: any, opts: ImportOptions, parsed: 
   )];
   if (touchedInvIds.length) {
     for (const cnk of chunk(touchedInvIds, 1000)) {
+      // O recibo SAF-T é a fonte oficial: pagamentos manuais destas faturas são arquivados e removidos.
+      const { error: repErr } = await admin.rpc("replace_manual_payments_with_saft", {
+        _workspace_id: ws,
+        _invoice_ids: cnk,
+      });
+      if (repErr) console.warn("[saft-import] replace manual payments failed", repErr.message);
       const { error } = await admin.rpc("reconcile_invoice_payments", {
         _workspace_id: ws,
         _invoice_ids: cnk,
