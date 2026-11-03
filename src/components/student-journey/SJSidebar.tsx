@@ -15,6 +15,7 @@ import {
   Sparkles,
   Zap,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 
 interface SJSidebarProps {
@@ -54,6 +55,12 @@ const menuItems = [
     label: "Turmas",
     icon: ClipboardList,
     path: "/dashboard/student-journey/cohorts",
+  },
+  {
+    id: "finance",
+    label: "Financeiro",
+    icon: Wallet,
+    path: "/dashboard/student-journey/finance",
   },
 ];
 

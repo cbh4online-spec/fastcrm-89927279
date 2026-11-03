@@ -478,6 +478,7 @@ export default function SJProfileDetail() {
                   isLoading={financeQuery.isLoading}
                   isError={financeQuery.isError}
                   allowed={financeAllowed}
+                  contactId={profile.contact_id}
                 />
               </TabsContent>
             )}
