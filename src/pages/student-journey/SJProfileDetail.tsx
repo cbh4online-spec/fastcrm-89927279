@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,8 +52,40 @@ import { LinkContactDialog } from "@/components/student-journey/LinkContactDialo
 import { CreateOpportunityDialog } from "@/components/student-journey/CreateOpportunityDialog";
 import { SJCopilotDrawer } from "@/components/student-journey/SJCopilotDrawer";
 import { NextBestActionCard, JourneyProgressCard } from "@/components/student-journey/profile";
+import {
+  PathTab,
+  FinanceTab,
+  CertificationTab,
+  StudentTimeline,
+} from "@/components/student-journey/profile/StudentRecordTabs";
+import { AddInterestDialog } from "@/components/student-journey/AddInterestDialog";
+import {
+  useSjFinanceAccess,
+  useSjAttendance,
+  useSjCertificates,
+  useSjEnrollmentFinance,
+} from "@/hooks/useStudentProfileRecords";
+import { buildStudentTimeline } from "@/lib/studentJourney/timeline";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SJEnrollment } from "@/types/studentJourney";
+import { Heart, Route, Wallet, Award, Activity } from "lucide-react";
+
+const PROFILE_TABS = [
+  { id: "profile", label: "Perfil", icon: User },
+  { id: "interests", label: "Interesses", icon: Heart },
+  { id: "enrollments", label: "Inscrições", icon: GraduationCap },
+  { id: "path", label: "Percurso", icon: Route },
+  { id: "finance", label: "Financeiro", icon: Wallet },
+  { id: "communications", label: "Comunicações", icon: MessageSquare },
+  { id: "certification", label: "Certificação", icon: Award },
+  { id: "progression", label: "Progressão", icon: Activity },
+] as const;
+
+const STATUS_AXIS_LABEL = {
+  admin_status: "Administrativo",
+  pedagogic_status: "Pedagógico",
+  financial_status: "Financeiro",
+} as const;
 
 export default function SJProfileDetail() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +112,49 @@ export default function SJProfileDetail() {
   const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState<SJEnrollment | null>(null);
+  const [interestDialogOpen, setInterestDialogOpen] = useState(false);
+
+  // Separadores da ficha única (o separador ativo fica no endereço)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: financeAllowed = false } = useSjFinanceAccess();
+  const enrollmentIds = useMemo(() => enrollments.map((e) => e.id), [enrollments]);
+  const attendanceQuery = useSjAttendance(enrollmentIds);
+  const certificatesQuery = useSjCertificates(enrollmentIds);
+  const financeQuery = useSjEnrollmentFinance(enrollmentIds, financeAllowed);
+
+  const visibleTabs = useMemo(
+    () => PROFILE_TABS.filter((t) => t.id !== "finance" || financeAllowed),
+    [financeAllowed],
+  );
+  const requestedTab = searchParams.get("tab") === "timeline" ? "communications" : searchParams.get("tab");
+  const activeTab = visibleTabs.some((t) => t.id === requestedTab) ? (requestedTab as string) : "profile";
+  const setTab = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", value);
+    setSearchParams(next, { replace: true });
+  };
+
+  const timelineEvents = useMemo(
+    () =>
+      buildStudentTimeline({
+        enrollments: enrollments.map((e) => ({
+          id: e.id,
+          enrolled_at: e.started_at,
+          created_at: e.created_at,
+          courseName: e.course?.name ?? null,
+        })),
+        installments: financeQuery.data?.installments ?? [],
+        attendance: attendanceQuery.data ?? [],
+        certificates: certificatesQuery.data ?? [],
+        touchpoints: touchpoints.map((t) => ({
+          id: t.id,
+          occurred_at: t.occurred_at,
+          typeLabel: TOUCHPOINT_TYPE_CONFIG[t.touchpoint_type]?.label ?? "Contacto",
+          message_preview: t.message_preview,
+        })),
+      }),
+    [enrollments, financeQuery.data, attendanceQuery.data, certificatesQuery.data, touchpoints],
+  );
 
   if (isLoading) {
     return (
