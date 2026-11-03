@@ -633,6 +633,18 @@ export function ENIContactDetailWithSidebar() {
               )}
             </div>
             <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-2">
+              {sjProfile && (
+                <Link
+                  to={`/dashboard/student-journey/profiles/${sjProfile.id}`}
+                  aria-label="Abrir ficha do aluno"
+                  className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Badge variant="secondary" className="gap-1 whitespace-nowrap">
+                    <GraduationCap className="h-3 w-3" aria-hidden />
+                    {LIFECYCLE_STAGE_CONFIG[sjProfile.lifecycle_stage as keyof typeof LIFECYCLE_STAGE_CONFIG]?.label ?? "Aluno"}
+                  </Badge>
+                </Link>
+              )}
               <ActivityProfileBadge
                 entityType="contact"
                 entityId={id!}
