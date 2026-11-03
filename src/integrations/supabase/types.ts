@@ -85110,6 +85110,60 @@ export type Database = {
           },
         ]
       }
+      sj_attendance: {
+        Row: {
+          created_at: string
+          enrollment_id: string
+          hours_attended: number
+          id: string
+          notes: string | null
+          phase_id: string | null
+          present: boolean
+          recorded_by: string | null
+          session_date: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          enrollment_id: string
+          hours_attended?: number
+          id?: string
+          notes?: string | null
+          phase_id?: string | null
+          present?: boolean
+          recorded_by?: string | null
+          session_date: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          enrollment_id?: string
+          hours_attended?: number
+          id?: string
+          notes?: string | null
+          phase_id?: string | null
+          present?: boolean
+          recorded_by?: string | null
+          session_date?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_attendance_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sj_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_attendance_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "sj_course_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_audit_logs: {
         Row: {
           action_type: string
@@ -85344,46 +85398,117 @@ export type Database = {
           },
         ]
       }
+      sj_certificates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_url: string | null
+          enrollment_id: string
+          evaluation: string | null
+          id: string
+          issued_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          enrollment_id: string
+          evaluation?: string | null
+          id?: string
+          issued_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          enrollment_id?: string
+          evaluation?: string | null
+          id?: string
+          issued_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_certificates_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: true
+            referencedRelation: "sj_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_cohorts: {
         Row: {
           capacity: number | null
+          city: string | null
           course_id: string
           created_at: string | null
           created_by: string | null
+          dates_confirmed: boolean
+          edition_code: string | null
+          edition_status: string
           end_date: string | null
           id: string
+          location: string | null
           name: string
+          price: number | null
+          reserved_seats: number
           settings: Json | null
           start_date: string | null
           status: string
+          trainer_name: string | null
           updated_at: string | null
           workspace_id: string
         }
         Insert: {
           capacity?: number | null
+          city?: string | null
           course_id: string
           created_at?: string | null
           created_by?: string | null
+          dates_confirmed?: boolean
+          edition_code?: string | null
+          edition_status?: string
           end_date?: string | null
           id?: string
+          location?: string | null
           name: string
+          price?: number | null
+          reserved_seats?: number
           settings?: Json | null
           start_date?: string | null
           status?: string
+          trainer_name?: string | null
           updated_at?: string | null
           workspace_id: string
         }
         Update: {
           capacity?: number | null
+          city?: string | null
           course_id?: string
           created_at?: string | null
           created_by?: string | null
+          dates_confirmed?: boolean
+          edition_code?: string | null
+          edition_status?: string
           end_date?: string | null
           id?: string
+          location?: string | null
           name?: string
+          price?: number | null
+          reserved_seats?: number
           settings?: Json | null
           start_date?: string | null
           status?: string
+          trainer_name?: string | null
           updated_at?: string | null
           workspace_id?: string
         }
@@ -85596,6 +85721,8 @@ export type Database = {
       }
       sj_courses: {
         Row: {
+          category: string | null
+          code: string | null
           cohort_enabled: boolean | null
           course_type: string
           created_at: string | null
@@ -85607,8 +85734,10 @@ export type Database = {
           is_active: boolean | null
           level: string | null
           name: string
+          next_course_id: string | null
           next_courses: Json | null
           prerequisites: Json | null
+          previous_course_id: string | null
           price: number | null
           provider: string
           provider_course_id: string | null
@@ -85617,11 +85746,14 @@ export type Database = {
           specialty_id: string | null
           start_date: string | null
           tags: Json | null
+          trainer_names: string[]
           updated_at: string | null
           urgency_score: number | null
           workspace_id: string
         }
         Insert: {
+          category?: string | null
+          code?: string | null
           cohort_enabled?: boolean | null
           course_type?: string
           created_at?: string | null
@@ -85633,8 +85765,10 @@ export type Database = {
           is_active?: boolean | null
           level?: string | null
           name: string
+          next_course_id?: string | null
           next_courses?: Json | null
           prerequisites?: Json | null
+          previous_course_id?: string | null
           price?: number | null
           provider?: string
           provider_course_id?: string | null
@@ -85643,11 +85777,14 @@ export type Database = {
           specialty_id?: string | null
           start_date?: string | null
           tags?: Json | null
+          trainer_names?: string[]
           updated_at?: string | null
           urgency_score?: number | null
           workspace_id: string
         }
         Update: {
+          category?: string | null
+          code?: string | null
           cohort_enabled?: boolean | null
           course_type?: string
           created_at?: string | null
@@ -85659,8 +85796,10 @@ export type Database = {
           is_active?: boolean | null
           level?: string | null
           name?: string
+          next_course_id?: string | null
           next_courses?: Json | null
           prerequisites?: Json | null
+          previous_course_id?: string | null
           price?: number | null
           provider?: string
           provider_course_id?: string | null
@@ -85669,11 +85808,26 @@ export type Database = {
           specialty_id?: string | null
           start_date?: string | null
           tags?: Json | null
+          trainer_names?: string[]
           updated_at?: string | null
           urgency_score?: number | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sj_courses_next_course_id_fkey"
+            columns: ["next_course_id"]
+            isOneToOne: false
+            referencedRelation: "sj_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_courses_previous_course_id_fkey"
+            columns: ["previous_course_id"]
+            isOneToOne: false
+            referencedRelation: "sj_courses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sj_courses_specialty_id_fkey"
             columns: ["specialty_id"]
@@ -85711,18 +85865,68 @@ export type Database = {
           },
         ]
       }
+      sj_enrollment_invoices: {
+        Row: {
+          allocated_amount: number | null
+          created_at: string
+          created_by: string | null
+          enrollment_id: string
+          id: string
+          invoice_id: string
+          workspace_id: string
+        }
+        Insert: {
+          allocated_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id: string
+          id?: string
+          invoice_id: string
+          workspace_id: string
+        }
+        Update: {
+          allocated_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id?: string
+          id?: string
+          invoice_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_enrollment_invoices_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sj_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_enrollments: {
         Row: {
+          admin_status: string | null
+          agreed_amount: number | null
+          base_amount: number | null
           cohort_id: string | null
           completed_at: string | null
           course_id: string
           created_at: string | null
+          discount_amount: number
+          duplicate_approved: boolean
+          duplicate_approved_by: string | null
+          financial_status: string | null
           id: string
+          import_source_file: string | null
+          import_source_row: string | null
+          import_source_sheet: string | null
           last_activity_at: string | null
           notes: string | null
           payment_status: string
+          pedagogic_status: string | null
           profile_id: string
           progress_percent: number | null
+          responsible_user_id: string | null
           source: string
           started_at: string | null
           status: string
@@ -85730,16 +85934,28 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          admin_status?: string | null
+          agreed_amount?: number | null
+          base_amount?: number | null
           cohort_id?: string | null
           completed_at?: string | null
           course_id: string
           created_at?: string | null
+          discount_amount?: number
+          duplicate_approved?: boolean
+          duplicate_approved_by?: string | null
+          financial_status?: string | null
           id?: string
+          import_source_file?: string | null
+          import_source_row?: string | null
+          import_source_sheet?: string | null
           last_activity_at?: string | null
           notes?: string | null
           payment_status?: string
+          pedagogic_status?: string | null
           profile_id: string
           progress_percent?: number | null
+          responsible_user_id?: string | null
           source?: string
           started_at?: string | null
           status?: string
@@ -85747,16 +85963,28 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          admin_status?: string | null
+          agreed_amount?: number | null
+          base_amount?: number | null
           cohort_id?: string | null
           completed_at?: string | null
           course_id?: string
           created_at?: string | null
+          discount_amount?: number
+          duplicate_approved?: boolean
+          duplicate_approved_by?: string | null
+          financial_status?: string | null
           id?: string
+          import_source_file?: string | null
+          import_source_row?: string | null
+          import_source_sheet?: string | null
           last_activity_at?: string | null
           notes?: string | null
           payment_status?: string
+          pedagogic_status?: string | null
           profile_id?: string
           progress_percent?: number | null
+          responsible_user_id?: string | null
           source?: string
           started_at?: string | null
           status?: string
@@ -85910,6 +86138,59 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_installments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          enrollment_id: string
+          id: string
+          installment_no: number
+          invoice_id: string | null
+          notes: string | null
+          paid_amount: number
+          paid_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          enrollment_id: string
+          id?: string
+          installment_no: number
+          invoice_id?: string | null
+          notes?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          enrollment_id?: string
+          id?: string
+          installment_no?: number
+          invoice_id?: string | null
+          notes?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_installments_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sj_enrollments"
             referencedColumns: ["id"]
           },
         ]
@@ -111305,6 +111586,10 @@ export type Database = {
       should_bot_respond: {
         Args: { p_conversation_id: string; p_workspace_id: string }
         Returns: Json
+      }
+      sj_has_any_role: {
+        Args: { _roles: string[]; _workspace_id: string }
+        Returns: boolean
       }
       sj_match_profile_to_contact: {
         Args: { p_profile_id: string }
