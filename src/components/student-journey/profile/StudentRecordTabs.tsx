@@ -5,7 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, Award, CalendarCheck, Clock, Lock, Route, Wallet, Zap } from "lucide-react";
 import type { SJEnrollment } from "@/types/studentJourney";
-import { agreedAmount, computeEnrollmentFinance } from "@/lib/studentJourney/enrollmentFinance";
+import { agreedAmount, computeEnrollmentFinance, deriveFinancialStatus, FINANCIAL_STATUS_LABEL } from "@/lib/studentJourney/enrollmentFinance";
+import { EnrollmentFinanceActions } from "@/components/student-journey/finance/EnrollmentFinanceActions";
 import { lisbonTodayYmd } from "@/lib/dates/lisbonDays";
 import type { TimelineEvent } from "@/lib/studentJourney/timeline";
 import type { SjInstallmentRow, SjInvoiceLinkRow } from "@/hooks/useStudentProfileRecords";
@@ -68,9 +69,10 @@ function Section({ title, items, empty }: { title: string; items: string[]; empt
 
 // ---------- Financeiro ----------
 export function FinanceTab({
-  enrollments, data, isLoading, isError, allowed,
+  enrollments, data, isLoading, isError, allowed, contactId,
 }: {
   enrollments: SJEnrollment[];
+  contactId?: string | null;
   data?: { installments: SjInstallmentRow[]; invoices: SjInvoiceLinkRow[] };
   isLoading: boolean; isError: boolean; allowed: boolean;
 }) {
@@ -87,10 +89,16 @@ export function FinanceTab({
         const inst = data?.installments.filter((i) => i.enrollment_id === e.id) ?? [];
         const invs = data?.invoices.filter((i) => i.enrollment_id === e.id) ?? [];
         const f = computeEnrollmentFinance(contracted, inst, invs, today);
+        const st = deriveFinancialStatus(inst, today);
         return (
           <Card key={e.id}>
-            <CardHeader className="pb-2"><CardTitle className="text-base">{courseName(e)}</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
+              <CardTitle className="text-base">{courseName(e)}</CardTitle>
+              <Badge variant={st === "em_atraso" ? "destructive" : st === "liquidado" ? "default" : "secondary"}>{FINANCIAL_STATUS_LABEL[st]}</Badge>
+            </CardHeader>
             <CardContent className="space-y-3">
+              <EnrollmentFinanceActions enrollmentId={e.id} contactId={contactId} base={raw.base_amount ?? null}
+                discount={Number(raw.discount_amount ?? 0)} agreed={contracted} open={f.open} hasPlan={inst.length > 0} />
               <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
                 {([["Contratado", f.contracted], ["Pago", f.paid], ["Faturado", f.invoiced], ["Vencido", f.overdue], ["Em aberto", f.open]] as const).map(([l, v]) => (
                   <div key={l} className="rounded-md border p-2">
@@ -109,6 +117,9 @@ export function FinanceTab({
                   ))}
                 </ul>
               ) : <p className="text-sm text-muted-foreground">Sem prestações definidas.</p>}
+              {invs.length > 0 && (
+                <p className="text-xs text-muted-foreground">Documentos: {[...new Set(invs.map((i) => `${i.invoice_number ?? "s/ número"}${i.invoice_status && ["cancelled","void","draft","anulada","proforma"].includes(i.invoice_status) ? " (não conta)" : ""}`))].join(", ")}</p>
+              )}
             </CardContent>
           </Card>
         );
