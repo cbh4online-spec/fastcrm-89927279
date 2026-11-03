@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +71,7 @@ const ENTITY_TYPE_OPTIONS: Record<ConversionTarget, { value: EntityType; label: 
 export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const { createContact } = useContacts();
   const { createCompany } = useCompanies();
   const deleteLead = useDeleteLead();
@@ -223,11 +225,25 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
       setMigrationStatus("A migrar histórico...");
       const migrationResult = await migrateLeadHistory(lead.id, newEntityId, target);
 
-      // Delete lead if requested
+      // Always take the converted lead out of the active list (members may
+      // update but only admins may delete, and RLS denies delete silently).
+      setMigrationStatus("A finalizar...");
+      const { error: archiveError } = await supabase
+        .from("leads")
+        .update({ archived_at: new Date().toISOString(), status: "completed" } as any)
+        .eq("id", lead.id);
+      if (archiveError) throw archiveError;
+
       if (deleteAfterConversion) {
-        setMigrationStatus("A finalizar...");
-        await deleteLead.mutateAsync(lead.id);
+        try {
+          await deleteLead.mutateAsync(lead.id);
+        } catch (e) {
+          console.warn("[LEADS] Lead archived but not deleted:", e);
+        }
       }
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis"] });
 
       const migrationNote = migrationResult.failed > 0
         ? ` (${migrationResult.failed} tabela(s) com aviso)`
