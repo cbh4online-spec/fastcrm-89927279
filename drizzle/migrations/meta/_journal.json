@@ -799,6 +799,13 @@
       "when": 1793736000000,
       "tag": "0113_archive_converted_lead_albina",
       "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1793736000001,
+      "tag": "0114_normalize_invoice_currency",
+      "breakpoints": true
     }
   ]
 }
