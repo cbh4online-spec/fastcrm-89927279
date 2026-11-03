@@ -39,6 +39,17 @@ import { PushToInvoiceXpressButton } from "@/components/invoices/PushToInvoiceXp
 import { EditInvoiceItemsDialog } from "@/components/invoices/EditInvoiceItemsDialog";
 import { EditInvoiceDatesDialog } from "@/components/invoices/EditInvoiceDatesDialog";
 
+function normalizeCurrencyCode(value: string | null | undefined): string {
+  const v = (value || "").trim().toUpperCase();
+  if (v === "EURO" || v === "EUROS" || v === "€" || !v) return "EUR";
+  try {
+    new Intl.NumberFormat("pt-PT", { style: "currency", currency: v });
+    return v;
+  } catch {
+    return "EUR";
+  }
+}
+
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
   sent: { label: "Enviada", variant: "default" },
@@ -159,6 +170,8 @@ export default function InvoiceDetail() {
     );
   }
 
+  // Algumas faturas importadas têm a moeda escrita como "Euro" (inválida) — normalizar para não quebrar a página.
+  const currencyCode = normalizeCurrencyCode(invoice.currency);
   const status = statusConfig[invoice.status] || statusConfig.draft;
   const canRegisterPayment = invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid";
   const remaining = Math.max(0, invoice.total - (invoice.amount_paid || 0));
@@ -406,7 +419,7 @@ export default function InvoiceDetail() {
                 invoiceId={invoice.id}
                 invoiceTotal={invoice.total}
                 amountPaid={invoice.amount_paid || 0}
-                currency={invoice.currency}
+                currency={currencyCode}
                 invoiceNumber={invoice.invoice_number}
               />
             )}
@@ -421,7 +434,7 @@ export default function InvoiceDetail() {
               invoiceId={invoice.id}
               invoiceTotal={invoice.total}
               amountPaid={invoice.amount_paid || 0}
-              currency={invoice.currency}
+              currency={currencyCode}
             />
             <InvoicePaymentAuditCard invoiceId={invoice.id} />
 
@@ -473,7 +486,7 @@ export default function InvoiceDetail() {
           invoiceId={invoice.id}
           invoiceTotal={invoice.total}
           amountPaid={invoice.amount_paid || 0}
-          currency={invoice.currency}
+          currency={currencyCode}
         />
       )}
 
