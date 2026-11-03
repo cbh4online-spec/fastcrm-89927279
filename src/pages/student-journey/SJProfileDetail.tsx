@@ -359,10 +359,6 @@ export default function SJProfileDetail() {
                                 <Badge variant="outline" className="font-normal">Duplicado aprovado</Badge>
                               )}
                             </div>
-                            <div className="hidden">
-                              <div>
-                              </div>
-                            </div>
                             <div className="mt-3">
                               <div className="flex items-center justify-between text-sm mb-1">
                                 <span className="text-muted-foreground">Progresso</span>
