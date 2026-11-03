@@ -36,13 +36,14 @@ const ALL_TABS: TabItem[] = [
   { id: 'student-journey', label: 'Percurso do aluno', showFor: ['contact'] },
 ];
 
-type GroupId = 'overview' | 'activity' | 'communication' | 'business' | 'intelligence';
+type GroupId = 'overview' | 'activity' | 'communication' | 'business' | 'student-journey' | 'intelligence';
 
 const GROUPS: { id: GroupId; label: string; sections: MenuSection[] }[] = [
   { id: 'overview', label: 'Visão Geral', sections: ['overview', 'contacts', 'relationships'] },
   { id: 'activity', label: 'Atividade', sections: ['timeline', 'activity', 'notes', 'files', 'team'] },
-  { id: 'communication', label: 'Mensagens', sections: ['communication', 'support', 'student-journey'] },
+  { id: 'communication', label: 'Mensagens', sections: ['communication', 'support'] },
   { id: 'business', label: 'Negócio', sections: ['business', 'financial', 'financing'] },
+  { id: 'student-journey', label: 'Jornada do Aluno', sections: ['student-journey'] },
   { id: 'intelligence', label: 'IA & Dados', sections: ['insights', 'data'] },
 ];
 
@@ -121,6 +122,7 @@ export function EntityHorizontalTabs({
                   : 'border-transparent text-muted-foreground hover:text-foreground',
               )}
             >
+              {group.id === 'student-journey' && <GraduationCap className="h-4 w-4" aria-hidden />}
               <span>{group.label}</span>
               {total > 0 && (
                 <Badge
