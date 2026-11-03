@@ -785,6 +785,13 @@
       "when": 1793707485732,
       "tag": "0111_sj_finance_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1793724566968,
+      "tag": "0112_saft_replaces_manual_payments",
+      "breakpoints": true
     }
   ]
 }

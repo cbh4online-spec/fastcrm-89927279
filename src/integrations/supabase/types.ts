@@ -49966,6 +49966,51 @@ export type Database = {
           },
         ]
       }
+      invoice_payments_replaced: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          invoice_id: string
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          reference: string | null
+          replaced_at: string
+          replaced_reason: string
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id: string
+          invoice_id: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          reference?: string | null
+          replaced_at?: string
+          replaced_reason?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          reference?: string | null
+          replaced_at?: string
+          replaced_reason?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       invoice_settings: {
         Row: {
           bank_name: string | null
@@ -111413,6 +111458,10 @@ export type Database = {
         Returns: boolean
       }
       reopen_partner_order: { Args: { p_order_id: string }; Returns: Json }
+      replace_manual_payments_with_saft: {
+        Args: { _invoice_ids?: string[]; _workspace_id: string }
+        Returns: number
+      }
       requeue_lead_icp_score: { Args: { _lead_id: string }; Returns: undefined }
       reserve_partner_variant_stock: {
         Args: {
