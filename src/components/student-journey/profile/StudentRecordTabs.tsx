@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, Award, CalendarCheck, Clock, Lock, Route, Wallet, Zap } from "lucide-react";
 import type { SJEnrollment } from "@/types/studentJourney";
 import { agreedAmount, computeEnrollmentFinance } from "@/lib/studentJourney/enrollmentFinance";
-import { lisbonToday } from "@/lib/studentJourney/lisbonToday";
+import { lisbonTodayYmd } from "@/lib/dates/lisbonDays";
 import type { TimelineEvent } from "@/lib/studentJourney/timeline";
 import type { SjInstallmentRow, SjInvoiceLinkRow } from "@/hooks/useStudentProfileRecords";
 
@@ -78,7 +78,7 @@ export function FinanceTab({
   if (isLoading) return <Skeleton className="h-48" />;
   if (isError) return <ErrorBox />;
   if (!enrollments.length) return <Card><CardContent className="pt-6"><Empty icon={Wallet} text="Sem inscrições com valores." /></CardContent></Card>;
-  const today = lisbonToday();
+  const today = lisbonTodayYmd();
   return (
     <div className="space-y-4">
       {enrollments.map((e) => {
