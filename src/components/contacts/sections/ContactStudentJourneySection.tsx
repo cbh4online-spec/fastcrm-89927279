@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
-import { useEnrollments, useCourses } from "@/hooks/useStudentJourney";
+import { useEnrollments, useCourses, useProfiles } from "@/hooks/useStudentJourney";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,8 @@ export function ContactStudentJourneySection({
   const { data: profile, isLoading: isLoadingProfile } = useContactStudentJourneyProfile(contactId);
   const { enrollments = [], isLoading: isLoadingEnrollments } = useEnrollments(profile?.id ? { profileId: profile.id } : {});
   const { courses = [] } = useCourses();
+  const { createProfile } = useProfiles();
+  const queryClient = useQueryClient();
 
   // Filter available courses (active and not enrolled)
   const enrolledCourseIds = enrollments.map((e: any) => e.course_id);
@@ -77,13 +80,14 @@ export function ContactStudentJourneySection({
     }
   };
 
-  const handleCreateProfile = () => {
-    const params = new URLSearchParams({
+  const handleCreateProfile = async () => {
+    await createProfile.mutateAsync({
+      full_name: contactName,
+      email: contactEmail || undefined,
       contact_id: contactId,
-      name: contactName,
-      ...(contactEmail && { email: contactEmail }),
+      lifecycle_stage: "lead",
     });
-    navigate(`/dashboard/student-journey/profiles/new?${params.toString()}`);
+    queryClient.invalidateQueries({ queryKey: ["sj-profile-by-contact", contactId] });
   };
 
   const handleEnrollInCourse = (courseId: string) => {
@@ -118,9 +122,9 @@ export function ContactStudentJourneySection({
             Este contacto ainda não tem um perfil no Student Journey. 
             Crie um para acompanhar a sua jornada educacional.
           </p>
-          <Button onClick={handleCreateProfile} className="gap-2">
+          <Button onClick={handleCreateProfile} disabled={createProfile.isPending} className="gap-2">
             <UserPlus className="w-4 h-4" />
-            Criar Perfil
+            {createProfile.isPending ? "A ativar…" : "Ativar na Jornada"}
           </Button>
         </CardContent>
       </Card>
