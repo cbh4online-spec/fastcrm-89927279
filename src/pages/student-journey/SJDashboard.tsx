@@ -17,6 +17,7 @@ import { CreateProfileDialog } from "@/components/student-journey/CreateProfileD
 import { ImportProfilesDialog } from "@/components/student-journey/ImportProfilesDialog";
 import { SJCopilotDrawer } from "@/components/student-journey/SJCopilotDrawer";
 import { toast } from "sonner";
+import { DueSoonAlert } from "@/components/student-journey/finance/DueSoonAlert";
 
 export default function SJDashboard() {
   const navigate = useNavigate();
@@ -65,6 +66,7 @@ export default function SJDashboard() {
 
   return (
     <div className="space-y-6">
+      <DueSoonAlert />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
