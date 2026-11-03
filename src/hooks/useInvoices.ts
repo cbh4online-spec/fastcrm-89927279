@@ -161,7 +161,8 @@ export function useInvoice(id: string | undefined) {
   const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
-    queryKey: ["invoice", id],
+    // A organização faz parte da chave: ao mudar de organização a fatura é procurada de novo.
+    queryKey: ["invoice", id, currentWorkspace?.id],
     queryFn: async () => {
       if (!id || !currentWorkspace) return null;
 
