@@ -11,6 +11,7 @@ import { COHORT_STATUS_CONFIG, CohortStatus } from "@/types/studentJourney";
 import { Loader2 } from "lucide-react";
 import { PhasesEditor, PhaseDraft, validatePhases } from "./PhasesEditor";
 import { toast } from "sonner";
+import { EditionDetailsFields, emptyEditionDraft, editionPayload } from "./EditionDetailsFields";
 
 interface CreateCohortDialogProps {
   open: boolean;
@@ -29,6 +30,7 @@ export function CreateCohortDialog({ open, onOpenChange, defaultCourseId }: Crea
   const [capacity, setCapacity] = useState("");
   const [status, setStatus] = useState<CohortStatus>("planned");
   const [phases, setPhases] = useState<PhaseDraft[]>([]);
+  const [edition, setEdition] = useState(emptyEditionDraft());
 
   useEffect(() => {
     if (defaultCourseId) setCourseId(defaultCourseId);
@@ -42,6 +44,7 @@ export function CreateCohortDialog({ open, onOpenChange, defaultCourseId }: Crea
     setCapacity("");
     setStatus("planned");
     setPhases([]);
+    setEdition(emptyEditionDraft());
   };
 
   const phaseIssues = validatePhases(phases);
@@ -51,6 +54,12 @@ export function CreateCohortDialog({ open, onOpenChange, defaultCourseId }: Crea
     if (!name.trim() || !courseId) return;
     if (hasPhaseErrors) {
       toast.error("Resolva os problemas nas fases antes de guardar");
+      return;
+    }
+
+    const ed = editionPayload(edition);
+    if ("error" in ed) {
+      toast.error(ed.error);
       return;
     }
 
@@ -71,7 +80,8 @@ export function CreateCohortDialog({ open, onOpenChange, defaultCourseId }: Crea
         end_date: aggEnd,
         capacity: capacity ? parseInt(capacity) : undefined,
         status,
-      });
+        ...ed.value,
+      } as any);
 
       if (phases.length > 0 && cohort?.id) {
         await replacePhases.mutateAsync({
@@ -120,13 +130,13 @@ export function CreateCohortDialog({ open, onOpenChange, defaultCourseId }: Crea
           </div>
 
           {phases.length === 0 && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="grid gap-2"><Label>Data Início</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
               <div className="grid gap-2"><Label>Data Fim</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Capacidade</Label><Input type="number" min={0} value={capacity} onChange={(e) => setCapacity(e.target.value)} /></div>
             <div className="grid gap-2">
               <Label>Estado</Label>
@@ -140,7 +150,11 @@ export function CreateCohortDialog({ open, onOpenChange, defaultCourseId }: Crea
           </div>
 
           <Separator />
+          <p className="text-sm font-medium">Edição</p>
+          <EditionDetailsFields value={edition} onChange={setEdition} />
 
+          <Separator />
+          <p className="text-sm font-medium">Blocos (datas e locais)</p>
           <PhasesEditor phases={phases} onChange={setPhases} />
         </div>
 

@@ -34,6 +34,7 @@ export default function SJCohortDetail() {
   const navigate = useNavigate();
   const { data: cohort, isLoading } = useCohort(id);
   const { enrollments } = useEnrollments({ cohortId: id });
+  const [activeTab, setActiveTab] = useState("students");
 
   if (isLoading) {
     return (
@@ -91,7 +92,7 @@ export default function SJCohortDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setActiveTab("settings")}>
             <Edit className="h-4 w-4 mr-2" />
             Editar
           </Button>
@@ -184,7 +185,7 @@ export default function SJCohortDetail() {
 
         {/* Right Column - Tabs */}
         <div className="lg:col-span-2">
-          <Tabs defaultValue="students">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-2">
               <TabsTrigger value="students" className="gap-2">
                 <Users className="h-4 w-4" />

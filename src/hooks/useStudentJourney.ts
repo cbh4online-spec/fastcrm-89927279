@@ -352,7 +352,8 @@ export function useCohorts(courseId?: string) {
         .from("sj_cohorts")
         .select(`
           *,
-          course:sj_courses(id, name, course_type)
+          course:sj_courses(id, name, course_type),
+          enrollment_rows:sj_enrollments(status)
         `)
         .eq("workspace_id", currentWorkspace.id);
 
@@ -396,7 +397,7 @@ export function useCohorts(courseId?: string) {
 
   const updateCohort = useMutation({
     mutationFn: async ({ id, settings, ...data }: Partial<SJCohort> & { id: string }) => {
-      const { course, enrollments_count, ...updateData } = data;
+      const { course, enrollments_count, enrollment_rows, ...updateData } = data as any;
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updatePayload: any = { ...updateData };

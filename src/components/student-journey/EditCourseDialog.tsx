@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -29,7 +30,11 @@ interface EditCourseDialogProps {
 }
 
 export function EditCourseDialog({ open, onOpenChange, course }: EditCourseDialogProps) {
-  const { updateCourse } = useCourses();
+  const { updateCourse, courses } = useCourses();
+  const [code, setCode] = useState("");
+  const [category, setCategory] = useState("");
+  const [previousId, setPreviousId] = useState("none");
+  const [nextId, setNextId] = useState("none");
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -48,11 +53,20 @@ export function EditCourseDialog({ open, onOpenChange, course }: EditCourseDialo
       setCohortEnabled(course.cohort_enabled);
       setIsActive(course.is_active);
       setTags(course.tags?.join(", ") || "");
+      const c = course as any;
+      setCode(c.code ?? "");
+      setCategory(c.category ?? "");
+      setPreviousId(c.previous_course_id ?? "none");
+      setNextId(c.next_course_id ?? "none");
     }
   }, [course]);
 
   const handleSubmit = async () => {
     if (!name.trim() || !course) return;
+    if (previousId !== "none" && previousId === nextId) {
+      toast.error("O curso anterior e o seguinte não podem ser o mesmo");
+      return;
+    }
 
     await updateCourse.mutateAsync({
       id: course.id,
@@ -66,14 +80,18 @@ export function EditCourseDialog({ open, onOpenChange, course }: EditCourseDialo
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
-    });
+      code: code.trim().slice(0, 40) || null,
+      category: category.trim().slice(0, 80) || null,
+      previous_course_id: previousId === "none" ? null : previousId,
+      next_course_id: nextId === "none" ? null : nextId,
+    } as any);
 
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Curso</DialogTitle>
         </DialogHeader>
@@ -87,6 +105,33 @@ export function EditCourseDialog({ open, onOpenChange, course }: EditCourseDialo
               placeholder="Ex: Marketing Digital Avançado"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="course-code">Código</Label>
+              <Input id="course-code" value={code} maxLength={40} onChange={(e) => setCode(e.target.value)} placeholder="Ex: BAS" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="course-cat">Categoria</Label>
+              <Input id="course-cat" value={category} maxLength={80} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Tricologia" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {([["Curso anterior", previousId, setPreviousId], ["Curso seguinte", nextId, setNextId]] as const).map(([label, val, setVal]) => (
+              <div key={label} className="grid gap-2">
+                <Label>{label}</Label>
+                <Select value={val} onValueChange={setVal}>
+                  <SelectTrigger aria-label={label}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {courses.filter((c) => c.id !== course?.id).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+          <p className="-mt-2 text-xs text-muted-foreground">O percurso é só uma sugestão; não impede inscrições noutros cursos.</p>
 
           <div className="grid gap-2">
             <Label>Descrição</Label>

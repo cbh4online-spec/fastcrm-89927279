@@ -1,3 +1,4 @@
+import { EditionDetailsFields, editionDraftFrom, editionPayload } from "./EditionDetailsFields";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ export function CohortSettingsTab({ cohort, enrollmentsCount }: CohortSettingsTa
   const [sendNotifications, setSendNotifications] = useState(settings.send_notifications as boolean ?? true);
   const [isPrivate, setIsPrivate] = useState(settings.is_private as boolean ?? false);
   
+  const [edition, setEdition] = useState(() => editionDraftFrom(cohort));
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -66,10 +68,11 @@ export function CohortSettingsTab({ cohort, enrollmentsCount }: CohortSettingsTa
       autoAcceptEnrollment !== (originalSettings.auto_accept_enrollment ?? true) ||
       enableWaitingList !== (originalSettings.enable_waiting_list ?? false) ||
       sendNotifications !== (originalSettings.send_notifications ?? true) ||
-      isPrivate !== (originalSettings.is_private ?? false);
+      isPrivate !== (originalSettings.is_private ?? false) ||
+      JSON.stringify(edition) !== JSON.stringify(editionDraftFrom(cohort));
     
     setHasChanges(changed);
-  }, [name, status, capacity, startDate, endDate, allowLateEnrollment, autoAcceptEnrollment, enableWaitingList, sendNotifications, isPrivate, cohort]);
+  }, [name, status, capacity, startDate, endDate, allowLateEnrollment, autoAcceptEnrollment, enableWaitingList, sendNotifications, isPrivate, edition, cohort]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -77,9 +80,16 @@ export function CohortSettingsTab({ cohort, enrollmentsCount }: CohortSettingsTa
       return;
     }
 
+    const ed = editionPayload(edition);
+    if ("error" in ed) {
+      toast.error(ed.error);
+      return;
+    }
+
     setIsSaving(true);
     try {
       await updateCohort.mutateAsync({
+        ...(ed.value as any),
         id: cohort.id,
         name: name.trim(),
         status,
@@ -115,6 +125,16 @@ export function CohortSettingsTab({ cohort, enrollmentsCount }: CohortSettingsTa
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Edição</CardTitle>
+          <CardDescription>Código, cidade, local, formador, vagas e estado da edição</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EditionDetailsFields value={edition} onChange={setEdition} />
+        </CardContent>
+      </Card>
+
       {/* Basic Information */}
       <Card>
         <CardHeader>
