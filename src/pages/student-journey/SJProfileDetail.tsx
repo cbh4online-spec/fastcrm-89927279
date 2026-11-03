@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,8 +52,40 @@ import { LinkContactDialog } from "@/components/student-journey/LinkContactDialo
 import { CreateOpportunityDialog } from "@/components/student-journey/CreateOpportunityDialog";
 import { SJCopilotDrawer } from "@/components/student-journey/SJCopilotDrawer";
 import { NextBestActionCard, JourneyProgressCard } from "@/components/student-journey/profile";
+import {
+  PathTab,
+  FinanceTab,
+  CertificationTab,
+  StudentTimeline,
+} from "@/components/student-journey/profile/StudentRecordTabs";
+import { AddInterestDialog } from "@/components/student-journey/AddInterestDialog";
+import {
+  useSjFinanceAccess,
+  useSjAttendance,
+  useSjCertificates,
+  useSjEnrollmentFinance,
+} from "@/hooks/useStudentProfileRecords";
+import { buildStudentTimeline } from "@/lib/studentJourney/timeline";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SJEnrollment } from "@/types/studentJourney";
+import { Heart, Route, Wallet, Award, Activity } from "lucide-react";
+
+const PROFILE_TABS = [
+  { id: "profile", label: "Perfil", icon: User },
+  { id: "interests", label: "Interesses", icon: Heart },
+  { id: "enrollments", label: "Inscrições", icon: GraduationCap },
+  { id: "path", label: "Percurso", icon: Route },
+  { id: "finance", label: "Financeiro", icon: Wallet },
+  { id: "communications", label: "Comunicações", icon: MessageSquare },
+  { id: "certification", label: "Certificação", icon: Award },
+  { id: "progression", label: "Progressão", icon: Activity },
+] as const;
+
+const STATUS_AXIS_LABEL = {
+  admin_status: "Administrativo",
+  pedagogic_status: "Pedagógico",
+  financial_status: "Financeiro",
+} as const;
 
 export default function SJProfileDetail() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +112,49 @@ export default function SJProfileDetail() {
   const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState<SJEnrollment | null>(null);
+  const [interestDialogOpen, setInterestDialogOpen] = useState(false);
+
+  // Separadores da ficha única (o separador ativo fica no endereço)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: financeAllowed = false } = useSjFinanceAccess();
+  const enrollmentIds = useMemo(() => enrollments.map((e) => e.id), [enrollments]);
+  const attendanceQuery = useSjAttendance(enrollmentIds);
+  const certificatesQuery = useSjCertificates(enrollmentIds);
+  const financeQuery = useSjEnrollmentFinance(enrollmentIds, financeAllowed);
+
+  const visibleTabs = useMemo(
+    () => PROFILE_TABS.filter((t) => t.id !== "finance" || financeAllowed),
+    [financeAllowed],
+  );
+  const requestedTab = searchParams.get("tab") === "timeline" ? "communications" : searchParams.get("tab");
+  const activeTab = visibleTabs.some((t) => t.id === requestedTab) ? (requestedTab as string) : "profile";
+  const setTab = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", value);
+    setSearchParams(next, { replace: true });
+  };
+
+  const timelineEvents = useMemo(
+    () =>
+      buildStudentTimeline({
+        enrollments: enrollments.map((e) => ({
+          id: e.id,
+          enrolled_at: e.started_at,
+          created_at: e.created_at,
+          courseName: e.course?.name ?? null,
+        })),
+        installments: financeQuery.data?.installments ?? [],
+        attendance: attendanceQuery.data ?? [],
+        certificates: certificatesQuery.data ?? [],
+        touchpoints: touchpoints.map((t) => ({
+          id: t.id,
+          occurred_at: t.occurred_at,
+          typeLabel: TOUCHPOINT_TYPE_CONFIG[t.touchpoint_type]?.label ?? "Contacto",
+          message_preview: t.message_preview,
+        })),
+      }),
+    [enrollments, financeQuery.data, attendanceQuery.data, certificatesQuery.data, touchpoints],
+  );
 
   if (isLoading) {
     return (
@@ -113,7 +188,7 @@ export default function SJProfileDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
@@ -139,7 +214,7 @@ export default function SJProfileDetail() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setFollowUpDialogOpen(true)}>
             <Calendar className="h-4 w-4 mr-2" />
             Follow-up
@@ -168,10 +243,22 @@ export default function SJProfileDetail() {
         onOpenCopilot={() => setCopilotDrawerOpen(true)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Profile Info */}
-        <div className="space-y-6">
-          {/* Contact Info */}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 lg:col-span-2">
+          <Tabs value={activeTab} onValueChange={setTab}>
+            <div className="overflow-x-auto">
+              <TabsList className="inline-flex w-max">
+                {visibleTabs.map((t) => (
+                  <TabsTrigger key={t.id} value={t.id} className="gap-2 whitespace-nowrap">
+                    <t.icon className="h-4 w-4" aria-hidden />
+                    {t.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <TabsContent value="profile" className="mt-4 space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -228,37 +315,6 @@ export default function SJProfileDetail() {
               )}
             </CardContent>
           </Card>
-
-          {/* Interests */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Interesses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {profile.primary_interest && (
-                <div className="mb-3">
-                  <p className="text-xs text-muted-foreground mb-1">Principal</p>
-                  <Badge variant="default">{profile.primary_interest}</Badge>
-                </div>
-              )}
-              {profile.interests && profile.interests.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {profile.interests.map((interest, idx) => (
-                    <Badge key={idx} variant="secondary">
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhum interesse definido</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Journey Progress Card */}
-          <JourneyProgressCard journeyProfile={journeyProfile} />
-
-          {/* Status Info */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Estado</CardTitle>
@@ -284,27 +340,41 @@ export default function SJProfileDetail() {
               )}
             </CardContent>
           </Card>
-        </div>
+            </TabsContent>
 
-        {/* Right Column - Tabs */}
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="enrollments">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="enrollments" className="gap-2">
-                <GraduationCap className="h-4 w-4" />
-                Inscrições ({enrollments.length})
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="gap-2">
-                <Clock className="h-4 w-4" />
-                Timeline ({touchpoints.length})
-              </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Tarefas ({openTasks.length})
-              </TabsTrigger>
-            </TabsList>
+            <TabsContent value="interests" className="mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Interesses</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => setInterestDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Gerir
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {profile.primary_interest && (
+                <div className="mb-3">
+                  <p className="text-xs text-muted-foreground mb-1">Principal</p>
+                  <Badge variant="default">{profile.primary_interest}</Badge>
+                </div>
+              )}
+              {profile.interests && profile.interests.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {profile.interests.map((interest, idx) => (
+                    <Badge key={idx} variant="secondary">
+                      {interest}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum interesse definido</p>
+              )}
+            </CardContent>
+          </Card>
+            </TabsContent>
 
-            {/* Enrollments Tab */}
             <TabsContent value="enrollments" className="mt-4">
               <Card>
                 <CardHeader className="pb-3">
@@ -354,6 +424,16 @@ export default function SJProfileDetail() {
                                 </Badge>
                               </div>
                             </div>
+                            <div className="mt-2 flex flex-wrap gap-1 text-xs">
+                              {(["admin_status", "pedagogic_status", "financial_status"] as const).map((k) => (
+                                <Badge key={k} variant="outline" className="font-normal">
+                                  {STATUS_AXIS_LABEL[k]}: {(enrollment as any)[k] ?? "—"}
+                                </Badge>
+                              ))}
+                              {(enrollment as any).duplicate_approved && (
+                                <Badge variant="outline" className="font-normal">Duplicado aprovado</Badge>
+                              )}
+                            </div>
                             <div className="mt-3">
                               <div className="flex items-center justify-between text-sm mb-1">
                                 <span className="text-muted-foreground">Progresso</span>
@@ -386,8 +466,23 @@ export default function SJProfileDetail() {
               </Card>
             </TabsContent>
 
-            {/* Timeline Tab */}
-            <TabsContent value="timeline" className="mt-4">
+            <TabsContent value="path" className="mt-4">
+              <PathTab enrollments={enrollments} />
+            </TabsContent>
+
+            {financeAllowed && (
+              <TabsContent value="finance" className="mt-4">
+                <FinanceTab
+                  enrollments={enrollments}
+                  data={financeQuery.data}
+                  isLoading={financeQuery.isLoading}
+                  isError={financeQuery.isError}
+                  allowed={financeAllowed}
+                />
+              </TabsContent>
+            )}
+
+            <TabsContent value="communications" className="mt-4">
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -454,8 +549,18 @@ export default function SJProfileDetail() {
               </Card>
             </TabsContent>
 
-            {/* Tasks Tab */}
-            <TabsContent value="tasks" className="mt-4">
+            <TabsContent value="certification" className="mt-4">
+              <CertificationTab
+                enrollments={enrollments}
+                attendance={attendanceQuery.data ?? []}
+                certificates={certificatesQuery.data ?? []}
+                isLoading={attendanceQuery.isLoading || certificatesQuery.isLoading}
+                isError={attendanceQuery.isError || certificatesQuery.isError}
+              />
+            </TabsContent>
+
+            <TabsContent value="progression" className="mt-4 space-y-4">
+              <JourneyProgressCard journeyProfile={journeyProfile} />
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -507,6 +612,10 @@ export default function SJProfileDetail() {
             </TabsContent>
           </Tabs>
         </div>
+
+        <aside className="min-w-0" aria-label="Linha temporal do aluno">
+          <StudentTimeline events={timelineEvents} isLoading={attendanceQuery.isLoading} />
+        </aside>
       </div>
 
       {/* Dialogs */}
@@ -556,6 +665,11 @@ export default function SJProfileDetail() {
           contactId={profile?.contact_id || undefined}
         />
       )}
+      <AddInterestDialog
+        open={interestDialogOpen}
+        onOpenChange={setInterestDialogOpen}
+        profile={profile}
+      />
       <SJCopilotDrawer
         open={copilotDrawerOpen}
         onOpenChange={setCopilotDrawerOpen}

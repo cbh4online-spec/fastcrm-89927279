@@ -12,7 +12,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
-import { ArrowLeft, Trash2, User, Clock, Building2, Shield, Sparkles, FileText, Mail, UserPlus, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Trash2, User, Clock, Building2, Shield, Sparkles, FileText, Mail, UserPlus, MoreHorizontal, GraduationCap } from "lucide-react";
+import { LIFECYCLE_STAGE_CONFIG } from "@/types/studentJourney";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InviteClientDialog } from "@/components/client-users/InviteClientDialog";
 import { toast } from "sonner";
@@ -633,6 +634,18 @@ export function ENIContactDetailWithSidebar() {
               )}
             </div>
             <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-2">
+              {sjProfile && (
+                <Link
+                  to={`/dashboard/student-journey/profiles/${sjProfile.id}`}
+                  aria-label="Abrir ficha do aluno"
+                  className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Badge variant="secondary" className="gap-1 whitespace-nowrap">
+                    <GraduationCap className="h-3 w-3" aria-hidden />
+                    {LIFECYCLE_STAGE_CONFIG[sjProfile.lifecycle_stage as keyof typeof LIFECYCLE_STAGE_CONFIG]?.label ?? "Aluno"}
+                  </Badge>
+                </Link>
+              )}
               <ActivityProfileBadge
                 entityType="contact"
                 entityId={id!}

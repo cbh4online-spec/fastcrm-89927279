@@ -26,3 +26,8 @@ export function relativeDayLabel(days: number): string {
   if (days < 0) return `${Math.abs(days)} dias de atraso`;
   return `em ${days} dias`;
 }
+/** Hoje em Europe/Lisbon como "YYYY-MM-DD". */
+export function lisbonTodayYmd(now: Date = new Date()): string {
+  const [y, m, d] = lisbonYmd(now);
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
