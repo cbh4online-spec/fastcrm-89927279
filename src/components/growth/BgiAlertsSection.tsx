@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BellOff, Settings2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -51,6 +51,18 @@ export function BgiAlertsSection({ period, data, indicators, objectives, canMana
       projected: v.projected, status: v.status, elapsed: v.elapsed, total: v.total })),
     thresholds,
   }).filter((a) => !dismissed.data?.has(a.key)), [data, indicators, objectives, thresholds, dismissed.data]);
+
+  // Publica cada alerta no sino (um por alerta/período por organização; o índice único evita duplicados)
+  useEffect(() => {
+    if (!wsId || !dismissed.data || alerts.length === 0) return;
+    const rows = alerts.map((a) => ({
+      workspace_id: wsId, type: "bgi_alert", title: `Crescimento: ${a.title}`.slice(0, 200), message: a.detail.slice(0, 500), is_read: false,
+      metadata: { bgi_alert_key: `${periodKey}:${a.key}`, link: "/dashboard/growth", severity: a.severity },
+    }));
+    Promise.all(rows.map((r) => supabase.from("admin_notifications").insert(r))).then((res) => {
+      if (res.some((r) => !r.error)) qc.invalidateQueries({ queryKey: ["admin-notifications", wsId] });
+    });
+  }, [wsId, periodKey, alerts, dismissed.data, qc]);
 
   const [drop, setDrop] = useState(String(thresholds.drop_pct));
   const [risk, setRisk] = useState(String(thresholds.risk_pct));
