@@ -12,6 +12,7 @@ import { applyLayout } from "@/lib/bgi/dashboardLayout";
 import { BgiLayoutEditor } from "@/components/growth/BgiLayoutEditor";
 import { BgiObjectivesSection, useObjectiveViews } from "@/components/growth/BgiObjectivesSection";
 import { Progress } from "@/components/ui/progress";
+import { BgiInsightsCard } from "@/components/growth/BgiInsightsCard";
 
 type Choice = "this_month" | "last_month" | "quarter" | "year";
 const CHOICES: { key: Choice; label: string }[] = [
@@ -90,6 +91,7 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
       {isLoading && <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />}
       {error && <IXCard><p className="text-sm text-destructive">Não foi possível calcular os indicadores: {(error as Error).message}</p></IXCard>}
 
+      {data && <BgiInsightsCard period={period} periodStart={data.start} anchor={anchor} indicators={allIndicators} canManage={canManage} />}
       {data && <BgiObjectivesSection period={period} data={data} indicators={allIndicators} canManage={canManage} />}
 
       {data && grouped.map((g) => (
