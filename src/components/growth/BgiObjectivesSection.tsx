@@ -22,7 +22,7 @@ const STATUS_VARIANT: Record<ObjectiveStatus, "default" | "secondary" | "destruc
 };
 const CUMULATIVE = new Set(["sum", "count"]);
 
-export interface ObjectiveView { objective: BgiObjective; indicator: IndicatorDefinition; current: number | null; pct: number | null; projected: number | null; status: ObjectiveStatus }
+export interface ObjectiveView { objective: BgiObjective; indicator: IndicatorDefinition; current: number | null; pct: number | null; projected: number | null; status: ObjectiveStatus; elapsed: number; total: number }
 
 export function useObjectiveViews(period: BgiPeriod, data: BgiIndicatorResult | undefined, indicators: IndicatorDefinition[]) {
   const q = useBgiObjectives(period, data?.start);
@@ -64,7 +64,7 @@ export function BgiObjectivesSection({ period, data, indicators, canManage }: {
         )}
         <ul className="grid gap-3 md:grid-cols-2">
           {views.map((v) => (
-            <li key={v.objective.id} className="rounded-xl border border-border p-4 space-y-2">
+            <li key={v.objective.id} id={`objective-${v.indicator.id}`} className="rounded-xl border border-border p-4 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium text-foreground truncate">{v.indicator.name}</p>

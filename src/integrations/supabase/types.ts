@@ -10265,6 +10265,62 @@ export type Database = {
           },
         ]
       }
+      bgi_alert_dismissals: {
+        Row: {
+          alert_key: string
+          created_at: string
+          id: string
+          period_key: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          alert_key: string
+          created_at?: string
+          id?: string
+          period_key: string
+          user_id?: string
+          workspace_id: string
+        }
+        Update: {
+          alert_key?: string
+          created_at?: string
+          id?: string
+          period_key?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bgi_alert_dismissals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bgi_alert_dismissals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "bgi_alert_dismissals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bgi_alert_dismissals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bgi_objectives: {
         Row: {
           archived_at: string | null
@@ -104413,6 +104469,7 @@ export type Database = {
       }
       workspace_bgi_settings: {
         Row: {
+          alert_thresholds: Json
           created_at: string
           hidden_indicators: string[]
           indicator_order: string[]
@@ -104422,6 +104479,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          alert_thresholds?: Json
           created_at?: string
           hidden_indicators?: string[]
           indicator_order?: string[]
@@ -104431,6 +104489,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          alert_thresholds?: Json
           created_at?: string
           hidden_indicators?: string[]
           indicator_order?: string[]
@@ -109993,6 +110052,10 @@ export type Database = {
         Returns: Json
       }
       bgi_compute_indicators: {
+        Args: { _anchor?: string; _period?: string; _workspace_id: string }
+        Returns: Json
+      }
+      bgi_funnel_by_source: {
         Args: { _anchor?: string; _period?: string; _workspace_id: string }
         Returns: Json
       }

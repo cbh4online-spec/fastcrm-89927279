@@ -13,6 +13,8 @@ import { BgiLayoutEditor } from "@/components/growth/BgiLayoutEditor";
 import { BgiObjectivesSection, useObjectiveViews } from "@/components/growth/BgiObjectivesSection";
 import { Progress } from "@/components/ui/progress";
 import { BgiInsightsCard } from "@/components/growth/BgiInsightsCard";
+import { BgiAlertsSection } from "@/components/growth/BgiAlertsSection";
+import { BgiSourceFunnel } from "@/components/growth/BgiSourceFunnel";
 
 type Choice = "this_month" | "last_month" | "quarter" | "year";
 const CHOICES: { key: Choice; label: string }[] = [
@@ -91,6 +93,7 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
       {isLoading && <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />}
       {error && <IXCard><p className="text-sm text-destructive">Não foi possível calcular os indicadores: {(error as Error).message}</p></IXCard>}
 
+      {data && <BgiAlertsSection period={period} data={data} indicators={indicators} objectives={objectiveViews} canManage={canManage} />}
       {data && <BgiInsightsCard period={period} periodStart={data.start} anchor={anchor} indicators={allIndicators} canManage={canManage} />}
       {data && <BgiObjectivesSection period={period} data={data} indicators={allIndicators} canManage={canManage} />}
 
@@ -101,7 +104,7 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
               const supported = isSupportedFormula(i.formula);
               const cur = supported ? data.current?.[i.formula] ?? null : null;
               return (
-                <div key={i.id} className="rounded-xl border border-border p-4 space-y-1">
+                <div key={i.id} id={`kpi-${i.id}`} className="rounded-xl border border-border p-4 space-y-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{i.name}</p>
                     {i.kind && KIND_LABEL[i.kind] && <Badge variant="outline" className="text-[10px]">{KIND_LABEL[i.kind]}</Badge>}
@@ -129,6 +132,8 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
           </div>
         </IXCard>
       ))}
+
+      {data && <BgiSourceFunnel period={period} anchor={anchor} />}
     </div>
   );
 }
