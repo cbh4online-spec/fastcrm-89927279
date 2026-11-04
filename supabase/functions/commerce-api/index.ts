@@ -159,8 +159,16 @@ async function loadPublishedProducts(
   if (opts.category) query = query.eq("category", opts.category);
   if (opts.brand) query = query.eq("brand", opts.brand);
   if (opts.availability) query = query.eq("stock_status", opts.availability);
-  if (opts.language) query = query.contains("languages", [opts.language]);
-  if (opts.country) query = query.contains("countries", [opts.country]);
+  // Produto sem idioma/país definido = disponível em todos.
+  const safeCode = (v: string) => v.replace(/[^A-Za-z_-]/g, "").slice(0, 10);
+  if (opts.language && safeCode(opts.language)) {
+    const l = safeCode(opts.language);
+    query = query.or(`languages.cs.{${l}},languages.eq.{},languages.is.null`);
+  }
+  if (opts.country && safeCode(opts.country)) {
+    const c = safeCode(opts.country);
+    query = query.or(`countries.cs.{${c}},countries.eq.{},countries.is.null`);
+  }
 
   const limit = Math.min(opts.limit ?? 50, MAX_PAGE_SIZE);
   const offset = Math.max(opts.offset ?? 0, 0);
