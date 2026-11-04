@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,6 +28,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   team_mention: <AtSign className="w-4 h-4 text-orange-500" />,
   birthday: <Cake className="w-4 h-4 text-pink-500" />,
   rfq_deadline: <Timer className="w-4 h-4 text-red-500" />,
+  bgi_alert: <AlertTriangle className="w-4 h-4 text-destructive" />,
 };
 
 const defaultIcon = <Info className="w-4 h-4 text-muted-foreground" />;
@@ -34,6 +36,7 @@ const defaultIcon = <Info className="w-4 h-4 text-muted-foreground" />;
 export function NotificationsDropdown() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useAdminNotifications();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -92,6 +95,8 @@ export function NotificationsDropdown() {
                   )}
                   onClick={() => {
                     if (!notification.is_read) markAsRead.mutate(notification.id);
+                    const link = (notification as { metadata?: { link?: unknown } }).metadata?.link;
+                    if (typeof link === "string" && link.startsWith("/")) { setOpen(false); navigate(link); }
                   }}
                 >
                   <div className="flex gap-3">
