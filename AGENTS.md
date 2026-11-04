@@ -36,3 +36,4 @@
 - BGI indicators/templates live only in `src/lib/bgi/indicatorCatalog.ts` with whitelisted formula ids (computed by SQL/code, never AI or free expressions), so every workspace shares one engine configured by templates.
 - Module checkout billing (monthly subscription vs one-time payment) is decided only by `supabase/functions/_shared/moduleBilling.ts`; one-time activations are confirmed by re-fetching the Stripe session in `module-subscribe`, because unsigned webhook bodies must never activate a paid module.
 - Growth Intelligence business models per workspace live in `workspace_bgi_settings` (validated template ids, managers write via RLS) and the page `/dashboard/growth` gates on the `growth-intelligence` module, so indicators stay per-workspace and paid.
+- The BGI dashboard layout (indicator order/hidden) is per workspace in `workspace_bgi_settings` and resolved only by `src/lib/bgi/dashboardLayout.ts`, so every member sees the same managers-defined panel.
