@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { resolveWorkspaceIndicators, type BusinessTemplateId, type IndicatorDefinition } from "@/lib/bgi/indicatorCatalog";
 import { computeDelta, formatIndicatorValue, isSupportedFormula } from "@/lib/bgi/formatIndicator";
 import { useBgiIndicators, type BgiPeriod } from "@/hooks/useBgiIndicators";
+import { useBgiSettings } from "@/hooks/useBgiSettings";
+import { useCapability } from "@/hooks/useCapability";
+import { applyLayout } from "@/lib/bgi/dashboardLayout";
+import { BgiLayoutEditor } from "@/components/growth/BgiLayoutEditor";
 
 type Choice = "this_month" | "last_month" | "quarter" | "year";
 const CHOICES: { key: Choice; label: string }[] = [
@@ -42,7 +46,11 @@ function Delta({ value, label }: { value: number | null; label: string }) {
 export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] }) {
   const [choice, setChoice] = useState<Choice>("this_month");
   const { period, anchor } = resolve(choice);
-  const indicators = useMemo(() => resolveWorkspaceIndicators(templateIds) ?? [], [templateIds]);
+  const allIndicators = useMemo(() => resolveWorkspaceIndicators(templateIds) ?? [], [templateIds]);
+  const { data: settings } = useBgiSettings();
+  const canManage = useCapability("workspace.manage");
+  const layout = settings?.layout ?? { order: [], hidden: [] };
+  const indicators = useMemo(() => applyLayout(allIndicators, layout), [allIndicators, layout]);
   const { data, isLoading, error } = useBgiIndicators(period, anchor, indicators.length > 0);
 
   const grouped = useMemo(() => {
@@ -54,8 +62,14 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
     }).filter((g) => g.items.length > 0);
   }, [indicators]);
 
-  if (indicators.length === 0) {
+  const editor = canManage && settings?.exists && allIndicators.length > 0
+    ? <BgiLayoutEditor indicators={allIndicators} layout={layout} /> : null;
+
+  if (allIndicators.length === 0) {
     return <IXCard><p className="text-sm text-muted-foreground">Guarde pelo menos um modelo de negócio para ver os indicadores.</p></IXCard>;
+  }
+  if (indicators.length === 0) {
+    return <IXCard><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">Todos os indicadores estão escondidos.</p>{editor}</div></IXCard>;
   }
 
   return (
@@ -66,6 +80,7 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
             aria-pressed={choice === c.key} onClick={() => setChoice(c.key)}>{c.label}</Button>
         ))}
         {data && <span className="self-center text-xs text-muted-foreground">{data.start} a {data.end} (exclusive)</span>}
+        {editor && <div className="ml-auto">{editor}</div>}
       </div>
 
       {isLoading && <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />}

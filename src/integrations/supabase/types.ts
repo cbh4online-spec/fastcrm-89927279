@@ -104272,6 +104272,8 @@ export type Database = {
       workspace_bgi_settings: {
         Row: {
           created_at: string
+          hidden_indicators: string[]
+          indicator_order: string[]
           template_ids: string[]
           updated_at: string
           updated_by: string | null
@@ -104279,6 +104281,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hidden_indicators?: string[]
+          indicator_order?: string[]
           template_ids?: string[]
           updated_at?: string
           updated_by?: string | null
@@ -104286,6 +104290,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hidden_indicators?: string[]
+          indicator_order?: string[]
           template_ids?: string[]
           updated_at?: string
           updated_by?: string | null
