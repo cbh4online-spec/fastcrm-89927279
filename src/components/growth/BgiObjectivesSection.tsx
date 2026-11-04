@@ -22,7 +22,7 @@ const STATUS_VARIANT: Record<ObjectiveStatus, "default" | "secondary" | "destruc
 };
 const CUMULATIVE = new Set(["sum", "count"]);
 
-export interface ObjectiveView { objective: BgiObjective; indicator: IndicatorDefinition; current: number | null; pct: number | null; projected: number | null; status: ObjectiveStatus }
+export interface ObjectiveView { objective: BgiObjective; indicator: IndicatorDefinition; current: number | null; pct: number | null; projected: number | null; status: ObjectiveStatus; elapsed: number; total: number }
 
 export function useObjectiveViews(period: BgiPeriod, data: BgiIndicatorResult | undefined, indicators: IndicatorDefinition[]) {
   const q = useBgiObjectives(period, data?.start);
