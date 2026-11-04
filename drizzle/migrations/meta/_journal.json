@@ -813,6 +813,13 @@
       "when": 1793800885442,
       "tag": "0115_growth_intelligence_module",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1793802652551,
+      "tag": "0116_bgi_compute_indicators",
+      "breakpoints": true
     }
   ]
 }

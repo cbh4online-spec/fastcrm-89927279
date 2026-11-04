@@ -12,6 +12,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useModuleInstall } from "@/hooks/useModuleInstall";
 import { useBgiSettings } from "@/hooks/useBgiSettings";
+import { BgiKpiGrid } from "@/components/growth/BgiKpiGrid";
 import { BUSINESS_TEMPLATES, resolveWorkspaceIndicators, type BusinessTemplateId } from "@/lib/bgi/indicatorCatalog";
 
 export const GROWTH_MODULE_SLUG = "growth-intelligence";
@@ -118,27 +119,7 @@ function TemplatePicker() {
         </CardContent>
       </Card>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Indicadores ({indicators.length})</h2>
-        {indicators.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Selecione pelo menos um modelo.</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {indicators.map((i) => (
-              <Card key={i.id}>
-                <CardContent className="p-4 space-y-1">
-                  <p className="text-sm font-medium">{i.name}</p>
-                  <p className="text-2xl font-semibold text-muted-foreground">—</p>
-                  <div className="flex gap-2">
-                    <Badge variant="secondary">{UNIT_LABEL[i.unit]}</Badge>
-                    <Badge variant="outline">A calcular</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+      <BgiKpiGrid templateIds={data?.templateIds ?? []} />
     </div>
   );
 }
