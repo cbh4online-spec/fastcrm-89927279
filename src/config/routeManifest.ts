@@ -404,7 +404,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("procurement-rfqs-dash",   "Dashboard RFQs",         "/dashboard/procurement/rfqs-dashboard",    BarChart3,   "compras", { moduleSlug: "procurement" }),
   e("procurement-price-import","Import. Preços",         "/dashboard/procurement/price-import",      Upload,      "compras", { moduleSlug: "procurement" }),
   e("procurement-supplier-import","Import. Fornecedores","/dashboard/procurement/supplier-import",   Upload,      "compras", { moduleSlug: "procurement" }),
-  e("growth-intelligence",     "Crescimento",            "/dashboard/growth",                        TrendingUp,  "operacoes", { moduleSlug: "growth-intelligence" }),
+  e("growth-intelligence",     "Crescimento",            "/dashboard/growth",                        TrendingUp,  "operacoes"), // sempre visível: a página mostra as opções de ativação
   e("student-journey",         "Jornada do Aluno",       "/dashboard/student-journey",               Briefcase,   "operacoes", { moduleSlug: "student-journey" }),
   e("automations",             "Automações",             "/dashboard/automations",                   Zap,         "operacoes"),
   e("metodo-vision",           "Método Vision",          "/dashboard/metodo-vision",                 Target,      "operacoes", { moduleSlug: "metodo-vision" }),
