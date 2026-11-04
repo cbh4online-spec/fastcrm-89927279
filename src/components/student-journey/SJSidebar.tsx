@@ -45,6 +45,12 @@ const menuItems = [
     path: "/dashboard/student-journey/profiles",
   },
   {
+    id: "admissions",
+    label: "Admissões",
+    icon: TrendingUp,
+    path: "/dashboard/student-journey/admissions",
+  },
+  {
     id: "courses",
     label: "Cursos",
     icon: GraduationCap,
