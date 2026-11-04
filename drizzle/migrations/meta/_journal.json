@@ -820,6 +820,13 @@
       "when": 1793802652551,
       "tag": "0116_bgi_compute_indicators",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1793802956808,
+      "tag": "0117_bgi_dashboard_layout",
+      "breakpoints": true
     }
   ]
 }
