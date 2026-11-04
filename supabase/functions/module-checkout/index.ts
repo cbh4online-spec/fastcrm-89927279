@@ -1,10 +1,12 @@
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { activeModulePlan, meetsModuleMinimumPlan } from "../_shared/module-plan.ts";
+import { planModuleCheckout } from "../_shared/moduleBilling.ts";
+import { z } from "npm:zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -36,8 +38,17 @@ Deno.serve(async (req) => {
     if (userError || !user?.email) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { moduleId, workspaceId } = await req.json();
-    if (!moduleId || !workspaceId) throw new Error("moduleId and workspaceId are required");
+    const parsed = z.object({
+      moduleId: z.string().uuid(),
+      workspaceId: z.string().uuid(),
+      billing: z.enum(["monthly", "one_time"]).default("monthly"),
+    }).safeParse(await req.json());
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: "Pedido inválido", details: parsed.error.flatten().fieldErrors }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { moduleId, workspaceId, billing } = parsed.data;
 
     // Verify membership
     const { data: member } = await supabase
@@ -51,7 +62,7 @@ Deno.serve(async (req) => {
     // Get module
     const { data: mod, error: modErr } = await supabase
       .from("marketplace_modules")
-      .select("id, name, slug, pricing_model, price_eur, min_plan, stripe_price_id")
+      .select("id, name, slug, pricing_model, price_eur, one_time_price_eur, min_plan, stripe_price_id, stripe_one_time_price_id")
       .eq("id", moduleId)
       .in("status", ["active", "published"])
       .maybeSingle();
@@ -106,66 +117,75 @@ Deno.serve(async (req) => {
       });
     }
 
-    // MONTHLY → Create Stripe Checkout Session
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
-    // Find or create customer
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string | undefined;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
+    // Já ativo → não deixa comprar duas vezes
+    const { data: existing } = await supabase
+      .from("workspace_modules")
+      .select("status")
+      .eq("workspace_id", workspaceId)
+      .eq("module_id", mod.id)
+      .maybeSingle();
+    if (existing?.status === "active") {
+      return new Response(JSON.stringify({ error: "Este módulo já está ativo neste workspace", code: "already_active" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
+    const plan = planModuleCheckout(mod, billing);
+    if (!plan.ok) {
+      return new Response(JSON.stringify({ error: "O preço desta opção ainda não está configurado", code: plan.code }), {
+        status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Use stripe_price_id if available, otherwise create price_data
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = mod.stripe_price_id
-      ? [{ price: mod.stripe_price_id, quantity: 1 }]
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customerId = customers.data[0]?.id;
+
+    const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
+    const isOneTime = plan.mode === "payment";
+
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = plan.priceId
+      ? [{ price: plan.priceId, quantity: 1 }]
       : [{
           price_data: {
             currency: "eur",
             product_data: {
               name: `FastCRM Module: ${mod.name}`,
-              description: `Subscrição mensal do módulo ${mod.name}`,
+              description: isOneTime ? `Licença única do módulo ${mod.name}` : `Subscrição mensal do módulo ${mod.name}`,
             },
-            unit_amount: Math.round(mod.price_eur * 100),
-            recurring: { interval: "month" },
+            unit_amount: plan.unitAmountCents,
+            ...(isOneTime ? {} : { recurring: { interval: "month" as const } }),
           },
           quantity: 1,
         }];
+
+    const metadata = {
+      type: isOneTime ? "module_one_time" : "module_subscription",
+      user_id: user.id,
+      module_id: moduleId,
+      module_slug: mod.slug,
+      workspace_id: workspaceId,
+    };
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: lineItems,
-      mode: "subscription",
-      success_url: `${origin}/dashboard/marketplace?success=true&module=${mod.slug}`,
-      cancel_url: `${origin}/dashboard/marketplace?canceled=true&module=${mod.slug}`,
-      metadata: {
-        type: "module_subscription",
-        user_id: user.id,
-        module_id: moduleId,
-        module_slug: mod.slug,
-        workspace_id: workspaceId,
-      },
-      subscription_data: {
-        metadata: {
-          type: "module_subscription",
-          user_id: user.id,
-          module_id: moduleId,
-          module_slug: mod.slug,
-          workspace_id: workspaceId,
-        },
-      },
+      mode: plan.mode,
+      success_url: `${origin}/dashboard/marketplace?success=true&module=${encodeURIComponent(mod.slug)}`,
+      cancel_url: `${origin}/dashboard/marketplace?canceled=true&module=${encodeURIComponent(mod.slug)}`,
+      metadata,
+      ...(isOneTime ? {} : { subscription_data: { metadata } }),
     });
 
-    // Create pending installation
     await supabase.from("workspace_modules").upsert({
       workspace_id: workspaceId,
       module_id: mod.id,
       status: "pending",
-      pricing_model: "monthly",
-      price_eur: mod.price_eur,
+      pricing_model: isOneTime ? "one_time" : "monthly",
+      billing_type: plan.billingType,
+      price_eur: plan.unitAmountCents / 100,
       subscribed_by: user.id,
     }, { onConflict: "workspace_id,module_id" });
 

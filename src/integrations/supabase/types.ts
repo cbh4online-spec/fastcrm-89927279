@@ -57660,6 +57660,7 @@ export type Database = {
           manifest_json: Json | null
           min_plan: string
           name: string
+          one_time_price_eur: number | null
           permissions: Json
           price_eur: number
           pricing: Json
@@ -57670,6 +57671,7 @@ export type Database = {
           reviews_count: number | null
           slug: string
           status: string
+          stripe_one_time_price_id: string | null
           stripe_price_id: string | null
           tagline: string
           target_audience: string | null
@@ -57696,6 +57698,7 @@ export type Database = {
           manifest_json?: Json | null
           min_plan?: string
           name: string
+          one_time_price_eur?: number | null
           permissions?: Json
           price_eur?: number
           pricing?: Json
@@ -57706,6 +57709,7 @@ export type Database = {
           reviews_count?: number | null
           slug: string
           status?: string
+          stripe_one_time_price_id?: string | null
           stripe_price_id?: string | null
           tagline: string
           target_audience?: string | null
@@ -57732,6 +57736,7 @@ export type Database = {
           manifest_json?: Json | null
           min_plan?: string
           name?: string
+          one_time_price_eur?: number | null
           permissions?: Json
           price_eur?: number
           pricing?: Json
@@ -57742,6 +57747,7 @@ export type Database = {
           reviews_count?: number | null
           slug?: string
           status?: string
+          stripe_one_time_price_id?: string | null
           stripe_price_id?: string | null
           tagline?: string
           target_audience?: string | null
@@ -104263,6 +104269,59 @@ export type Database = {
           },
         ]
       }
+      workspace_bgi_settings: {
+        Row: {
+          created_at: string
+          template_ids: string[]
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          template_ids?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          template_ids?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_bgi_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_bgi_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_bgi_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_bgi_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_billing_integrations: {
         Row: {
           account_name: string
@@ -106036,6 +106095,7 @@ export type Database = {
         Row: {
           billing_cycle_end: string | null
           billing_cycle_start: string | null
+          billing_type: string
           cancel_at_period_end: boolean | null
           cancelled_at: string | null
           created_at: string
@@ -106063,6 +106123,7 @@ export type Database = {
         Insert: {
           billing_cycle_end?: string | null
           billing_cycle_start?: string | null
+          billing_type?: string
           cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           created_at?: string
@@ -106090,6 +106151,7 @@ export type Database = {
         Update: {
           billing_cycle_end?: string | null
           billing_cycle_start?: string | null
+          billing_type?: string
           cancel_at_period_end?: boolean | null
           cancelled_at?: string | null
           created_at?: string

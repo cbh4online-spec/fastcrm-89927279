@@ -24,6 +24,7 @@ import { PerformanceRoutes } from "@/routes/PerformanceRoutes";
 import { CheckoutAdminRoutes } from "@/routes/CheckoutRoutes";
 import { ReportsRoutes } from "@/routes/ReportsRoutes";
 import { StudentJourneyRoutes } from "@/routes/StudentJourneyRoutes";
+import { GrowthRoutes } from "@/routes/GrowthRoutes";
 import { RevenueFlightControlRoutes } from "@/routes/RevenueFlightControlRoutes";
 import { AIRoutes } from "@/routes/AIRoutes";
 import { SalesCRMRoutes } from "@/routes/SalesCRMRoutes";
@@ -75,6 +76,7 @@ export default function CRMRoutesV2() {
                     {ProcurementRoutes()}
                     {SecurityRoutes()}
                     {StudentJourneyRoutes()}
+                    {GrowthRoutes()}
                     {CheckoutAdminRoutes()}
                     {C2CDashboardRoutes()}
                     {AffiliateRoutes()}
