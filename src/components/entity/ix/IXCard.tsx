@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface IXCardProps {
@@ -10,9 +10,9 @@ interface IXCardProps {
   contentClassName?: string;
 }
 
-export function IXCard({ title, description, actions, children, className, contentClassName }: IXCardProps) {
+export const IXCard = forwardRef<HTMLElement, IXCardProps>(function IXCard({ title, description, actions, children, className, contentClassName }, ref) {
   return (
-    <section className={cn("rounded-2xl border border-border bg-card shadow-sm", className)}>
+    <section ref={ref} className={cn("rounded-2xl border border-border bg-card shadow-sm", className)}>
       {(title || actions) && (
         <header className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
           <div className="min-w-0">
@@ -25,4 +25,4 @@ export function IXCard({ title, description, actions, children, className, conte
       <div className={cn("px-6 pb-6", !title && "pt-6", contentClassName)}>{children}</div>
     </section>
   );
-}
+});

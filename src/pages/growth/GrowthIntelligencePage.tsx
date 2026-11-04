@@ -65,7 +65,7 @@ function ActivationCard() {
               disabled={!o.ok || installModule.isPending}
               onClick={() => installModule.mutate({ moduleId: mod.id, billing: o.key })}
             >
-              {installModule.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ativar"}
+              {installModule.isPending ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> A ativar…</> : "Ativar"}
             </Button>
           </div>
         ))}
@@ -114,7 +114,7 @@ function TemplatePicker() {
               onError: (e) => toast.error(e instanceof Error ? e.message : "Sem permissão para guardar"),
             })}
           >
-            {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar modelos"}
+            {save.isPending ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> A guardar…</> : "Guardar modelos"}
           </Button>
         </CardContent>
       </Card>

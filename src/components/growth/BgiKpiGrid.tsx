@@ -56,7 +56,7 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
   const canManage = useCapability("workspace.manage");
   const layout = settings?.layout ?? { order: [], hidden: [] };
   const indicators = useMemo(() => applyLayout(allIndicators, layout), [allIndicators, layout]);
-  const { data, isLoading, error } = useBgiIndicators(period, anchor, indicators.length > 0);
+  const { data, isLoading, error, refetch } = useBgiIndicators(period, anchor, indicators.length > 0);
   const { views: objectiveViews } = useObjectiveViews(period, data, allIndicators);
   const objByIndicator = useMemo(() => new Map(objectiveViews.map((v) => [v.indicator.id, v])), [objectiveViews]);
 
@@ -90,8 +90,19 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
         {editor && <div className="ml-auto">{editor}</div>}
       </div>
 
-      {isLoading && <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />}
-      {error && <IXCard><p className="text-sm text-destructive">Não foi possível calcular os indicadores: {(error as Error).message}</p></IXCard>}
+      {isLoading && (
+        <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> A calcular indicadores…
+        </div>
+      )}
+      {error && (
+        <IXCard>
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-destructive">Não foi possível calcular os indicadores. Verifique a ligação e tente novamente.</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+          </div>
+        </IXCard>
+      )}
 
       {data && <BgiAlertsSection period={period} data={data} indicators={indicators} objectives={objectiveViews} canManage={canManage} />}
       {data && <BgiInsightsCard period={period} periodStart={data.start} anchor={anchor} indicators={allIndicators} canManage={canManage} />}
