@@ -10,6 +10,7 @@ const SJCourses = lazy(() => import("@/pages/student-journey/SJCourses"));
 const SJCohorts = lazy(() => import("@/pages/student-journey/SJCohorts"));
 const SJFinance = lazy(() => import("@/pages/student-journey/SJFinance"));
 const SJAdmissions = lazy(() => import("@/pages/student-journey/SJAdmissions"));
+const SJHistoricalImport = lazy(() => import("@/pages/student-journey/SJHistoricalImport"));
 const SJCohortDetail = lazy(() => import("@/pages/student-journey/SJCohortDetail"));
 
 export function StudentJourneyRoutes() {
@@ -24,6 +25,7 @@ export function StudentJourneyRoutes() {
       <Route path="/dashboard/student-journey/cohorts/:id" element={<SJLayout><SJCohortDetail /></SJLayout>} />
       <Route path="/dashboard/student-journey/admissions" element={<SJLayout><SJAdmissions /></SJLayout>} />
       <Route path="/dashboard/student-journey/finance" element={<SJLayout><SJFinance /></SJLayout>} />
+      <Route path="/dashboard/student-journey/import" element={<SJLayout><SJHistoricalImport /></SJLayout>} />
     </>
   );
 }
