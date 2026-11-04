@@ -827,6 +827,13 @@
       "when": 1793802956808,
       "tag": "0117_bgi_dashboard_layout",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1793803257622,
+      "tag": "0118_bgi_objectives",
+      "breakpoints": true
     }
   ]
 }
