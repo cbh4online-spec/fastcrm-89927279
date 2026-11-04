@@ -81,14 +81,24 @@ export function AICommerceFeeds() {
     setRunning(id);
     try {
       const res = await fetch(feedPublicUrl(token));
-      if (!res.ok) throw new Error(`Falha ao gerar feed (${res.status})`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        if (body?.error === "feed_invalid") {
+          toast.warning("Nenhum produto entrou no feed", {
+            description:
+              "Ative o AI Commerce nos produtos publicados (separador AI Commerce de cada produto) e gere novamente.",
+          });
+          return;
+        }
+        throw new Error(body?.message || `Falha ao gerar feed (${res.status})`);
+      }
       await res.text();
       toast.success("Feed gerado");
-      qc.invalidateQueries({ queryKey: ["commerce-feeds"] });
-      qc.invalidateQueries({ queryKey: ["commerce-feed-runs"] });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Falha ao gerar feed");
     } finally {
+      qc.invalidateQueries({ queryKey: ["commerce-feeds"] });
+      qc.invalidateQueries({ queryKey: ["commerce-feed-runs"] });
       setRunning(null);
     }
   };
