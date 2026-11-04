@@ -109844,6 +109844,10 @@ export type Database = {
         }
         Returns: Json
       }
+      bgi_compute_indicators: {
+        Args: { _anchor?: string; _period?: string; _workspace_id: string }
+        Returns: Json
+      }
       build_conversation_replay: {
         Args: { p_conversation_id: string }
         Returns: Json
