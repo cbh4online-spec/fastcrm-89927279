@@ -16,6 +16,7 @@ import {
   Zap,
   TrendingUp,
   Wallet,
+  Upload,
 } from "lucide-react";
 
 interface SJSidebarProps {
@@ -67,6 +68,12 @@ const menuItems = [
     label: "Financeiro",
     icon: Wallet,
     path: "/dashboard/student-journey/finance",
+  },
+  {
+    id: "import",
+    label: "Importar histórico",
+    icon: Upload,
+    path: "/dashboard/student-journey/import",
   },
 ];
 
