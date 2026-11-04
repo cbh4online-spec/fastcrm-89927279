@@ -44,7 +44,7 @@ export function useBgiObjectives(period: BgiPeriod, periodStart: string | undefi
     mutationFn: async (input: ObjectiveInput & { id?: string }) => {
       if (!wsId || !periodStart) throw new Error("Período não disponível");
       const v = objectiveSchema.parse(input);
-      const row = { ...v, notes: v.notes || null };
+      const row = { indicator_id: v.indicator_id as string, target_value: v.target_value as number, direction: v.direction as string, notes: v.notes || null };
       const res = input.id
         ? await supabase.from("bgi_objectives").update(row).eq("id", input.id).select("id")
         : await supabase.from("bgi_objectives").insert({ ...row, workspace_id: wsId, period_type: period, period_start: periodStart }).select("id");
