@@ -10200,6 +10200,83 @@ export type Database = {
           },
         ]
       }
+      bgi_objectives: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          id: string
+          indicator_id: string
+          notes: string | null
+          period_start: string
+          period_type: string
+          target_value: number
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          indicator_id: string
+          notes?: string | null
+          period_start: string
+          period_type: string
+          target_value: number
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          indicator_id?: string
+          notes?: string | null
+          period_start?: string
+          period_type?: string
+          target_value?: number
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bgi_objectives_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bgi_objectives_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "bgi_objectives_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bgi_objectives_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_addons: {
         Row: {
           addon_type: string

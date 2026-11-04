@@ -10,6 +10,8 @@ import { useBgiSettings } from "@/hooks/useBgiSettings";
 import { useCapability } from "@/hooks/useCapability";
 import { applyLayout } from "@/lib/bgi/dashboardLayout";
 import { BgiLayoutEditor } from "@/components/growth/BgiLayoutEditor";
+import { BgiObjectivesSection, useObjectiveViews } from "@/components/growth/BgiObjectivesSection";
+import { Progress } from "@/components/ui/progress";
 
 type Choice = "this_month" | "last_month" | "quarter" | "year";
 const CHOICES: { key: Choice; label: string }[] = [
@@ -52,6 +54,8 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
   const layout = settings?.layout ?? { order: [], hidden: [] };
   const indicators = useMemo(() => applyLayout(allIndicators, layout), [allIndicators, layout]);
   const { data, isLoading, error } = useBgiIndicators(period, anchor, indicators.length > 0);
+  const { views: objectiveViews } = useObjectiveViews(period, data, allIndicators);
+  const objByIndicator = useMemo(() => new Map(objectiveViews.map((v) => [v.indicator.id, v])), [objectiveViews]);
 
   const grouped = useMemo(() => {
     const used = new Set<string>();
@@ -86,6 +90,8 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
       {isLoading && <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />}
       {error && <IXCard><p className="text-sm text-destructive">Não foi possível calcular os indicadores: {(error as Error).message}</p></IXCard>}
 
+      {data && <BgiObjectivesSection period={period} data={data} indicators={allIndicators} canManage={canManage} />}
+
       {data && grouped.map((g) => (
         <IXCard key={g.title} title={g.title}>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -105,6 +111,12 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
                         <Delta value={computeDelta(cur, data.previous?.[i.formula])} label="vs período anterior" />
                         <Delta value={computeDelta(cur, data.yoy?.[i.formula])} label="vs ano anterior" />
                       </div>
+                      {objByIndicator.get(i.id) && (
+                        <div className="pt-1 space-y-1">
+                          <Progress value={Math.min(100, objByIndicator.get(i.id)!.pct ?? 0)} className="h-1.5" aria-label={`Objetivo de ${i.name}`} />
+                          <span className="text-[11px] text-muted-foreground">Objetivo: {(objByIndicator.get(i.id)!.pct ?? 0).toLocaleString("pt-PT")}%</span>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground pt-2">Em breve</p>
