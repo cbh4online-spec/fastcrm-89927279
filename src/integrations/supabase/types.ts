@@ -10200,6 +10200,71 @@ export type Database = {
           },
         ]
       }
+      bgi_ai_insights: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          input_hash: string
+          model: string
+          period_start: string
+          period_type: string
+          workspace_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          input_hash: string
+          model: string
+          period_start: string
+          period_type: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          input_hash?: string
+          model?: string
+          period_start?: string
+          period_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bgi_ai_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bgi_ai_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "bgi_ai_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bgi_ai_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bgi_objectives: {
         Row: {
           archived_at: string | null
