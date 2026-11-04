@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS admin_notifications_bgi_alert_uniq ON public.admin_notifications (workspace_id, (metadata->>'bgi_alert_key')) WHERE type = 'bgi_alert';
