@@ -112031,6 +112031,16 @@ export type Database = {
         Args: { _roles: string[]; _workspace_id: string }
         Returns: boolean
       }
+      sj_import_historical_rows: {
+        Args: {
+          _cohort_id: string
+          _dedupe_key: string
+          _file_name?: string
+          _rows: Json
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       sj_link_invoice: {
         Args: {
           _allocated: number
