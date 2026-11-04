@@ -63776,6 +63776,7 @@ export type Database = {
             | Database["public"]["Enums"]["billing_frequency"]
             | null
           billing_type: Database["public"]["Enums"]["billing_type"] | null
+          campaign: string | null
           churn_reason: string | null
           commission_amount: number | null
           commission_notes: string | null
@@ -63788,10 +63789,13 @@ export type Database = {
           expected_close_date: string | null
           id: string
           last_activity_at: string | null
+          last_contact_at: string | null
           last_payment_date: string | null
           lead_id: string | null
           lost_reason: string | null
           mrr_amount: number | null
+          next_action: string | null
+          next_action_at: string | null
           next_payment_date: string | null
           notes: string | null
           owner_id: string
@@ -63802,6 +63806,9 @@ export type Database = {
           priority_level: string | null
           probability: number | null
           renewal_date: string | null
+          sj_cohort_id: string | null
+          sj_course_id: string | null
+          sj_enrollment_id: string | null
           source: string | null
           source_conversation_id: string | null
           source_product_id: string | null
@@ -63827,6 +63834,7 @@ export type Database = {
             | Database["public"]["Enums"]["billing_frequency"]
             | null
           billing_type?: Database["public"]["Enums"]["billing_type"] | null
+          campaign?: string | null
           churn_reason?: string | null
           commission_amount?: number | null
           commission_notes?: string | null
@@ -63839,10 +63847,13 @@ export type Database = {
           expected_close_date?: string | null
           id?: string
           last_activity_at?: string | null
+          last_contact_at?: string | null
           last_payment_date?: string | null
           lead_id?: string | null
           lost_reason?: string | null
           mrr_amount?: number | null
+          next_action?: string | null
+          next_action_at?: string | null
           next_payment_date?: string | null
           notes?: string | null
           owner_id: string
@@ -63853,6 +63864,9 @@ export type Database = {
           priority_level?: string | null
           probability?: number | null
           renewal_date?: string | null
+          sj_cohort_id?: string | null
+          sj_course_id?: string | null
+          sj_enrollment_id?: string | null
           source?: string | null
           source_conversation_id?: string | null
           source_product_id?: string | null
@@ -63878,6 +63892,7 @@ export type Database = {
             | Database["public"]["Enums"]["billing_frequency"]
             | null
           billing_type?: Database["public"]["Enums"]["billing_type"] | null
+          campaign?: string | null
           churn_reason?: string | null
           commission_amount?: number | null
           commission_notes?: string | null
@@ -63890,10 +63905,13 @@ export type Database = {
           expected_close_date?: string | null
           id?: string
           last_activity_at?: string | null
+          last_contact_at?: string | null
           last_payment_date?: string | null
           lead_id?: string | null
           lost_reason?: string | null
           mrr_amount?: number | null
+          next_action?: string | null
+          next_action_at?: string | null
           next_payment_date?: string | null
           notes?: string | null
           owner_id?: string
@@ -63904,6 +63922,9 @@ export type Database = {
           priority_level?: string | null
           probability?: number | null
           renewal_date?: string | null
+          sj_cohort_id?: string | null
+          sj_course_id?: string | null
+          sj_enrollment_id?: string | null
           source?: string | null
           source_conversation_id?: string | null
           source_product_id?: string | null
@@ -63947,6 +63968,34 @@ export type Database = {
             columns: ["pipeline_id"]
             isOneToOne: false
             referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_sj_cohort_id_fkey"
+            columns: ["sj_cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_sj_cohort_id_fkey"
+            columns: ["sj_cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts_with_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_sj_course_id_fkey"
+            columns: ["sj_course_id"]
+            isOneToOne: false
+            referencedRelation: "sj_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_sj_enrollment_id_fkey"
+            columns: ["sj_enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sj_enrollments"
             referencedColumns: ["id"]
           },
           {
@@ -111969,6 +112018,14 @@ export type Database = {
       should_bot_respond: {
         Args: { p_conversation_id: string; p_workspace_id: string }
         Returns: Json
+      }
+      sj_convert_opportunity_to_enrollment: {
+        Args: { _cohort_id: string; _opportunity_id: string }
+        Returns: string
+      }
+      sj_ensure_admissions_pipeline: {
+        Args: { _workspace_id: string }
+        Returns: string
       }
       sj_has_any_role: {
         Args: { _roles: string[]; _workspace_id: string }
