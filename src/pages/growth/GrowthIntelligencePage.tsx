@@ -111,7 +111,12 @@ function TemplatePicker() {
             disabled={save.isPending || selected.length === 0}
             onClick={() => save.mutate(selected, {
               onSuccess: () => toast.success("Modelos guardados"),
-              onError: (e) => toast.error(e instanceof Error ? e.message : "Sem permissão para guardar"),
+              onError: (e) => {
+                const code = (e as { code?: string } | null)?.code;
+                toast.error(code === "42501"
+                  ? "Sem permissão para guardar. Só gestores da organização podem alterar os modelos."
+                  : "Não foi possível guardar os modelos. Tente novamente.");
+              },
             })}
           >
             {save.isPending ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> A guardar…</> : "Guardar modelos"}
