@@ -15,7 +15,7 @@ export type BgiInsights = z.infer<typeof insightsSchema>;
 export function sanitizeInsights(raw: unknown, allowedIds: ReadonlySet<string>): BgiInsights | null {
   const parsed = insightsSchema.safeParse(raw);
   if (!parsed.success) return null;
-  const keep = (xs: { text: string; indicator_id: string }[]) => xs.filter((x) => allowedIds.has(x.indicator_id));
+  const keep = <T extends { indicator_id?: string }>(xs: T[]) => xs.filter((x) => allowedIds.has(x.indicator_id ?? "")) as BgiInsights["actions"];
   const v = parsed.data;
   return { summary: v.summary, highlights: keep(v.highlights), alerts: keep(v.alerts), objectives_at_risk: keep(v.objectives_at_risk), actions: keep(v.actions) };
 }
