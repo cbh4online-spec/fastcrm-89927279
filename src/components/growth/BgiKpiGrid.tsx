@@ -104,7 +104,7 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
               const supported = isSupportedFormula(i.formula);
               const cur = supported ? data.current?.[i.formula] ?? null : null;
               return (
-                <div key={i.id} className="rounded-xl border border-border p-4 space-y-1">
+                <div key={i.id} id={`kpi-${i.id}`} className="rounded-xl border border-border p-4 space-y-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{i.name}</p>
                     {i.kind && KIND_LABEL[i.kind] && <Badge variant="outline" className="text-[10px]">{KIND_LABEL[i.kind]}</Badge>}
@@ -132,6 +132,8 @@ export function BgiKpiGrid({ templateIds }: { templateIds: BusinessTemplateId[] 
           </div>
         </IXCard>
       ))}
+
+      {data && <BgiSourceFunnel period={period} anchor={anchor} />}
     </div>
   );
 }

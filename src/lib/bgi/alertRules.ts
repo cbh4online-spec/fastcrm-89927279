@@ -56,7 +56,7 @@ export function evaluateAlerts({ current, previous, indicators, objectives, thre
   const ob = num(current.sum_open_balance); const obp = num(previous.sum_open_balance);
   if (ob !== null && obp !== null && ob > obp && obp > 0) {
     out.push({ key: "open_balance_up", kind: "open_balance_up", severity: "warning", title: "Saldo em aberto a subir",
-      detail: `+${fmtPct(((ob - obp) / obp) * 100)} face ao período anterior.`, targetId: "kpi-open_balance" });
+      detail: `+${fmtPct(((ob - obp) / obp) * 100)} face ao período anterior.`, targetId: `kpi-${indicators.find((i) => i.formula === "sum_open_balance")?.id ?? ""}` });
   }
 
   const billing = objectives.find((o) => o.formula === "sum_invoiced_net");
