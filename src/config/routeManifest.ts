@@ -404,6 +404,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("procurement-rfqs-dash",   "Dashboard RFQs",         "/dashboard/procurement/rfqs-dashboard",    BarChart3,   "compras", { moduleSlug: "procurement" }),
   e("procurement-price-import","Import. Preços",         "/dashboard/procurement/price-import",      Upload,      "compras", { moduleSlug: "procurement" }),
   e("procurement-supplier-import","Import. Fornecedores","/dashboard/procurement/supplier-import",   Upload,      "compras", { moduleSlug: "procurement" }),
+  e("growth-intelligence",     "Crescimento",            "/dashboard/growth",                        TrendingUp,  "operacoes", { moduleSlug: "growth-intelligence" }),
   e("student-journey",         "Jornada do Aluno",       "/dashboard/student-journey",               Briefcase,   "operacoes", { moduleSlug: "student-journey" }),
   e("automations",             "Automações",             "/dashboard/automations",                   Zap,         "operacoes"),
   e("metodo-vision",           "Método Vision",          "/dashboard/metodo-vision",                 Target,      "operacoes", { moduleSlug: "metodo-vision" }),
@@ -649,7 +650,7 @@ const RELATORIOS_KEYS = [
 ];
 // Route keys de verticais dentro de "operacoes", que passam para "Aplicações".
 const VERTICAIS_KEYS = [
-  "imo-ai", "student-journey", "metodo-vision", "credit", "community",
+  "imo-ai", "student-journey", "growth-intelligence", "metodo-vision", "credit", "community",
 ];
 
 export const TOP_LEVEL_GROUPS: TopLevelGroupMeta[] = [
