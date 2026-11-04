@@ -47,7 +47,16 @@ Deno.serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       const meta = session.metadata;
 
-      if (meta?.type === "module_one_time" && session.payment_status === "paid") {
+      if (meta?.type === "module_one_time") {
+        // Fail-closed: confirmar sempre o pagamento diretamente no Stripe.
+        const verified = await stripe.checkout.sessions.retrieve(session.id);
+        const vm = verified.metadata ?? {};
+        if (verified.payment_status !== "paid" || verified.mode !== "payment" || vm.type !== "module_one_time" || vm.workspace_id !== meta.workspace_id || vm.module_id !== meta.module_id) {
+          logStep("One-time checkout not verified, ignoring", { sessionId: session.id });
+          return new Response(JSON.stringify({ received: true, ignored: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         const now = new Date().toISOString();
         await supabase.from("workspace_modules").upsert({
           workspace_id: meta.workspace_id,

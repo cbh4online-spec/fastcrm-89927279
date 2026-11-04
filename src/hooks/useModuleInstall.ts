@@ -29,10 +29,11 @@ export function useModuleInstall() {
 
   // Install module (handles free/included/monthly)
   const installModule = useMutation({
-    mutationFn: async (moduleId: string) => {
+    mutationFn: async (input: string | { moduleId: string; billing?: "monthly" | "one_time" }) => {
       if (!workspaceId) throw new Error("Workspace não encontrado");
+      const { moduleId, billing = "monthly" } = typeof input === "string" ? { moduleId: input } : input;
       const { data, error } = await supabase.functions.invoke("module-checkout", {
-        body: { moduleId, workspaceId },
+        body: { moduleId, workspaceId, billing },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
