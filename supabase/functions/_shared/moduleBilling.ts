@@ -25,11 +25,3 @@ export function planModuleCheckout(mod: BillableModule, billing: ModuleBilling):
     unitAmountCents: Math.round(amount * 100),
   };
 }
-
-/** Um módulo com pagamento único ativo nunca expira; subscrição só enquanto ativa. */
-export function isModuleAccessActive(row: { status: string; billing_type?: string | null; current_period_end?: string | null }, now = new Date()): boolean {
-  if (row.status !== "active" && row.status !== "trial") return false;
-  if (row.billing_type === "one_time") return true;
-  if (!row.current_period_end) return true;
-  return new Date(row.current_period_end).getTime() > now.getTime();
-}

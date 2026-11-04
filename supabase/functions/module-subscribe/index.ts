@@ -47,6 +47,25 @@ Deno.serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       const meta = session.metadata;
 
+      if (meta?.type === "module_one_time" && session.payment_status === "paid") {
+        const now = new Date().toISOString();
+        await supabase.from("workspace_modules").upsert({
+          workspace_id: meta.workspace_id,
+          module_id: meta.module_id,
+          status: "active",
+          pricing_model: "one_time",
+          billing_type: "one_time",
+          subscribed_by: meta.user_id,
+          subscribed_at: now,
+          current_period_start: now,
+          current_period_end: null,
+        }, { onConflict: "workspace_id,module_id" });
+        logStep("Module activated (one-time)", { module_slug: meta.module_slug });
+        return new Response(JSON.stringify({ received: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       if (meta?.type !== "module_subscription") {
         logStep("Not a module subscription checkout, skipping");
         return new Response(JSON.stringify({ received: true }), {
@@ -69,6 +88,7 @@ Deno.serve(async (req) => {
         module_id,
         status: "active",
         pricing_model: "monthly",
+        billing_type: "subscription",
         stripe_sub_id: stripeSubId,
         subscribed_by: user_id,
         subscribed_at: now.toISOString(),
