@@ -806,6 +806,13 @@
       "when": 1793736000001,
       "tag": "0114_normalize_invoice_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1793800885442,
+      "tag": "0115_growth_intelligence_module",
+      "breakpoints": true
     }
   ]
 }
