@@ -34,3 +34,5 @@
 - Student Journey payments/plans/invoice links are written only via SECURITY DEFINER RPCs `sj_set_payment_plan`/`sj_register_payment`/`sj_link_invoice` (role check + audit), with `paid_amount` and `financial_status` derived server-side (mirrored in `enrollmentFinance.ts`), so the client can never fake payments or mark enrollments invoiced. (Student Journey finance)
 
 - BGI indicators/templates live only in `src/lib/bgi/indicatorCatalog.ts` with whitelisted formula ids (computed by SQL/code, never AI or free expressions), so every workspace shares one engine configured by templates.
+- Module checkout billing (monthly subscription vs one-time payment) is decided only by `supabase/functions/_shared/moduleBilling.ts`; one-time activations are confirmed by re-fetching the Stripe session in `module-subscribe`, because unsigned webhook bodies must never activate a paid module.
+- Growth Intelligence business models per workspace live in `workspace_bgi_settings` (validated template ids, managers write via RLS) and the page `/dashboard/growth` gates on the `growth-intelligence` module, so indicators stay per-workspace and paid.
