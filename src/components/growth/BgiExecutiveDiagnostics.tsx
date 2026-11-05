@@ -5,7 +5,11 @@ import { IXCard } from "@/components/entity/ix/IXCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useBgiExecutiveDiagnostics } from "@/hooks/useBgiExecutiveDiagnostics";
+import { useBgiActionLists, useBgiCustomerBehavior, useBgiExecutiveDiagnostics } from "@/hooks/useBgiExecutiveDiagnostics";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { exportGrowthDossierPdf } from "@/utils/exportGrowthDossierPdf";
+import { FileDown } from "lucide-react";
+import { toast } from "sonner";
 import { BgiCustomerBehavior } from "@/components/growth/BgiCustomerBehavior";
 import {
   DIAG_RANGES, agingRisk, collectionRisk, concentrationRisk, entityPath, resolveDiagRange,
@@ -37,6 +41,16 @@ export function BgiExecutiveDiagnostics() {
   const [range, setRange] = useState<DiagRange>("ytd");
   const { start, end } = useMemo(() => resolveDiagRange(range, lisbonToday()), [range]);
   const { data, isLoading, error, refetch } = useBgiExecutiveDiagnostics(start, end);
+  const behavior = useBgiCustomerBehavior(start, end);
+  const actions = useBgiActionLists(start, end);
+  const { currentWorkspace } = useWorkspace();
+  const canExport = !!data && !behavior.isLoading && !actions.isLoading;
+  const onExport = () => {
+    if (!data) return;
+    try {
+      exportGrowthDossierPdf({ workspaceName: currentWorkspace?.name ?? "Organização", rangeLabel: DIAG_RANGES.find((r) => r.key === range)?.label ?? "", diag: data, behavior: behavior.data, actions: actions.data });
+    } catch { toast.error("Não foi possível gerar o PDF"); }
+  };
 
   return (
     <div className="space-y-6">
@@ -45,6 +59,9 @@ export function BgiExecutiveDiagnostics() {
           <Button key={r.key} size="sm" variant={range === r.key ? "default" : "outline"} className="rounded-full"
             aria-pressed={range === r.key} onClick={() => setRange(r.key)}>{r.label}</Button>
         ))}
+        <Button size="sm" variant="outline" className="ml-auto" disabled={!canExport} onClick={onExport}>
+          {canExport ? <FileDown className="h-4 w-4" aria-hidden /> : <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Exportar dossier (PDF)
+        </Button>
       </div>
 
       {isLoading && (
