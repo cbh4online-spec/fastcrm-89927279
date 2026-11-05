@@ -883,6 +883,13 @@
       "when": 1793906837945,
       "tag": "0125_bgi_executive_diagnostics",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1793907114329,
+      "tag": "0126_bgi_customer_behavior",
+      "breakpoints": true
     }
   ]
 }
