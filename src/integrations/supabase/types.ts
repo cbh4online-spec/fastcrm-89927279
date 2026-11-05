@@ -110104,6 +110104,10 @@ export type Database = {
         Args: { _anchor?: string; _period?: string; _workspace_id: string }
         Returns: Json
       }
+      bgi_customer_behavior: {
+        Args: { _end: string; _start: string; _workspace_id: string }
+        Returns: Json
+      }
       bgi_executive_diagnostics: {
         Args: { _end: string; _start: string; _workspace_id: string }
         Returns: Json

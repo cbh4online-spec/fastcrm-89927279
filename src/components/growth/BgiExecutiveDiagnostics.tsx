@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useBgiExecutiveDiagnostics } from "@/hooks/useBgiExecutiveDiagnostics";
+import { BgiCustomerBehavior } from "@/components/growth/BgiCustomerBehavior";
 import {
   DIAG_RANGES, agingRisk, collectionRisk, concentrationRisk, entityPath, resolveDiagRange,
   type DiagRange, type RiskLevel,
@@ -137,6 +138,8 @@ export function BgiExecutiveDiagnostics() {
               </div>
             )}
           </IXCard>
+
+          <BgiCustomerBehavior start={start} end={end} totalNet={data.concentration.total_net} />
         </>
       )}
     </div>
