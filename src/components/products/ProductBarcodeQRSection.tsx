@@ -18,7 +18,7 @@ import {
 import QRCodeModule from "react-qr-code";
 
 // react-qr-code is CommonJS; Vite may hand back the module wrapper instead of the component.
-const QRCode: React.ComponentType<any> =
+const QRCode: import("react").ComponentType<any> =
   (QRCodeModule as any)?.default?.default ??
   (QRCodeModule as any)?.QRCode ??
   (QRCodeModule as any)?.default ??
