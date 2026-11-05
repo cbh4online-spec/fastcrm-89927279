@@ -161,6 +161,7 @@ export const IX_NAV_SECTIONS: IXNavSection[] = [
         children: [
           { key: "products-ocr" },
           { key: "products-ocr-drafts" },
+          { key: "ai-commerce" },
           { key: "bundles" },
           { key: "composite-products" },
           { key: "stock-valuation" },

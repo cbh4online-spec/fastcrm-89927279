@@ -640,7 +640,7 @@ export interface TopLevelGroupMeta {
 
 // Route keys de produtos, actualmente no NavGroup "vendas", que passam para "Produtos".
 const PRODUTOS_KEYS = [
-  "products", "products-ocr", "products-ocr-drafts",
+  "products", "products-ocr", "products-ocr-drafts", "ai-commerce",
   "bundles", "composite-products", "stock-valuation", "stock-counts",
 ];
 // Route keys de relatórios, actualmente em "vendas"/"ai-strategy", que passam para "Relatórios".
