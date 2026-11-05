@@ -904,6 +904,13 @@
       "when": 1793907577025,
       "tag": "0128_bgi_action_lists",
       "breakpoints": true
+    },
+    {
+      "idx": 129,
+      "version": "7",
+      "when": 1793907814836,
+      "tag": "0129_tasks_related_type_allow_company_contact",
+      "breakpoints": true
     }
   ]
 }
