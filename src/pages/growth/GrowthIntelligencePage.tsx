@@ -13,6 +13,8 @@ import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useModuleInstall } from "@/hooks/useModuleInstall";
 import { useBgiSettings } from "@/hooks/useBgiSettings";
 import { BgiKpiGrid } from "@/components/growth/BgiKpiGrid";
+import { BgiExecutiveDiagnostics } from "@/components/growth/BgiExecutiveDiagnostics";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BUSINESS_TEMPLATES, resolveWorkspaceIndicators, type BusinessTemplateId } from "@/lib/bgi/indicatorCatalog";
 
 export const GROWTH_MODULE_SLUG = "growth-intelligence";
@@ -124,7 +126,18 @@ function TemplatePicker() {
         </CardContent>
       </Card>
 
-      <BgiKpiGrid templateIds={data?.templateIds ?? []} />
+      <Tabs defaultValue="indicators">
+        <TabsList>
+          <TabsTrigger value="indicators">Indicadores e funil</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnóstico executivo</TabsTrigger>
+        </TabsList>
+        <TabsContent value="indicators" className="mt-6">
+          <BgiKpiGrid templateIds={data?.templateIds ?? []} />
+        </TabsContent>
+        <TabsContent value="diagnostics" className="mt-6">
+          <BgiExecutiveDiagnostics />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
