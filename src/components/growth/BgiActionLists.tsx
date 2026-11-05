@@ -148,6 +148,7 @@ export function BgiActionLists() {
   const { start, end } = useMemo(() => resolveDiagRange(range, lisbonToday()), [range]);
   const { data, isLoading, error, refetch } = useBgiActionLists(start, end);
   const sum = (xs: { amount: number }[]) => xs.reduce((a, x) => a + (x.amount || 0), 0);
+  const cap = (xs: unknown[]) => (xs.length >= 100 ? " (os 100 maiores)" : "");
 
   return (
     <div className="space-y-6">
@@ -167,21 +168,21 @@ export function BgiActionLists() {
       {data && (
         <>
           <ActionList<CollectItem> kind="collect" items={data.collect}
-            summary={`${data.collect.length} clientes · ${eur(sum(data.collect))} vencidos há mais de 60 dias`}
+            summary={`${data.collect.length} clientes${cap(data.collect)} · ${eur(sum(data.collect))} vencidos há mais de 60 dias`}
             cols={[
               { head: "Saldo", right: true, cell: (i) => eur(i.amount) },
               { head: "Faturas", right: true, cell: (i) => i.invoices },
               { head: "Maior atraso", right: true, cell: (i) => <span className="text-destructive">{i.max_overdue_days} dias</span> },
             ]} />
           <ActionList<ReactivateItem> kind="reactivate" items={data.reactivate}
-            summary={`${data.reactivate.length} clientes · ${eur(sum(data.reactivate))} de valor anual em risco`}
+            summary={`${data.reactivate.length} clientes${cap(data.reactivate)} · ${eur(sum(data.reactivate))} de valor anual em risco`}
             cols={[
               { head: "Parado há", right: true, cell: (i) => `${i.idle_days} dias` },
               { head: "Ritmo habitual", right: true, cell: (i) => (i.avg_gap_days != null ? `${i.avg_gap_days} dias` : "—") },
               { head: "Valor anual", right: true, cell: (i) => eur(i.amount) },
             ]} />
           <ActionList<UpsellItem> kind="upsell" items={data.upsell}
-            summary={`${data.upsell.length} clientes frequentes com faturas abaixo de 150 € em média`}
+            summary={`${data.upsell.length} clientes frequentes${cap(data.upsell)} com faturas abaixo de 150 € em média`}
             cols={[
               { head: "Faturas", right: true, cell: (i) => i.invoices },
               { head: "Valor médio", right: true, cell: (i) => eur(i.avg_ticket) },
