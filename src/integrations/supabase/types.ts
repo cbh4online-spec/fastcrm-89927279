@@ -110100,6 +110100,10 @@ export type Database = {
         }
         Returns: Json
       }
+      bgi_action_lists: {
+        Args: { _end: string; _start: string; _workspace_id: string }
+        Returns: Json
+      }
       bgi_compute_indicators: {
         Args: { _anchor?: string; _period?: string; _workspace_id: string }
         Returns: Json
