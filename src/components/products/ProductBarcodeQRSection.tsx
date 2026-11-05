@@ -15,7 +15,14 @@ import {
   Check,
   X,
 } from "lucide-react";
-import QRCode from "react-qr-code";
+import QRCodeModule from "react-qr-code";
+
+// react-qr-code is CommonJS; Vite may hand back the module wrapper instead of the component.
+const QRCode: React.ComponentType<any> =
+  (QRCodeModule as any)?.default?.default ??
+  (QRCodeModule as any)?.QRCode ??
+  (QRCodeModule as any)?.default ??
+  QRCodeModule;
 import { useUpdateProduct } from "@/hooks/useProducts";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { AlertTriangle } from "lucide-react";
