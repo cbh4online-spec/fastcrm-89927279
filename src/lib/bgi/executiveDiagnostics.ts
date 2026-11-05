@@ -62,3 +62,41 @@ export function agingRisk(a: ExecutiveDiagnostics["aging"]): RiskLevel {
 export function entityPath(type: "company" | "contact", id: string) {
   return type === "company" ? `/dashboard/companies/${id}` : `/dashboard/contacts/${id}`;
 }
+
+// ---------- Fase 2: comportamento de compra ----------
+export interface DormantCustomer { id: string; type: "company" | "contact"; name: string; last_date: string; idle_days: number; purchases: number; avg_gap_days: number | null; value12: number }
+export type TicketBucketKey = "lt100" | "100_300" | "300_1000" | "gte1000";
+export interface CustomerBehavior {
+  start: string; end: string; today: string;
+  frequency: { recurring_customers: number; median_gap_days: number | null };
+  dormant: { count: number; d61_90: number; d91_180: number; d180_plus: number; value_at_risk: number; top: DormantCustomer[] };
+  tickets: { count: number; avg: number | null; median: number | null; buckets: { key: TicketBucketKey; count: number; value: number }[] };
+}
+export const TICKET_LABEL: Record<TicketBucketKey, string> = {
+  lt100: "Menos de 100 €", "100_300": "100 – 300 €", "300_1000": "300 – 1.000 €", gte1000: "1.000 € ou mais",
+};
+
+/** Cliente parado há mais do dobro do seu intervalo habitual (mín. 60 dias) = atraso anormal. */
+export function isOverdueVsHabit(idleDays: number, avgGapDays: number | null): boolean {
+  if (avgGapDays == null || avgGapDays <= 0) return idleDays > 90;
+  return idleDays > Math.max(60, 2 * avgGapDays);
+}
+
+/** Faturas pequenas: > 50% das faturas abaixo de 100 € é aviso (esforço operacional elevado). */
+export function smallTicketRisk(b: CustomerBehavior["tickets"]): RiskLevel {
+  if (!b.count) return "ok";
+  const small = b.buckets.find((x) => x.key === "lt100")?.count ?? 0;
+  const share = small / b.count;
+  if (share > 0.7) return "critical";
+  if (share > 0.5) return "warning";
+  return "ok";
+}
+
+/** Valor em risco de clientes parados face à faturação do período: > 20% crítico, > 10% aviso. */
+export function dormantRisk(valueAtRisk: number, totalNet: number): RiskLevel {
+  if (!totalNet || totalNet <= 0) return valueAtRisk > 0 ? "warning" : "ok";
+  const share = valueAtRisk / totalNet;
+  if (share > 0.2) return "critical";
+  if (share > 0.1) return "warning";
+  return "ok";
+}
