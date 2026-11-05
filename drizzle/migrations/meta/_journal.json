@@ -876,6 +876,13 @@
       "when": 1793810705319,
       "tag": "0124_audit_trigger_safe_record_id",
       "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1793906837945,
+      "tag": "0125_bgi_executive_diagnostics",
+      "breakpoints": true
     }
   ]
 }
