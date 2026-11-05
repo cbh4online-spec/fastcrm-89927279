@@ -27,7 +27,12 @@ Deno.serve(async (req) => {
 
     // Verify workspace membership
     const { data: membership } = await userClient.from("workspace_members").select("id").eq("workspace_id", workspace_id).eq("user_id", user.id).maybeSingle();
-    if (!membership) {
+    let allowed = !!membership;
+    if (!allowed) {
+      const { data: isSuper } = await userClient.rpc("is_super_admin", { _user_id: user.id });
+      allowed = isSuper === true;
+    }
+    if (!allowed) {
       return new Response(JSON.stringify({ error: "Access denied to this workspace" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
