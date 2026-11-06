@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useWhatsAppProSend, useRegisterWhatsAppProductShare, useWhatsAppProTemplates } from "@/hooks/useWhatsAppPro";
+import { useWhatsAppProviderInstance, useWhatsAppProSend, useRegisterWhatsAppProductShare, useWhatsAppProTemplates } from "@/hooks/useWhatsAppPro";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -146,6 +146,10 @@ export function SendProductByWhatsAppDialog({
   const send = useWhatsAppProSend();
   const registerShare = useRegisterWhatsAppProductShare();
   const { data: templates } = useWhatsAppProTemplates();
+  const { data: providerInstance } = useWhatsAppProviderInstance();
+  const hasApiProvider = !!providerInstance;
+  const [assistedOpened, setAssistedOpened] = useState(false);
+  useEffect(() => { if (open) setAssistedOpened(false); }, [open, productId]);
 
   const [search, setSearch] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(prefillContactId ?? null);
@@ -400,6 +404,36 @@ export function SendProductByWhatsAppDialog({
       onOpenChange(false);
     } catch {
       // toast já tratado no hook
+    }
+  };
+
+  // Envio assistido (sem API): abre o WhatsApp com a mensagem completa (inclui link).
+  const assistedText = useMemo(() => {
+    if (!absoluteProductLink || message.includes(absoluteProductLink)) return message;
+    return `${message}\n\n🛒 Comprar agora: ${absoluteProductLink}`;
+  }, [message, absoluteProductLink]);
+
+  const handleOpenAssisted = () => {
+    const parsed = messageSchema.safeParse(assistedText);
+    if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    if (!normalizedPhone) { toast.error("Telefone inválido. Use formato português ou internacional (+351...)."); return; }
+    const digits = normalizedPhone.replace(/\D/g, "");
+    const url = `https://wa.me/${digits}?text=${encodeURIComponent(parsed.data)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setAssistedOpened(true);
+  };
+
+  const handleConfirmAssisted = async () => {
+    try {
+      await registerShare.mutateAsync({
+        productId,
+        contactId: selectedContactId ?? null,
+        conversationId: prefillConversationId ?? null,
+      });
+      toast.success("Partilha registada no histórico ✅");
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível registar a partilha.");
     }
   };
 
@@ -765,14 +799,23 @@ export function SendProductByWhatsAppDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={send.isPending}>
             Cancelar
           </Button>
-          <Button
-            onClick={handleSend}
-            disabled={send.isPending || !phoneIsValid}
-            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
-          >
-            {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Enviar agora
-          </Button>
+          {hasApiProvider && (
+            <Button variant="outline" onClick={handleSend} disabled={send.isPending || !phoneIsValid} className="gap-1.5">
+              {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar pela integração
+            </Button>
+          )}
+          {assistedOpened ? (
+            <Button onClick={handleConfirmAssisted} disabled={registerShare.isPending} className="gap-1.5">
+              {registerShare.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Já enviei
+            </Button>
+          ) : (
+            <Button onClick={handleOpenAssisted} disabled={!phoneIsValid} className="gap-1.5">
+              <MessageCircle className="h-4 w-4" />
+              Abrir no WhatsApp
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
