@@ -13,6 +13,8 @@ const Body = z.discriminatedUnion("action", [
     apiKeyId: z.string().trim().min(3).max(200), apiKeySecret: z.string().trim().min(3).max(500) }),
   z.object({ action: z.literal("webhook_info"), workspaceId: z.string().uuid() }),
   z.object({ action: z.literal("disconnect"), workspaceId: z.string().uuid() }),
+  z.object({ action: z.literal("me"), workspaceId: z.string().uuid() }),
+  z.object({ action: z.literal("set_auto_ai"), workspaceId: z.string().uuid(), enabled: z.boolean() }),
   z.object({ action: z.literal("call"), workspaceId: z.string().uuid(), phone: z.string().trim().min(6).max(30) }),
 ]);
 
@@ -63,6 +65,16 @@ Deno.serve(async (req) => {
       const { data } = await admin.from("cloudtalk_connections").select("webhook_token").eq("workspace_id", ws).maybeSingle();
       if (!data) return json({ error: "not_connected" }, 404);
       return json({ url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/cloudtalk-webhook?token=${data.webhook_token}` });
+    }
+
+    if (body.action === "me") return json({ manager });
+
+    if (body.action === "set_auto_ai") {
+      if (!manager) return json({ error: "forbidden", message: "Só gestores podem alterar esta opção." }, 403);
+      const { error } = await admin.from("cloudtalk_connections")
+        .update({ auto_ai_summary: body.enabled, updated_at: new Date().toISOString() }).eq("workspace_id", ws);
+      if (error) return json({ error: "store_failed", message: "Não foi possível guardar." }, 500);
+      return json({ ok: true });
     }
 
     if (body.action === "disconnect") {
