@@ -1,5 +1,13 @@
 import { lazy } from "react";
-import { Route, Navigate, useParams } from "react-router-dom";
+import { Route, Navigate, useParams, useLocation } from "react-router-dom";
+
+/** /dashboard/proposals/new abre a lista com o diálogo de criação (mantém parâmetros). */
+function ProposalNewRedirect() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  params.set("new", "1");
+  return <Navigate to={`/dashboard/proposals?${params.toString()}`} replace />;
+}
 
 /** Links antigos /dashboard/products/:id abrem o catálogo com a ficha aberta. */
 function ProductIdRedirect() {
@@ -33,6 +41,7 @@ export function SalesAssetsRoutes() {
       <Route path="/dashboard/pitch/exchange-rates" element={<PitchExchangeRatesPage />} />
       <Route path="/dashboard/pitch/shares" element={<PitchSharesPage />} />
 
+      <Route path="/dashboard/proposals/new" element={<ProposalNewRedirect />} />
       <Route path="/dashboard/proposals/templates/:id" element={<ProposalTemplateBuilderPage />} />
       <Route path="/dashboard/proposals/:id" element={<ProposalDetail />} />
       <Route path="/dashboard/products" element={<Products />} />

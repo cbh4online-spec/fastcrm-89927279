@@ -206,7 +206,7 @@ export default function IXDashboard() {
             {/* Atalhos rápidos — estilo IX */}
             <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {[
-                { label: "Novo Orçamento", to: "/dashboard/proposals/new" },
+                { label: "Novo Orçamento", to: "/dashboard/proposals?new=1" },
                 { label: "Nova Guia de Transporte", to: "/dashboard/invoices/new?type=transport" },
                 { label: "Novo Contacto", to: "/dashboard/contacts/new" },
                 { label: "Novo Item", to: "/dashboard/products?new=1" },
