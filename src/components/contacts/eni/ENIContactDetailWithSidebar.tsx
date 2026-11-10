@@ -1,3 +1,4 @@
+import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { ContactEssentialsCard } from "./ContactEssentialsCard";
 import { useWhatsAppStopSignals } from "@/hooks/useWhatsAppStopSignals";
 import { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
@@ -678,6 +679,7 @@ export function ENIContactDetailWithSidebar() {
                 />
               </div>
             )}
+            <CloudtalkCallButton phone={contact.phone} inHeader />
             <GHLCallButton
               entityType="contact"
               entityId={contact.id}

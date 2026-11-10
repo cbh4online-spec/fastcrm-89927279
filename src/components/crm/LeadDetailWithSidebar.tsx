@@ -1,3 +1,4 @@
+import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { useCallback, useMemo, useState } from "react";
 import { socialMessageUrl } from '@/lib/social/socialProfiles';
 import { useNavigate, useParams } from "react-router-dom";
@@ -507,6 +508,7 @@ export function LeadDetailWithSidebar() {
                 />
               </>
             )}
+            <CloudtalkCallButton phone={lead.phone} inHeader />
             <GHLCallButton
               entityType="lead"
               entityId={lead.id}
