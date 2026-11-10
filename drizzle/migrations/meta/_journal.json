@@ -918,6 +918,20 @@
       "when": 1794301985054,
       "tag": "0130_cloudtalk_integration",
       "breakpoints": true
+    },
+    {
+      "idx": 131,
+      "version": "7",
+      "when": 1794302920995,
+      "tag": "0131_cloudtalk_ai_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 132,
+      "version": "7",
+      "when": 1794303112433,
+      "tag": "0132_voice_audio_workspace_scope",
+      "breakpoints": true
     }
   ]
 }

@@ -22371,7 +22371,12 @@ export type Database = {
       }
       cloudtalk_calls: {
         Row: {
+          action_items: Json
           agent_name: string | null
+          ai_error: string | null
+          ai_generated_at: string | null
+          ai_source: string | null
+          ai_status: string | null
           company_id: string | null
           contact_id: string | null
           created_at: string
@@ -22383,13 +22388,21 @@ export type Database = {
           lead_id: string | null
           raw: Json
           recording_url: string | null
+          sentiment: string | null
           started_at: string | null
           status: string | null
+          summary: string | null
+          transcript: Json | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          action_items?: Json
           agent_name?: string | null
+          ai_error?: string | null
+          ai_generated_at?: string | null
+          ai_source?: string | null
+          ai_status?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -22401,13 +22414,21 @@ export type Database = {
           lead_id?: string | null
           raw?: Json
           recording_url?: string | null
+          sentiment?: string | null
           started_at?: string | null
           status?: string | null
+          summary?: string | null
+          transcript?: Json | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          action_items?: Json
           agent_name?: string | null
+          ai_error?: string | null
+          ai_generated_at?: string | null
+          ai_source?: string | null
+          ai_status?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -22419,8 +22440,11 @@ export type Database = {
           lead_id?: string | null
           raw?: Json
           recording_url?: string | null
+          sentiment?: string | null
           started_at?: string | null
           status?: string | null
+          summary?: string | null
+          transcript?: Json | null
           updated_at?: string
           workspace_id?: string
         }
@@ -22459,6 +22483,7 @@ export type Database = {
         Row: {
           api_key_id: string
           api_key_secret: string
+          auto_ai_summary: boolean
           created_at: string
           created_by: string | null
           enabled: boolean
@@ -22470,6 +22495,7 @@ export type Database = {
         Insert: {
           api_key_id: string
           api_key_secret: string
+          auto_ai_summary?: boolean
           created_at?: string
           created_by?: string | null
           enabled?: boolean
@@ -22481,6 +22507,7 @@ export type Database = {
         Update: {
           api_key_id?: string
           api_key_secret?: string
+          auto_ai_summary?: boolean
           created_at?: string
           created_by?: string | null
           enabled?: boolean

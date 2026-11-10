@@ -1,6 +1,7 @@
 // Receives CloudTalk call events. Authenticated by the per-workspace secret token in the URL.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { normalizeCloudtalkCall } from "../_shared/cloudtalk.ts";
+import { extractCloudtalkAi } from "../_shared/cloudtalkAi.ts";
 import { phoneOptOutVariants } from "../_shared/phoneVariants.ts";
 
 const json = (b: unknown, s = 200) =>
@@ -15,7 +16,7 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
   const { data: conn } = await admin
-    .from("cloudtalk_connections").select("workspace_id, enabled").eq("webhook_token", token).maybeSingle();
+    .from("cloudtalk_connections").select("workspace_id, enabled, auto_ai_summary").eq("webhook_token", token).maybeSingle();
   if (!conn || !conn.enabled) return json({ error: "unauthorized" }, 401);
 
   let payload: Record<string, unknown>;
@@ -48,6 +49,18 @@ Deno.serve(async (req) => {
     .eq("workspace_id", ws).eq("external_call_id", call.external_call_id).maybeSingle();
   const merged: Record<string, unknown> = { ...(existing ?? {}) };
   for (const [k, v] of Object.entries(call)) if (v !== null) merged[k] = v;
+  const ai = extractCloudtalkAi(payload);
+  if (ai.transcript) merged.transcript = ai.transcript;
+  if (ai.summary) {
+    merged.summary = ai.summary;
+    merged.ai_source = "cloudtalk";
+    merged.ai_status = "done";
+    merged.ai_generated_at = new Date().toISOString();
+  }
+  if (ai.sentiment) merged.sentiment = ai.sentiment;
+  if (ai.action_items?.length) merged.action_items = ai.action_items;
+  if (merged.transcript && !merged.summary && !merged.ai_status) merged.ai_status = "pending";
+  delete merged.id;
   const row = {
     ...merged,
     workspace_id: ws,
@@ -57,11 +70,24 @@ Deno.serve(async (req) => {
     raw: payload,
     updated_at: new Date().toISOString(),
   };
-  const { error } = await admin.from("cloudtalk_calls").upsert(row, { onConflict: "workspace_id,external_call_id" });
+  const { data: saved, error } = await admin.from("cloudtalk_calls")
+    .upsert(row, { onConflict: "workspace_id,external_call_id" }).select("id, ai_status").single();
   if (error) {
     console.error("cloudtalk-webhook upsert failed", error.code);
     return json({ error: "store_failed" }, 500);
   }
   await admin.from("cloudtalk_connections").update({ last_event_at: new Date().toISOString() }).eq("workspace_id", ws);
+
+  // Auto AI summary (opt-in per workspace); the summary function claims the row atomically.
+  if (saved?.ai_status === "pending" && conn.auto_ai_summary) {
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const task = fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/cloudtalk-ai-summary`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId: ws, callId: saved.id }),
+    }).catch((e) => console.error("auto summary trigger failed", (e as Error).message));
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(task);
+  }
   return json({ ok: true });
 });
