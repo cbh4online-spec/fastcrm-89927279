@@ -14,6 +14,7 @@ const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("webhook_info"), workspaceId: z.string().uuid() }),
   z.object({ action: z.literal("disconnect"), workspaceId: z.string().uuid() }),
   z.object({ action: z.literal("me"), workspaceId: z.string().uuid() }),
+  z.object({ action: z.literal("agents"), workspaceId: z.string().uuid() }),
   z.object({ action: z.literal("set_auto_ai"), workspaceId: z.string().uuid(), enabled: z.boolean() }),
   z.object({ action: z.literal("call"), workspaceId: z.string().uuid(), phone: z.string().trim().min(6).max(30) }),
 ]);
@@ -83,6 +84,24 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (body.action === "agents") {
+      const { data: c } = await admin.from("cloudtalk_connections")
+        .select("api_key_id, api_key_secret, enabled").eq("workspace_id", ws).maybeSingle();
+      if (!c?.enabled) return json({ error: "not_connected", message: "A CloudTalk não está ligada nesta organização." }, 400);
+      const r = await fetch(`${CLOUDTALK_API}/agents/index.json?limit=1000`, {
+        headers: { Authorization: cloudtalkAuthHeader(c.api_key_id, c.api_key_secret) },
+      });
+      if (!r.ok) return json({ error: "agents_failed", message: `A CloudTalk não devolveu os agentes (${r.status}).` }, 502);
+      const payload = await r.json().catch(() => ({}));
+      const rows = (payload?.responseData?.data ?? []) as Array<Record<string, any>>;
+      const agents = rows.map((row) => row.Agent ?? row).filter((a) => a?.id).map((a) => ({
+        id: String(a.id),
+        name: [a.firstname, a.lastname].filter(Boolean).join(" ") || a.email || `Agente ${a.id}`,
+        email: a.email ?? null, extension: a.extension ?? null,
+      }));
+      return json({ agents });
+    }
+
     // call
     const { data: conn } = await admin.from("cloudtalk_connections")
       .select("api_key_id, api_key_secret, enabled").eq("workspace_id", ws).maybeSingle();
@@ -99,7 +118,10 @@ Deno.serve(async (req) => {
     if (!res.ok) {
       const txt = (await res.text()).slice(0, 300);
       console.error("cloudtalk call failed", res.status);
-      return json({ error: "call_failed", message: `A CloudTalk não iniciou a chamada (${res.status}). Confirme que o seu agente está online.`, details: txt }, 502);
+      const message = res.status === 404
+        ? `A CloudTalk não encontrou o agente ${agent.agent_id}. Escolha o seu agente na lista em Definições → Integrações → CloudTalk.`
+        : `A CloudTalk não iniciou a chamada (${res.status}). Confirme que o seu agente está online.`;
+      return json({ error: res.status === 404 ? "agent_not_found" : "call_failed", message, details: txt }, 200);
     }
     return json({ ok: true });
   } catch (e) {

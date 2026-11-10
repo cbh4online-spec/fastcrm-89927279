@@ -10,6 +10,7 @@ async function invoke(body: Record<string, unknown>) {
     try { msg = msg ?? (await (error as any).context?.json?.())?.message; } catch { /* ignore */ }
     throw new Error(msg || "Erro na ligação à CloudTalk");
   }
+  if ((data as any)?.error) throw new Error((data as any)?.message || "Erro na ligação à CloudTalk");
   return data;
 }
 
@@ -57,7 +58,14 @@ export function useCloudtalk() {
     onSuccess: refresh,
   });
 
-  return { workspaceId, moduleActive, status, connect, disconnect, webhookInfo, call, saveAgent, setAutoAi };
+  const agents = useQuery({
+    queryKey: ["cloudtalk-agents", workspaceId ?? "none"],
+    enabled: !!workspaceId && moduleActive && !!status.data?.connected,
+    staleTime: 5 * 60_000,
+    queryFn: async () => ((await invoke({ action: "agents", workspaceId })) as { agents: { id: string; name: string; email: string | null; extension: string | null }[] }).agents,
+  });
+
+  return { workspaceId, moduleActive, status, agents, connect, disconnect, webhookInfo, call, saveAgent, setAutoAi };
 }
 
 export function useCloudtalkCalls(filter: { contactId?: string; leadId?: string }) {

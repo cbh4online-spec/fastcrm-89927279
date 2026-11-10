@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, Loader2 } from "lucide-react";
 import { useCloudtalk } from "@/hooks/useCloudtalk";
 
 export function CloudtalkConnectionCard() {
-  const { moduleActive, status, connect, disconnect, webhookInfo, saveAgent, setAutoAi } = useCloudtalk();
+  const { moduleActive, status, agents, connect, disconnect, webhookInfo, saveAgent, setAutoAi } = useCloudtalk();
   const [keyId, setKeyId] = useState("");
   const [keySecret, setKeySecret] = useState("");
   const [agentId, setAgentId] = useState("");
@@ -88,12 +89,26 @@ export function CloudtalkConnectionCard() {
       <div className="space-y-1.5 border-t border-border pt-4">
         <Label htmlFor="ct-agent">O meu ID de agente CloudTalk</Label>
         <div className="flex gap-2">
-          <Input id="ct-agent" placeholder={s?.agent?.agent_id ?? "ex.: 123456"} value={agentId} onChange={(e) => setAgentId(e.target.value)} maxLength={40} />
+          {agents.data && agents.data.length > 0 ? (
+            <Select value={agentId || s?.agent?.agent_id || ""} onValueChange={setAgentId}>
+              <SelectTrigger id="ct-agent"><SelectValue placeholder="Escolha o seu agente" /></SelectTrigger>
+              <SelectContent>
+                {agents.data.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}{a.email ? ` — ${a.email}` : ""} (ID {a.id})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input id="ct-agent" placeholder={s?.agent?.agent_id ?? "ex.: 123456"} value={agentId} onChange={(e) => setAgentId(e.target.value)} maxLength={40} />
+          )}
           <Button variant="outline" disabled={!agentId.trim() || saveAgent.isPending}
             onClick={async () => { try { await saveAgent.mutateAsync(agentId); setAgentId(""); toast.success("ID de agente guardado"); } catch (e) { toast.error((e as Error).message); } }}>
             Guardar
           </Button>
         </div>
+        {s?.agent?.agent_id && agents.data && !agents.data.some((a) => a.id === s.agent!.agent_id) && (
+          <p className="text-xs text-destructive">O ID guardado ({s.agent.agent_id}) não existe na CloudTalk. Escolha o seu agente na lista e guarde.</p>
+        )}
         <p className="text-xs text-muted-foreground">Necessário para «Ligar via CloudTalk»: a CloudTalk liga primeiro para si e depois para o cliente.</p>
       </div>
     </div>
