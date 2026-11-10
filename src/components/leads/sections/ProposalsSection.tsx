@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
@@ -176,6 +177,7 @@ function formatCurrency(value: number | null, currency = "EUR"): string {
 
 export function ProposalsSection({ leadId, leadName }: ProposalsSectionProps) {
   const navigate = useNavigate();
+  const [createOpen, setCreateOpen] = useState(false);
   const { data: proposals, isLoading } = useLeadProposals(leadId);
   const deleteProposal = useDeleteProposal();
 
@@ -272,7 +274,7 @@ export function ProposalsSection({ leadId, leadName }: ProposalsSectionProps) {
           </p>
         </div>
         <Button
-          onClick={() => navigate("/dashboard/proposals")}
+          onClick={() => setCreateOpen(true)}
           className="gap-2"
         >
           <Plus className="w-4 h-4" />
