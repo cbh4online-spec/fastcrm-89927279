@@ -21,12 +21,10 @@ export function useProductAlerts(productId: string | undefined, email: string | 
     queryKey: ["product-alerts", productId, email],
     queryFn: async () => {
       if (!productId || !email) return [];
-      const { data, error } = await supabase
-        .from("store_product_alerts")
-        .select("*")
-        .eq("product_id", productId)
-        .eq("email", email.toLowerCase().trim())
-        .eq("is_active", true);
+      const { data, error } = await supabase.rpc("store_product_alert_status", {
+        p_product_id: productId,
+        p_email: email,
+      });
       if (error) throw error;
       return (data || []) as ProductAlert[];
     },
@@ -73,12 +71,10 @@ export function useCreateProductAlert() {
 export function useCancelProductAlert() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ alertId, productId }: { alertId: string; productId: string }) => {
-      const { error } = await supabase
-        .from("store_product_alerts")
-        .update({ is_active: false })
-        .eq("id", alertId);
+    mutationFn: async ({ alertId, productId, email }: { alertId: string; productId: string; email: string }) => {
+      const { data, error } = await supabase.rpc("store_cancel_product_alert", { p_alert_id: alertId, p_email: email });
       if (error) throw error;
+      if (!data) throw new Error("Alerta não encontrado");
       return productId;
     },
     onSuccess: (productId) => {
