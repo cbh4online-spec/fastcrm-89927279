@@ -218,6 +218,7 @@ export function ProposalsSection({ leadId, leadName }: ProposalsSectionProps) {
 
   return (
     <div className="space-y-6">
+      <CreateProposalDialog open={createOpen} onOpenChange={setCreateOpen} contactName={leadName} />
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
