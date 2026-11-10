@@ -22316,6 +22316,210 @@ export type Database = {
           },
         ]
       }
+      cloudtalk_agents: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloudtalk_agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloudtalk_calls: {
+        Row: {
+          agent_name: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          direction: string | null
+          duration_seconds: number | null
+          external_call_id: string
+          external_number: string | null
+          id: string
+          lead_id: string | null
+          raw: Json
+          recording_url: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_name?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string | null
+          duration_seconds?: number | null
+          external_call_id: string
+          external_number?: string | null
+          id?: string
+          lead_id?: string | null
+          raw?: Json
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_name?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string | null
+          duration_seconds?: number | null
+          external_call_id?: string
+          external_number?: string | null
+          id?: string
+          lead_id?: string | null
+          raw?: Json
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloudtalk_calls_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_calls_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_calls_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_calls_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloudtalk_connections: {
+        Row: {
+          api_key_id: string
+          api_key_secret: string
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          last_event_at: string | null
+          updated_at: string
+          webhook_token: string
+          workspace_id: string
+        }
+        Insert: {
+          api_key_id: string
+          api_key_secret: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          last_event_at?: string | null
+          updated_at?: string
+          webhook_token?: string
+          workspace_id: string
+        }
+        Update: {
+          api_key_id?: string
+          api_key_secret?: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          last_event_at?: string | null
+          updated_at?: string
+          webhook_token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloudtalk_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloudtalk_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coaching_tasks: {
         Row: {
           agent_id: string
