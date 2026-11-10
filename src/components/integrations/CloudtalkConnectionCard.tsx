@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Copy, Loader2 } from "lucide-react";
 import { useCloudtalk } from "@/hooks/useCloudtalk";
 
 export function CloudtalkConnectionCard() {
-  const { moduleActive, status, connect, disconnect, webhookInfo, saveAgent } = useCloudtalk();
+  const { moduleActive, status, connect, disconnect, webhookInfo, saveAgent, setAutoAi } = useCloudtalk();
   const [keyId, setKeyId] = useState("");
   const [keySecret, setKeySecret] = useState("");
   const [agentId, setAgentId] = useState("");
