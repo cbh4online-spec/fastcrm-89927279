@@ -109,7 +109,7 @@ export function StoreProductAlertWidget({
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-[10px] text-muted-foreground"
-                  onClick={() => cancelAlert.mutate({ alertId: priceAlertObj.id, productId })}
+                  onClick={() => cancelAlert.mutate({ alertId: priceAlertObj.id, productId, email: submittedEmail ?? "" })}
                 >
                   <BellOff className="h-3 w-3 mr-1" />
                   Cancelar
@@ -126,7 +126,7 @@ export function StoreProductAlertWidget({
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-[10px] text-muted-foreground"
-                  onClick={() => cancelAlert.mutate({ alertId: stockAlertObj.id, productId })}
+                  onClick={() => cancelAlert.mutate({ alertId: stockAlertObj.id, productId, email: submittedEmail ?? "" })}
                 >
                   <BellOff className="h-3 w-3 mr-1" />
                   Cancelar

@@ -112355,6 +112355,10 @@ export type Database = {
         }
         Returns: Json
       }
+      store_cancel_product_alert: {
+        Args: { p_alert_id: string; p_email: string }
+        Returns: boolean
+      }
       store_entity_memory: {
         Args: {
           p_content: string
@@ -112369,6 +112373,20 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: string
+      }
+      store_product_alert_status: {
+        Args: { p_email: string; p_product_id: string }
+        Returns: {
+          alert_type: string
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          notified_at: string
+          product_id: string
+          target_price: number
+          workspace_id: string
+        }[]
       }
       submit_quiz_attempt: {
         Args: {
