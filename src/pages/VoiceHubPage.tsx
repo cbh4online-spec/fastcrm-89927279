@@ -29,6 +29,7 @@ import { VoiceCallDetailDialog } from "@/components/voice/VoiceCallDetailDialog"
 import { VoiceComplianceKeywordsManager } from "@/components/voice/VoiceComplianceKeywordsManager";
 import { CallCenterOperations } from "@/components/voice/CallCenterOperations";
 import { Activity } from "lucide-react";
+import { CloudtalkVoiceHubPanel } from "@/components/integrations/CloudtalkVoiceHubPanel";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -114,6 +115,7 @@ export default function VoiceHubPage() {
 
         {/* CALLS */}
         <TabsContent value="calls" className="mt-4">
+          <div className="mb-4"><CloudtalkVoiceHubPanel /></div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Histórico de chamadas</CardTitle>
