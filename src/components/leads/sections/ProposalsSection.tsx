@@ -191,7 +191,7 @@ export function ProposalsSection({ leadId, leadName }: ProposalsSectionProps) {
   };
 
   const handleView = (proposal: ProposalWithOpportunity) => {
-    navigate(`/dashboard/proposals/${proposal.id}`);
+    setDetailId(proposal.id);
   };
 
   const handleViewPublic = (proposal: ProposalWithOpportunity) => {

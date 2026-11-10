@@ -183,7 +183,7 @@ export function EntityProposalsSection({ entityType, entityId, entityName }: Ent
   };
 
   const handleView = (proposal: ProposalWithOpportunity) => {
-    navigate(`/dashboard/proposals/${proposal.id}`);
+    setDetailId(proposal.id);
   };
 
   const handleViewPublic = (proposal: ProposalWithOpportunity) => {
