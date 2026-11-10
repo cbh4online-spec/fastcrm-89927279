@@ -1,4 +1,6 @@
 import { useState, useCallback } from "react";
+import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
+import { CloudtalkCallHistory } from "@/components/integrations/CloudtalkCallHistory";
 import { useNavigate, useParams } from "react-router-dom";
 import { useContacts, Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
@@ -973,8 +975,11 @@ export function ContactDetail() {
                       </a>
                     </Button>
                   )}
+                  <CloudtalkCallButton phone={contact.phone} />
                 </CardContent>
               </Card>
+
+              <CloudtalkCallHistory contactId={contact.id} />
 
               {/* AI Field Suggestions */}
               <FieldSuggestionsPanel

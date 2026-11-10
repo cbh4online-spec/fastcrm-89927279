@@ -21,6 +21,7 @@ import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
 import { WorkspaceVideoSettings } from "./WorkspaceVideoSettings";
 import { WhatsAppZapiConnectionCard } from "@/components/integrations/WhatsAppZapiConnectionCard";
+import { CloudtalkConnectionCard } from "@/components/integrations/CloudtalkConnectionCard";
 import { MCPProvidersPanel } from "@/components/marketing/mcp/MCPProvidersPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -134,6 +135,16 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
               icon={<Video className="h-5 w-5" />}
             >
               <WorkspaceVideoSettings />
+            </SettingsSection>
+          )}
+
+          {shouldShow("integrations-whatsapp") && (
+            <SettingsSection
+              title="Telefonia CloudTalk"
+              description="Ligar a clientes com um clique e registar chamadas e gravações na ficha."
+              icon={<Phone className="h-5 w-5 text-primary" />}
+            >
+              <CloudtalkConnectionCard />
             </SettingsSection>
           )}
         </div>
