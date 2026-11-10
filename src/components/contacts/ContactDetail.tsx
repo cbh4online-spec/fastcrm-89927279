@@ -973,8 +973,11 @@ export function ContactDetail() {
                       </a>
                     </Button>
                   )}
+                  <CloudtalkCallButton phone={contact.phone} />
                 </CardContent>
               </Card>
+
+              <CloudtalkCallHistory contactId={contact.id} />
 
               {/* AI Field Suggestions */}
               <FieldSuggestionsPanel
