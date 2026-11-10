@@ -1,6 +1,7 @@
 import { clientHref, clientInvoicesHref } from "@/lib/dashboard/clientHref";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { IXCard } from "@/components/entity/ix/IXCard";
 import { IXEntityTabs, type IXTabDef } from "@/components/entity/ix/IXEntityTabs";
@@ -118,6 +119,7 @@ function KpiTile({
 export default function IXDashboard() {
   const navigate = useNavigate();
   const [active, setActive] = useState<SectionId>("faturacao");
+  const [proposalOpen, setProposalOpen] = useState(false);
 
   const { currentWorkspace } = useWorkspace();
   const { data: invoices = [], isLoading: invLoading } = useDashboardInvoices(currentWorkspace?.id);
@@ -194,6 +196,7 @@ export default function IXDashboard() {
   return (
     <DashboardLayout>
       <div className="min-h-full bg-background">
+        <CreateProposalDialog open={proposalOpen} onOpenChange={setProposalOpen} />
         {/* Header */}
         <div className="border-b border-border bg-background">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-5 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
@@ -206,7 +209,7 @@ export default function IXDashboard() {
             {/* Atalhos rápidos — estilo IX */}
             <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {[
-                { label: "Novo Orçamento", to: "/dashboard/proposals?new=1" },
+                { label: "Novo Orçamento", to: "__proposal__" },
                 { label: "Nova Guia de Transporte", to: "/dashboard/invoices/new?type=transport" },
                 { label: "Novo Contacto", to: "/dashboard/contacts/new" },
                 { label: "Novo Item", to: "/dashboard/products?new=1" },
@@ -216,7 +219,7 @@ export default function IXDashboard() {
                 <button
                   type="button"
                   key={a.label}
-                  onClick={() => navigate(a.to)}
+                  onClick={() => (a.to === "__proposal__" ? setProposalOpen(true) : navigate(a.to))}
                   className={cn(
                     "h-10 shrink-0 px-4 rounded-full border border-border bg-card text-sm font-semibold text-foreground",
                     "shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors whitespace-nowrap",

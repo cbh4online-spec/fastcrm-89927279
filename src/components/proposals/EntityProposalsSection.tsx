@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
@@ -167,6 +169,7 @@ function formatCurrency(value: number | null, currency = "EUR"): string {
 
 export function EntityProposalsSection({ entityType, entityId, entityName }: EntityProposalsSectionProps) {
   const navigate = useNavigate();
+  const [createOpen, setCreateOpen] = useState(false);
   const { data: proposals, isLoading } = useEntityProposals(entityType, entityId);
   const deleteProposal = useDeleteProposal();
 
@@ -205,6 +208,7 @@ export function EntityProposalsSection({ entityType, entityId, entityName }: Ent
 
   return (
     <div className="space-y-6">
+      <CreateProposalDialog open={createOpen} onOpenChange={setCreateOpen} contactName={entityType === "contact" ? entityName : undefined} companyName={entityType === "company" ? entityName : undefined} />
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
@@ -260,7 +264,7 @@ export function EntityProposalsSection({ entityType, entityId, entityName }: Ent
             {proposals?.length || 0} propostas • Valor total: {formatCurrency(totalValue)}
           </p>
         </div>
-        <Button onClick={() => navigate("/dashboard/proposals")} className="gap-2">
+        <Button onClick={() => setCreateOpen(true)} className="gap-2">
           <Plus className="w-4 h-4" />
           Nova Proposta
         </Button>
