@@ -1,4 +1,6 @@
 import { useState, useCallback } from "react";
+import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
+import { CloudtalkCallHistory } from "@/components/integrations/CloudtalkCallHistory";
 import { useNavigate, useParams } from "react-router-dom";
 import { useContacts, Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
