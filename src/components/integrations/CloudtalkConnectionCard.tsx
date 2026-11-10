@@ -61,6 +61,16 @@ export function CloudtalkConnectionCard() {
             <Button variant="outline" size="sm" onClick={onWebhook} disabled={webhookInfo.isPending}>Ver endereço para registo de chamadas</Button>
             <Button variant="ghost" size="sm" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>Desligar</Button>
           </div>
+          {s.manager && (
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+              <div>
+                <Label htmlFor="ct-auto-ai" className="text-sm">Gerar resumos com IA automaticamente</Label>
+                <p className="text-xs text-muted-foreground">Quando a CloudTalk enviar só a transcrição. Até 50 resumos por dia; consome créditos de IA.</p>
+              </div>
+              <Switch id="ct-auto-ai" checked={s.autoAi} disabled={setAutoAi.isPending}
+                onCheckedChange={(v) => setAutoAi.mutate(v, { onError: (e) => toast.error((e as Error).message) })} />
+            </div>
+          )}
           {webhookUrl && (
             <div className="space-y-1.5">
               <div className="flex gap-2">
