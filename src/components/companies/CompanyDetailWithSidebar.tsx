@@ -1,3 +1,4 @@
+import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { useCallback, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
@@ -596,6 +597,7 @@ export function CompanyDetailWithSidebar() {
 
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
+            <CloudtalkCallButton phone={company.phone} inHeader />
             {company.phone && (
               <>
                 <WhatsAppCallButton
