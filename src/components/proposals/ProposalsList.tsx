@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -148,6 +149,15 @@ type PerfBucket = "viewed" | "not_viewed" | "high_views";
 
 export function ProposalsList() {
   const [createOpen, setCreateOpen] = useState(false);
+  const [listSearchParams, setListSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (listSearchParams.get("new") === "1") {
+      setCreateOpen(true);
+      const next = new URLSearchParams(listSearchParams);
+      next.delete("new");
+      setListSearchParams(next, { replace: true });
+    }
+  }, [listSearchParams, setListSearchParams]);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
