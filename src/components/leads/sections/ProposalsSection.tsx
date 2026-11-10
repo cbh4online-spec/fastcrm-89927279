@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
+import { ProposalDetailDialog } from "@/components/proposals/ProposalDetailDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -176,8 +176,8 @@ function formatCurrency(value: number | null, currency = "EUR"): string {
 }
 
 export function ProposalsSection({ leadId, leadName }: ProposalsSectionProps) {
-  const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const { data: proposals, isLoading } = useLeadProposals(leadId);
   const deleteProposal = useDeleteProposal();
 
@@ -191,7 +191,7 @@ export function ProposalsSection({ leadId, leadName }: ProposalsSectionProps) {
   };
 
   const handleView = (proposal: ProposalWithOpportunity) => {
-    navigate(`/dashboard/proposals/${proposal.id}`);
+    setDetailId(proposal.id);
   };
 
   const handleViewPublic = (proposal: ProposalWithOpportunity) => {
@@ -219,6 +219,13 @@ export function ProposalsSection({ leadId, leadName }: ProposalsSectionProps) {
   return (
     <div className="space-y-6">
       <CreateProposalDialog open={createOpen} onOpenChange={setCreateOpen} contactName={leadName} />
+      {detailId && (
+        <ProposalDetailDialog
+          open
+          onOpenChange={(open) => !open && setDetailId(null)}
+          proposalId={detailId}
+        />
+      )}
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
