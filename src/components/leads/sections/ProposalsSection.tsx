@@ -176,8 +176,8 @@ function formatCurrency(value: number | null, currency = "EUR"): string {
 }
 
 export function ProposalsSection({ leadId, leadName }: ProposalsSectionProps) {
-  const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const { data: proposals, isLoading } = useLeadProposals(leadId);
   const deleteProposal = useDeleteProposal();
 

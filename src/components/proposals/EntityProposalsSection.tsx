@@ -168,8 +168,8 @@ function formatCurrency(value: number | null, currency = "EUR"): string {
 }
 
 export function EntityProposalsSection({ entityType, entityId, entityName }: EntityProposalsSectionProps) {
-  const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const { data: proposals, isLoading } = useEntityProposals(entityType, entityId);
   const deleteProposal = useDeleteProposal();
 
