@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
+import { ProposalDetailDialog } from "@/components/proposals/ProposalDetailDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
