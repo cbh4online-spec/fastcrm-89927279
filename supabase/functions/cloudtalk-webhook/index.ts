@@ -1,6 +1,7 @@
 // Receives CloudTalk call events. Authenticated by the per-workspace secret token in the URL.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { normalizeCloudtalkCall } from "../_shared/cloudtalk.ts";
+import { extractCloudtalkAi } from "../_shared/cloudtalkAi.ts";
 import { phoneOptOutVariants } from "../_shared/phoneVariants.ts";
 
 const json = (b: unknown, s = 200) =>
@@ -15,7 +16,7 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
   const { data: conn } = await admin
-    .from("cloudtalk_connections").select("workspace_id, enabled").eq("webhook_token", token).maybeSingle();
+    .from("cloudtalk_connections").select("workspace_id, enabled, auto_ai_summary").eq("webhook_token", token).maybeSingle();
   if (!conn || !conn.enabled) return json({ error: "unauthorized" }, 401);
 
   let payload: Record<string, unknown>;
