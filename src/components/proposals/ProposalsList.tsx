@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { normalizeSearchTerm } from "@/lib/search/normalize";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProposalWonProcurementModal } from "@/components/procurement/ProposalWonProcurementModal";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
