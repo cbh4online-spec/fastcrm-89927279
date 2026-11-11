@@ -42,7 +42,7 @@ import {
 } from "@/components/documents/listing/ListColumnsPicker";
 import { usePageElementVisibility } from "@/hooks/usePageElementVisibility";
 import { useCompanies, type Company } from "@/hooks/useCompanies";
-import { useCompaniesFinancials, type CompanyFinancials } from "@/hooks/useCompaniesFinancials";
+import { useCompaniesFinancials, useCompaniesYearFinancials, type CompanyFinancials } from "@/hooks/useCompaniesFinancials";
 
 import { CreateCompanyDialog } from "@/components/companies/CreateCompanyDialog";
 import { LoadingSpinner, EmptyState } from "@/components/design-system";
@@ -306,6 +306,12 @@ export function CompaniesListIX() {
   const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
   const { companies, isLoading } = useCompanies({ archiveState });
   const { financialsById } = useCompaniesFinancials();
+  const [kpiYear, setKpiYear] = useState<number | null>(null);
+  const { yearById, isLoading: yearLoading } = useCompaniesYearFinancials(kpiYear);
+  const yearOptions = useMemo(() => {
+    const y = new Date().getFullYear();
+    return Array.from({ length: 6 }, (_, i) => y - i);
+  }, []);
 
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
@@ -457,20 +463,27 @@ export function CompaniesListIX() {
     for (const c of filtered) {
       const f = financialsById.get(c.id);
       if (!f) continue;
-      revenue += f.net_total;
-      paid += f.paid_total;
-      pending += f.pending_total;
-      overdue += f.overdue_total;
-      invoices += f.invoice_count;
-      const last = f.last_invoice_date ? new Date(f.last_invoice_date).getTime() : 0;
-      if (last >= cutoff) active += 1;
+      const m = yearById ? yearById.get(c.id) : f;
+      if (m) {
+        revenue += m.net_total;
+        paid += m.paid_total;
+        pending += m.pending_total;
+        overdue += m.overdue_total;
+        invoices += m.invoice_count;
+      }
+      if (yearById) {
+        if (m && m.invoice_count > 0) active += 1;
+      } else {
+        const last = f.last_invoice_date ? new Date(f.last_invoice_date).getTime() : 0;
+        if (last >= cutoff) active += 1;
+      }
       if (f.cadence.status === "late") late += 1;
       if (f.cadence.status === "due") due += 1;
       if (f.cadence.valueDrop) drop += 1;
     }
     const ticket = invoices > 0 ? revenue / invoices : 0;
     return [
-      { key: "revenue", label: "Faturação (s/IVA)", value: formatCurrency(revenue), icon: Euro, tone: "primary", hint: `${invoices} faturas` },
+      { key: "revenue", label: "Faturação (s/IVA)", value: formatCurrency(revenue), icon: Euro, tone: "primary", hint: `${invoices} faturas${kpiYear ? ` em ${kpiYear}` : " (total)"}` },
       { key: "paid", label: "Recebido (c/IVA)", value: formatCurrency(paid), icon: Wallet, tone: paid > 0 ? "success" : "neutral", hint: "Montante pago registado nas faturas (inclui IVA)" },
       { key: "pending", label: "Pendente (c/IVA)", value: formatCurrency(pending), icon: Clock, tone: pending > 0.01 ? "warning" : "neutral" },
       {
@@ -482,12 +495,12 @@ export function CompaniesListIX() {
         hint: onlyOverdue ? "A filtrar" : "Clique para filtrar",
       },
       { key: "ticket", label: "Ticket médio (s/IVA)", value: formatCurrency(ticket), icon: Receipt, tone: "neutral", hint: "Faturação s/IVA ÷ nº de faturas" },
-      { key: "active", label: "Clientes ativos", value: String(active), icon: Users, tone: "neutral", hint: "com faturação a 12 meses" },
+      { key: "active", label: "Clientes ativos", value: String(active), icon: Users, tone: "neutral", hint: kpiYear ? `com faturação em ${kpiYear}` : "com faturação a 12 meses" },
       { key: "cycle_late", label: "Fora do ciclo de compra", value: String(late), icon: AlertTriangle, tone: late > 0 ? "danger" : "neutral", hint: "Sem comprar há mais de 30% do seu ciclo habitual" },
       { key: "cycle_due", label: "Em janela de recompra", value: String(due), icon: Clock, tone: due > 0 ? "warning" : "neutral", hint: "Já atingiram o ciclo médio" },
       { key: "value_drop", label: "Queda no valor", value: String(drop), icon: Receipt, tone: drop > 0 ? "warning" : "neutral", hint: "Última compra < 50% do ticket médio" },
     ].map((k) => ({ ...k, active: quick === k.key, onClick: () => toggleQuick(k.key) })) as ListKPI[];
-  }, [filtered, financialsById, onlyOverdue, quick]);
+  }, [filtered, financialsById, yearById, kpiYear, onlyOverdue, quick]);
 
   return (
     <DocumentListLayout
@@ -569,10 +582,24 @@ export function CompaniesListIX() {
         />
       }
     >
+      <div className="mb-3 flex items-center gap-2">
+        <label htmlFor="kpi-year" className="text-sm text-muted-foreground">Ano dos indicadores</label>
+        <select
+          id="kpi-year"
+          value={kpiYear ?? ""}
+          onChange={(e) => setKpiYear(e.target.value ? Number(e.target.value) : null)}
+          className="h-9 rounded-full border border-border bg-background px-3 text-sm text-foreground"
+        >
+          <option value="">Todos os anos</option>
+          {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
       <ListKPIStrip
         items={kpis}
-        isLoading={isLoading}
-        note="Valores calculados sobre os resultados filtrados."
+        isLoading={isLoading || yearLoading}
+        note={kpiYear
+          ? `Valores financeiros de faturas emitidas em ${kpiYear}, sobre os resultados filtrados. Indicadores de ciclo de compra usam todo o histórico.`
+          : "Valores calculados sobre os resultados filtrados (todo o histórico)."}
       />
 
       <EntityFacetChips facets={facets} />
