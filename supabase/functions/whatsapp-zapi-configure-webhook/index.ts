@@ -15,7 +15,8 @@ function jsonRes(body: Record<string, unknown>, status = 200) {
 }
 
 const WEBHOOK_TYPES = [
-  'message-received',
+  'received',
+  'delivery',
   'message-status',
   'connected',
   'disconnected',
