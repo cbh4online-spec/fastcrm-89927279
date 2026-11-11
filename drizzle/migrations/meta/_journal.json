@@ -960,6 +960,13 @@
       "when": 1794400000000,
       "tag": "0136_wascript_integration",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1794403185885,
+      "tag": "0137_wascript_connections",
+      "breakpoints": true
     }
   ]
 }
