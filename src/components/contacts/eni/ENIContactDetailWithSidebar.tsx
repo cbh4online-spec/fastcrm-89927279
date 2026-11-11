@@ -410,7 +410,7 @@ export function ENIContactDetailWithSidebar() {
               : tab === 'calls'
                 ? <CloudtalkCallHistory contactId={id!} />
                 : tab === 'whatsapp'
-                ? (<WascriptContactToolsGate phone={contact.phone} /> ?? null)
+                ? <WascriptContactToolsGate phone={contact.phone} />
                 : <EntityAutomationSection entityType="contact" entityId={id!} entityName={contact.name} />
             }
           </EntitySubTabs>
