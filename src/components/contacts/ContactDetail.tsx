@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { CloudtalkCallHistory } from "@/components/integrations/CloudtalkCallHistory";
+import { WascriptContactToolsGate } from "@/components/whatsapp-pro/WascriptContactToolsGate";
 import { useNavigate, useParams } from "react-router-dom";
 import { useContacts, Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
@@ -980,6 +981,7 @@ export function ContactDetail() {
               </Card>
 
               <CloudtalkCallHistory contactId={contact.id} />
+              <WascriptContactToolsGate phone={contact.phone} />
 
               {/* AI Field Suggestions */}
               <FieldSuggestionsPanel
