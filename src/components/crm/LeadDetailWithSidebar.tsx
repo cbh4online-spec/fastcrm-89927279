@@ -1,3 +1,4 @@
+import { UnifiedCallMenu } from "@/components/communications/UnifiedCallMenu";
 import { ZapiCallButton } from "@/components/whatsapp-pro/ZapiCallButton";
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { useCallback, useMemo, useState } from "react";
@@ -494,29 +495,15 @@ export function LeadDetailWithSidebar() {
           <div className="flex items-center gap-2">
             <EntityRecordPager navigation={leadNavigation} label="Lead" className="shrink-0" />
             {lead.phone && (
-              <>
-                <WhatsAppCallButton
-                  phone={lead.phone}
-                  entityType="lead"
-                  entityId={lead.id}
-                  entityName={lead.name}
-                />
-                <WhatsAppMessageButton
-                  phone={lead.phone}
-                  entityType="lead"
-                  entityId={lead.id}
-                  entityName={lead.name}
-                />
-              </>
+              <WhatsAppMessageButton
+                phone={lead.phone}
+                entityType="lead"
+                entityId={lead.id}
+                entityName={lead.name}
+                label="WhatsApp"
+              />
             )}
-            <CloudtalkCallButton phone={lead.phone} inHeader />
-            <ZapiCallButton phone={lead.phone} inHeader />
-            <GHLCallButton
-              entityType="lead"
-              entityId={lead.id}
-              entityName={lead.name}
-              phone={lead.phone}
-            />
+            <UnifiedCallMenu phone={lead.phone} entityType="lead" entityId={lead.id} entityName={lead.name} />
           </div>
         }
       />
