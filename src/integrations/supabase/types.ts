@@ -77742,6 +77742,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          phone: string | null
           sales_function: string | null
           status: string | null
           updated_at: string
@@ -77754,6 +77755,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           sales_function?: string | null
           status?: string | null
           updated_at?: string
@@ -77766,6 +77768,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           sales_function?: string | null
           status?: string | null
           updated_at?: string
@@ -112472,6 +112475,15 @@ export type Database = {
       update_user_status_admin: {
         Args: { p_status: string; p_user_id: string }
         Returns: Json
+      }
+      update_workspace_member_profile: {
+        Args: {
+          _email: string
+          _full_name: string
+          _member_id: string
+          _phone: string
+        }
+        Returns: undefined
       }
       update_workspace_member_role_admin: {
         Args: {
