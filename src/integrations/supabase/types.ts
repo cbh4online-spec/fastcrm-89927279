@@ -111148,6 +111148,18 @@ export type Database = {
           sales_2026: number
         }[]
       }
+      get_companies_financials_by_year: {
+        Args: { _workspace_id: string; _year: number }
+        Returns: {
+          company_id: string
+          gross_total: number
+          invoice_count: number
+          net_total: number
+          overdue_total: number
+          paid_total: number
+          pending_total: number
+        }[]
+      }
       get_composite_kit_stock: { Args: { _kit_id: string }; Returns: Json }
       get_entity_memory_stats: {
         Args: {
