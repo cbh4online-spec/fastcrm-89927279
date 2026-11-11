@@ -8,6 +8,8 @@ import { signWorkerRequest, verifyWorkerRequest } from "../_shared/sdr-engine/wo
 import { consumeWorkerDispatch, parseSdrBinding } from "../_shared/sdr-engine/transportGuard.ts";
 import { isMetaInstanceAllowed, toMetaRecipient, sendMetaText } from "../_shared/whatsappMetaOfficial.ts";
 import { phoneOptOutVariants } from "../_shared/phoneVariants.ts";
+import { toWascriptPhone, sendWascript, wascriptKind, fetchAsDataUri } from "../_shared/wascript.ts";
+import { findOrCreateWascriptConversation } from "../_shared/wascriptInbox.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -293,6 +295,67 @@ Deno.serve(async (req) => {
         await adminClient.from("conversations").update({
           last_message_at: now, last_message_preview: body.text!.slice(0, 100), last_message_direction: "outbound",
         }).eq("id", convId).eq("workspace_id", body.workspaceId);
+      }
+    } else if (provider === "wascript") {
+      // WAScript (WhatsApp Web): token por organização, guardado só no servidor.
+      const { data: wconn } = await adminClient.from("whatsapp_wascript_connections").select("api_token, status")
+        .eq("workspace_id", body.workspaceId).maybeSingle();
+      if (!wconn || wconn.status === "disconnected") {
+        return json({ error: "A WAScript não está ligada nesta organização.", code: "WASCRIPT_NOT_CONNECTED", fallback: true }, 200);
+      }
+      let phone = body.phone;
+      if (!phone && body.conversationId) {
+        const { data: conv } = await adminClient.from("conversations").select("external_thread_id")
+          .eq("id", body.conversationId).eq("workspace_id", body.workspaceId).maybeSingle();
+        phone = conv?.external_thread_id ?? "";
+      }
+      const to = toWascriptPhone(phone, String(instance.default_country_code ?? "+351").replace(/\D/g, "") || "351");
+      if (body.groupId) return json({ error: "A WAScript envia, por agora, só para contactos individuais.", code: "WASCRIPT_UNSUPPORTED", fallback: true }, 200);
+      if (!to) return json({ error: "Número inválido para WhatsApp.", code: "INVALID_RECIPIENT", fallback: true }, 200);
+      const variants = phoneOptOutVariants(to);
+      const { data: optouts, error: optErr } = await adminClient.from("whatsapp_optouts").select("id")
+        .eq("workspace_id", body.workspaceId).in("phone", variants.length ? variants : [to]).limit(1);
+      if (optErr || (optouts ?? []).length) {
+        return json({ error: "Este contacto pediu para não receber mensagens WhatsApp.", code: "OPTED_OUT" }, 200);
+      }
+      const textParts = [body.text?.trim(), body.ctaUrl ? `${body.ctaLabel ? body.ctaLabel + ": " : ""}${body.ctaUrl}` : null].filter(Boolean);
+      const text = textParts.join("\n\n").slice(0, 4096);
+      const kind = body.mediaUrl ? wascriptKind(body.messageType, body.mediaMimeType) : "texto";
+      let sent;
+      if (kind === "texto") {
+        if (!text) return json({ error: "Escreva uma mensagem.", code: "EMPTY_MESSAGE", fallback: true }, 200);
+        sent = await sendWascript(wconn.api_token, "texto", { phone: to, message: text });
+      } else {
+        const media = await fetchAsDataUri(body.mediaUrl!);
+        if ("error" in media) return json({ error: media.error, code: "WASCRIPT_MEDIA", fallback: true }, 200);
+        const payload: Record<string, unknown> = { phone: to, base64: media.dataUri };
+        if (kind === "documento") payload.name = (body.fileName || "documento").slice(0, 120);
+        if ((kind === "imagem" || kind === "video") && text) payload.message = text;
+        sent = await sendWascript(wconn.api_token, kind, payload);
+        if (sent.ok && kind !== "imagem" && kind !== "video" && text) {
+          await sendWascript(wconn.api_token, "texto", { phone: to, message: text });
+        }
+      }
+      if (!sent.ok) {
+        await adminClient.from("whatsapp_wascript_connections").update({ status: "error", last_error: sent.message, last_checked_at: new Date().toISOString() })
+          .eq("workspace_id", body.workspaceId);
+        return json({ error: sent.message, code: sent.code, fallback: true }, 200);
+      }
+      const now = new Date().toISOString();
+      const externalId = `wascript:out:${crypto.randomUUID()}`;
+      result = { success: true, providerMessageId: externalId };
+      const preview = text || (body.fileName ?? "Anexo");
+      const convId = await findOrCreateWascriptConversation(adminClient, {
+        workspaceId: body.workspaceId, phone: to, preview, direction: "outbound", at: now,
+        contactId: body.contactId ?? null, conversationId: body.conversationId ?? null,
+      });
+      if (convId) {
+        await adminClient.from("messages").insert({
+          workspace_id: body.workspaceId, conversation_id: convId, direction: "outbound", content: preview,
+          sender_id: senderUserId, sent_at: now, external_message_id: externalId,
+          attachments: body.mediaUrl ? [{ type: body.messageType, url: body.mediaUrl, name: body.fileName ?? null, mimeType: body.mediaMimeType ?? null }] : [],
+          metadata: { source: "wascript" },
+        });
       }
     } else {
       result = { success: false, error: `Provider ${provider} ainda não implementado server-side` };
