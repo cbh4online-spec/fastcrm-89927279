@@ -98,11 +98,12 @@ export function WascriptConnectionCard() {
 
               {s.offline ? (
                 <Alert variant="destructive"><AlertDescription className="text-xs">
-                  O WhatsApp Web ligado à WAScript está fechado. Abra o WhatsApp Web no computador com a extensão WAScript ativa e carregue em «Testar ligação». Até lá, não é possível enviar nem receber.
+                  O WhatsApp Web ligado à WAScript está fechado. Abra o WhatsApp Web no computador com a extensão WAScript ativa e carregue em «Testar agora». Até lá, não é possível enviar nem receber.
+                  <div className="mt-2"><Button size="sm" variant="outline" disabled={busy} onClick={() => run("test")}>Testar agora</Button></div>
                 </AlertDescription></Alert>
               ) : s.lastError && <Alert variant="destructive"><AlertDescription className="text-xs">{s.lastError}</AlertDescription></Alert>}
 
-              <WascriptContactTools />
+              {!s.offline && <WascriptContactTools />}
 
               {s.webhookUrl && (
                 <div className="space-y-2">
