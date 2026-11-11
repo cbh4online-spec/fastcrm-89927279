@@ -953,6 +953,13 @@
       "when": 1794399458071,
       "tag": "0135_companies_financials_by_year",
       "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1794400000000,
+      "tag": "0136_wascript_integration",
+      "breakpoints": true
     }
   ]
 }
