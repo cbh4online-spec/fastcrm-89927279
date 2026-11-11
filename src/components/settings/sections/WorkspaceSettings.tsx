@@ -113,6 +113,9 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const [editMemberDialogOpen, setEditMemberDialogOpen] = useState(false);
   const [deleteMemberDialogOpen, setDeleteMemberDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<WorkspaceMember | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
 
   // Form states - workspace info
   const [workspaceName, setWorkspaceName] = useState("");
@@ -282,8 +285,29 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const handleUpdateMemberRole = async () => {
     if (!selectedMember || !currentWorkspace) return;
 
+    if (!editName.trim()) { toast.error("O nome é obrigatório."); return; }
     setIsSubmitting(true);
     try {
+      const { error: profileError } = await supabase.rpc("update_workspace_member_profile", {
+        _member_id: selectedMember.id,
+        _full_name: editName.trim(),
+        _email: editEmail.trim(),
+        _phone: editPhone.trim(),
+      });
+      if (profileError) {
+        const msg = profileError.message || "";
+        const map: Record<string, string> = {
+          invalid_email: "Email inválido.",
+          invalid_phone: "Telefone inválido.",
+          invalid_name: "Nome inválido.",
+          email_in_use: "Este email já pertence a outro utilizador.",
+          permission_denied: "Sem permissão para editar este membro.",
+          cannot_edit_owner: "Não é possível editar o proprietário.",
+        };
+        const key = Object.keys(map).find((k) => msg.includes(k));
+        toast.error(key ? map[key] : "Erro ao atualizar dados do membro");
+        return;
+      }
       const { error } = await supabase
         .from("workspace_members")
         .update({ role: editRole, commercial_profile: editCommercialProfile })
@@ -301,7 +325,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
         payload: { member_id: selectedMember.id, new_role: editRole },
       });
 
-      toast.success("Cargo atualizado com sucesso");
+      toast.success("Membro atualizado com sucesso");
       refetchMembers();
       setEditMemberDialogOpen(false);
       setSelectedMember(null);
@@ -350,6 +374,9 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const openEditDialog = (member: WorkspaceMember) => {
     setSelectedMember(member);
     setEditRole(member.role);
+    setEditName(member.profile?.full_name || "");
+    setEditEmail(member.profile?.email || "");
+    setEditPhone(member.profile?.phone || "");
     setEditCommercialProfile(((member as any).commercial_profile as CommercialProfile) || "vendedor");
     setEditMemberDialogOpen(true);
   };
@@ -523,6 +550,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {member.profile?.email || "Sem email"}
+                          {member.profile?.phone ? ` · ${member.profile.phone}` : ""}
                         </p>
                       </div>
                     </div>
@@ -932,10 +960,23 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
           <DialogHeader>
             <DialogTitle>Editar Membro</DialogTitle>
             <DialogDescription>
-              Altere o cargo de {selectedMember?.profile?.full_name || "este membro"}.
+              Altere os dados e o cargo de {selectedMember?.profile?.full_name || "este membro"}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-member-name">Nome completo</Label>
+              <Input id="edit-member-name" value={editName} maxLength={120} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-member-email">Email de contacto</Label>
+              <Input id="edit-member-email" type="email" value={editEmail} maxLength={255} onChange={(e) => setEditEmail(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Não altera o email de início de sessão.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-member-phone">Telefone</Label>
+              <Input id="edit-member-phone" type="tel" placeholder="+351 912 345 678" value={editPhone} maxLength={25} onChange={(e) => setEditPhone(e.target.value)} />
+            </div>
             <div className="space-y-2">
               <Label>Cargo</Label>
               <Select value={editRole} onValueChange={(v) => setEditRole(v as WorkspaceRole)}>
