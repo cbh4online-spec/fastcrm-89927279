@@ -103282,6 +103282,74 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_wascript_connections: {
+        Row: {
+          api_token: string
+          connected_by: string | null
+          created_at: string
+          last_checked_at: string | null
+          last_error: string | null
+          last_inbound_at: string | null
+          status: string
+          updated_at: string
+          webhook_token: string
+          workspace_id: string
+        }
+        Insert: {
+          api_token: string
+          connected_by?: string | null
+          created_at?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_inbound_at?: string | null
+          status?: string
+          updated_at?: string
+          webhook_token?: string
+          workspace_id: string
+        }
+        Update: {
+          api_token?: string
+          connected_by?: string | null
+          created_at?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_inbound_at?: string | null
+          status?: string
+          updated_at?: string
+          webhook_token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_wascript_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_wascript_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_wascript_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_wascript_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_webhook_logs: {
         Row: {
           connection_id: string | null

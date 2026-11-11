@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         last_error: t.ok ? null : t.message, last_checked_at: now, connected_by: u.user.id, updated_at: now,
       };
       const { data: saved, error } = await admin.from("whatsapp_wascript_connections").upsert(row, { onConflict: "workspace_id" }).select("*").single();
-      if (error) return json({ error: "Não foi possível guardar a ligação." }, 200);
+      if (error) { console.error("[wascript-manage] save failed", error.code, error.message); return json({ error: "Não foi possível guardar a ligação." }, 200); }
       return json({ ...statusPayload(saved), warning: t.ok ? null : t.message });
     }
 
