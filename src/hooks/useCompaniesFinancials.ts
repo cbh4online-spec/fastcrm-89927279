@@ -75,3 +75,41 @@ export function useCompaniesFinancials() {
     error: query.error as Error | null,
   };
 }
+
+export interface CompanyYearFinancials {
+  invoice_count: number;
+  net_total: number;
+  paid_total: number;
+  pending_total: number;
+  overdue_total: number;
+}
+
+/** Totais por empresa limitados às faturas emitidas num ano civil. `year` null = desativado. */
+export function useCompaniesYearFinancials(year: number | null) {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+  const query = useQuery({
+    queryKey: ["companies-financials-year", workspaceId, year],
+    enabled: !!workspaceId && year != null,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_companies_financials_by_year", {
+        _workspace_id: workspaceId!,
+        _year: year!,
+      });
+      if (error) throw error;
+      const map = new Map<string, CompanyYearFinancials>();
+      for (const row of (data ?? []) as Record<string, unknown>[]) {
+        map.set(String(row.company_id), {
+          invoice_count: num(row.invoice_count),
+          net_total: num(row.net_total),
+          paid_total: num(row.paid_total),
+          pending_total: num(row.pending_total),
+          overdue_total: num(row.overdue_total),
+        });
+      }
+      return map;
+    },
+  });
+  return { yearById: query.data ?? null, isLoading: query.isLoading && year != null };
+}
