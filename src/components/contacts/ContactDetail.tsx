@@ -1,3 +1,4 @@
+import { ZapiCallButton } from "@/components/whatsapp-pro/ZapiCallButton";
 import { useState, useCallback } from "react";
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { CloudtalkCallHistory } from "@/components/integrations/CloudtalkCallHistory";
@@ -977,6 +978,7 @@ export function ContactDetail() {
                     </Button>
                   )}
                   <CloudtalkCallButton phone={contact.phone} />
+                  <ZapiCallButton phone={contact.phone} contactId={contact.id} />
                 </CardContent>
               </Card>
 

@@ -1,3 +1,4 @@
+import { ZapiCallButton } from "@/components/whatsapp-pro/ZapiCallButton";
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { useCallback, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -598,6 +599,7 @@ export function CompanyDetailWithSidebar() {
           <div className="flex shrink-0 items-center gap-2">
             <EntityRecordPager navigation={companyNavigation} label="Empresa" className="shrink-0" />
             <CloudtalkCallButton phone={company.phone} inHeader />
+            <ZapiCallButton phone={company.phone} inHeader />
             {company.phone && (
               <>
                 <WhatsAppCallButton

@@ -1,3 +1,4 @@
+import { ZapiCallButton } from "@/components/whatsapp-pro/ZapiCallButton";
 import { CloudtalkCallHistory } from "@/components/integrations/CloudtalkCallHistory";
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { WascriptContactToolsGate } from "@/components/whatsapp-pro/WascriptContactToolsGate";
@@ -688,6 +689,7 @@ export function ENIContactDetailWithSidebar() {
               </div>
             )}
             <CloudtalkCallButton phone={contact.phone} inHeader />
+            <ZapiCallButton phone={contact.phone} contactId={id} inHeader />
             <GHLCallButton
               entityType="contact"
               entityId={contact.id}
