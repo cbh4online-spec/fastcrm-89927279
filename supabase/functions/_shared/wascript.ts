@@ -11,7 +11,7 @@ export function toWascriptPhone(raw: string | null | undefined, defaultCc = "351
   return d;
 }
 
-export interface WascriptResult { ok: boolean; status: number; message: string; code?: string }
+export interface WascriptResult { ok: boolean; status: number; message: string; code?: string; body?: Record<string, unknown> }
 
 export function mapWascriptError(status: number, message?: string): { code: string; message: string } {
   if (status === 404) return { code: "WASCRIPT_TOKEN_INVALID", message: "O token da WAScript não é válido." };
@@ -25,9 +25,9 @@ async function call(path: string, token: string, init: RequestInit): Promise<Was
   const timer = setTimeout(() => ctrl.abort(), 25_000);
   try {
     const res = await fetch(`${WASCRIPT_BASE}/${path}/${encodeURIComponent(token)}`, { ...init, signal: ctrl.signal });
-    let body: { success?: boolean; message?: string } = {};
+    let body: { success?: boolean; message?: string; [k: string]: unknown } = {};
     try { body = await res.json(); } catch { /* corpo não JSON */ }
-    if (res.ok && body.success !== false) return { ok: true, status: res.status, message: body.message ?? "ok" };
+    if (res.ok && body.success !== false) return { ok: true, status: res.status, message: body.message ?? "ok", body };
     const m = mapWascriptError(res.status, body.message);
     return { ok: false, status: res.status, message: m.message, code: m.code };
   } catch (e) {
@@ -38,6 +38,52 @@ async function call(path: string, token: string, init: RequestInit): Promise<Was
 
 export function testWascript(token: string) {
   return call("listar-etiquetas", token, { method: "GET" });
+}
+
+export interface WascriptLabel { id: string; name: string; hexColor: string | null; count: number }
+
+/** Normaliza a resposta de «listar-etiquetas». */
+export function parseWascriptLabels(body: unknown): WascriptLabel[] {
+  const list = (body && typeof body === "object" ? (body as Record<string, unknown>).etiquetas : null);
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((e) => {
+    if (!e || typeof e !== "object") return [];
+    const o = e as Record<string, unknown>;
+    const id = str(o.id); if (!id) return [];
+    const hex = str(o.hexColor);
+    return [{ id, name: (str(o.name) ?? id).slice(0, 80), hexColor: hex && /^#[0-9a-fA-F]{3,8}$/.test(hex) ? hex : null, count: Number(o.count) || 0 }];
+  });
+}
+
+export async function listWascriptLabels(token: string): Promise<WascriptResult & { labels: WascriptLabel[] }> {
+  const r = await call("listar-etiquetas", token, { method: "GET" });
+  return { ...r, labels: r.ok ? parseWascriptLabels(r.body) : [] };
+}
+
+/** Corpo de «modificar-etiquetas»: telefones + ações add/remove (sem duplicados). */
+export function buildLabelActions(phone: string, add: string[], remove: string[]) {
+  const seen = new Set<string>();
+  const actions: { labelId: string; type: "add" | "remove" }[] = [];
+  for (const [ids, type] of [[add, "add"], [remove, "remove"]] as const) {
+    for (const id of ids) { const k = id.trim(); if (k && !seen.has(k)) { seen.add(k); actions.push({ labelId: k, type }); } }
+  }
+  return { phone: [phone], actions };
+}
+
+export function modifyWascriptLabels(token: string, phone: string, add: string[], remove: string[]) {
+  return call("modificar-etiquetas", token, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildLabelActions(phone, add, remove)),
+  });
+}
+
+export function createWascriptNote(token: string, phone: string, text: string) {
+  return call("criar-nota", token, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userID: phone, text: text.slice(0, 4000) }),
+  });
+}
+
+export function isWascriptOfflineError(lastError: string | null | undefined) {
+  return !!lastError && lastError === mapWascriptError(501).message;
 }
 
 export function sendWascript(token: string, kind: "texto" | "imagem" | "documento" | "audio" | "video", body: Record<string, unknown>) {
