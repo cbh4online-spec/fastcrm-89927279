@@ -3,7 +3,11 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useRenewalContract, useRenewalItems, useUpdateRenewalContract, useConfirmRenewal } from "@/hooks/useRenewals";
+import { useRenewalContract, useRenewalItems, useUpdateRenewalContract, useConfirmRenewal, useDeleteRenewalItem } from "@/hooks/useRenewals";
+import { EditRenewalItemDialog } from "@/components/renewals/EditRenewalItemDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
+import type { RenewalItem } from "@/types/renewal";
 import { useRenewalDiscounts } from "@/hooks/useRenewalDiscounts";
 import { useRenewalEvents } from "@/hooks/useRenewalEvents";
 import { useRenewalUsage } from "@/hooks/useRenewalUsage";
@@ -54,6 +58,9 @@ export default function RenewalDetailPage() {
   const confirmRenewal = useConfirmRenewal();
   const [showLogUsage, setShowLogUsage] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
+  const [editingItem, setEditingItem] = useState<RenewalItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<RenewalItem | null>(null);
+  const deleteItem = useDeleteRenewalItem();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -509,6 +516,7 @@ export default function RenewalDetailPage() {
                         <TableHead className="text-right">Preço Unit.</TableHead>
                         <TableHead>Renovação</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead className="w-24 text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -537,6 +545,14 @@ export default function RenewalDetailPage() {
                                 : "—"}
                             </TableCell>
                             <TableCell><span className={`text-xs font-medium ${itemStatus.color}`}>{itemStatus.label}</span></TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Editar ${item.name}`} onClick={() => setEditingItem(item)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label={`Remover ${item.name}`} onClick={() => setDeletingItem(item)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -654,6 +670,25 @@ export default function RenewalDetailPage() {
         {showAddItem && id && (
           <CreateRenewalItemDialog contractId={id} open={showAddItem} onOpenChange={setShowAddItem} />
         )}
+        {editingItem && (
+          <EditRenewalItemDialog key={editingItem.id} item={editingItem} open={!!editingItem} onOpenChange={(o) => !o && setEditingItem(null)} />
+        )}
+        <AlertDialog open={!!deletingItem} onOpenChange={(o) => !o && setDeletingItem(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover item?</AlertDialogTitle>
+              <AlertDialogDescription>
+                «{deletingItem?.name}» deixa de contar para o valor do contrato. Se só quer parar a renovação, edite o item e mude o estado para Cancelado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deletingItem && deleteItem.mutate({ id: deletingItem.id, contractId: deletingItem.contract_id }, { onSettled: () => setDeletingItem(null) })}
+              >Remover</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         {showPaymentDialog && (
           <RenewalPaymentDialog
             open={showPaymentDialog}
