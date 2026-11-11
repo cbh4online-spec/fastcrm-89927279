@@ -139,20 +139,30 @@ Deno.serve(async (req) => {
     if (action === "set_primary" || action === "disconnect") {
       const makePrimary = action === "set_primary" && parsed.data.primary !== false;
       if (makePrimary && conn.status === "disconnected") return json({ error: "Ligue primeiro a WAScript." }, 200);
-      if (inst) {
-        const meta = (inst.metadata ?? {}) as Record<string, unknown>;
-        if (makePrimary && inst.provider_name !== "wascript") {
-          await admin.from("whatsapp_provider_instances").update({
-            provider_name: "wascript", metadata: { ...meta, previous_provider: inst.provider_name },
-          }).eq("id", inst.id);
-        } else if (!makePrimary && inst.provider_name === "wascript") {
-          const prev = typeof meta.previous_provider === "string" && meta.previous_provider !== "wascript" ? meta.previous_provider : "zapi";
-          await admin.from("whatsapp_provider_instances").update({ provider_name: prev }).eq("id", inst.id);
+      // Nunca reescrever o tipo de outra linha (ex.: linha oficial Meta). Cada fornecedor tem a sua linha;
+      // ser principal = ser a única linha ativa.
+      const { data: wRow } = await admin.from("whatsapp_provider_instances").select("id, metadata, active")
+        .eq("workspace_id", workspaceId).eq("provider_name", "wascript").order("created_at", { ascending: true }).limit(1).maybeSingle();
+      if (makePrimary && inst?.provider_name !== "wascript") {
+        const prevId = inst?.id ?? null;
+        let wId = wRow?.id;
+        if (!wId) {
+          const { data: created } = await admin.from("whatsapp_provider_instances").insert({
+            workspace_id: workspaceId, provider_name: "wascript", display_name: "WAScript (WhatsApp Web)", active: false,
+            metadata: { previous_instance_id: prevId },
+          }).select("id").single();
+          wId = created?.id;
+        } else {
+          await admin.from("whatsapp_provider_instances").update({ metadata: { ...((wRow.metadata ?? {}) as Record<string, unknown>), previous_instance_id: prevId } }).eq("id", wId);
         }
-      } else if (makePrimary) {
-        await admin.from("whatsapp_provider_instances").insert({
-          workspace_id: workspaceId, provider_name: "wascript", display_name: "FastCRM WhatsApp Pro", active: true,
-        });
+        await admin.from("whatsapp_provider_instances").update({ active: false }).eq("workspace_id", workspaceId).neq("id", wId!);
+        await admin.from("whatsapp_provider_instances").update({ active: true }).eq("id", wId!);
+      } else if (!makePrimary && wRow?.active) {
+        const prevId = (wRow.metadata as Record<string, unknown> | null)?.previous_instance_id;
+        await admin.from("whatsapp_provider_instances").update({ active: false }).eq("id", wRow.id);
+        if (typeof prevId === "string") {
+          await admin.from("whatsapp_provider_instances").update({ active: true }).eq("id", prevId).eq("workspace_id", workspaceId);
+        }
       }
       if (action === "disconnect") {
         await admin.from("whatsapp_wascript_connections").update({ status: "disconnected", updated_at: new Date().toISOString() })
