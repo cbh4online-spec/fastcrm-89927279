@@ -1,3 +1,4 @@
+import { ZapiCallButton } from "@/components/whatsapp-pro/ZapiCallButton";
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { useCallback, useMemo, useState } from "react";
 import { socialMessageUrl } from '@/lib/social/socialProfiles';
@@ -509,6 +510,7 @@ export function LeadDetailWithSidebar() {
               </>
             )}
             <CloudtalkCallButton phone={lead.phone} inHeader />
+            <ZapiCallButton phone={lead.phone} inHeader />
             <GHLCallButton
               entityType="lead"
               entityId={lead.id}
