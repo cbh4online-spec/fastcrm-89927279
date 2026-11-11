@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Copy, Loader2, RefreshCw, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { useWascript } from "@/hooks/useWascript";
+import { useWascript, useWascriptSamples } from "@/hooks/useWascript";
+import { WascriptContactTools } from "@/components/whatsapp-pro/WascriptContactTools";
 
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" }) : "—");
 
@@ -17,6 +18,8 @@ export function WascriptConnectionCard() {
   const [token, setToken] = useState("");
   const s = status.data;
   const busy = mutate.isPending;
+  const [showSamples, setShowSamples] = useState(false);
+  const samples = useWascriptSamples(showSamples && !!s?.webhookUrl);
 
   const run = (action: Parameters<typeof mutate.mutate>[0]["action"], extra?: Record<string, unknown>, okMsg?: string) =>
     mutate.mutate({ action, extra }, {
@@ -31,6 +34,7 @@ export function WascriptConnectionCard() {
 
   const badge = !s || s.status === "disconnected"
     ? <Badge variant="secondary">Não ligada</Badge>
+    : s.offline ? <Badge variant="destructive">WhatsApp Web fechado</Badge>
     : s.status === "error" ? <Badge variant="destructive">Com erro</Badge> : <Badge>Ligada</Badge>;
 
   return (
@@ -92,7 +96,35 @@ export function WascriptConnectionCard() {
                   onCheckedChange={(v) => run("set_primary", { primary: v }, v ? "Envios passam pela WAScript." : "Envios voltaram ao fornecedor anterior.")} />
               </div>
 
-              {s.lastError && <Alert variant="destructive"><AlertDescription className="text-xs">{s.lastError}</AlertDescription></Alert>}
+              {s.offline ? (
+                <Alert variant="destructive"><AlertDescription className="text-xs">
+                  O WhatsApp Web ligado à WAScript está fechado. Abra o WhatsApp Web no computador com a extensão WAScript ativa e carregue em «Testar ligação». Até lá, não é possível enviar nem receber.
+                </AlertDescription></Alert>
+              ) : s.lastError && <Alert variant="destructive"><AlertDescription className="text-xs">{s.lastError}</AlertDescription></Alert>}
+
+              <WascriptContactTools />
+
+              {s.webhookUrl && (
+                <div className="space-y-2">
+                  <Button size="sm" variant="ghost" onClick={() => setShowSamples((v) => !v)}>
+                    {showSamples ? "Esconder mensagens recebidas em bruto" : "Ver últimas mensagens recebidas em bruto"}
+                  </Button>
+                  {showSamples && (samples.isLoading ? <p className="text-xs text-muted-foreground" role="status">A carregar…</p>
+                    : samples.isError ? <p className="text-xs text-destructive">{(samples.error as Error).message}</p>
+                    : !samples.data?.length ? <p className="text-xs text-muted-foreground">Ainda não chegou nenhuma mensagem. Envie uma mensagem para o número ligado.</p>
+                    : (
+                      <div className="max-h-64 overflow-auto space-y-2">
+                        {samples.data.map((x, i) => (
+                          <div key={i} className="rounded-md border p-2">
+                            <div className="text-[10px] text-muted-foreground">{fmt(x.at)}</div>
+                            <pre className="text-[10px] whitespace-pre-wrap break-all">{JSON.stringify(x.payload, null, 2).slice(0, 3000)}</pre>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  <p className="text-[11px] text-muted-foreground">Serve para confirmar que nome, número e texto chegam corretamente (visível só a gestores).</p>
+                </div>
+              )}
 
               <div className="grid gap-2 sm:grid-cols-2 text-xs">
                 <div className="rounded-md border px-3 py-2"><div className="text-[10px] uppercase text-muted-foreground">Última verificação</div>{fmt(s.lastCheckedAt)}</div>

@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
     const { data: isSuper } = await userClient.rpc("is_super_admin", { _user_id: u.user.id });
     const isManager = ["owner", "admin", "agency"].includes(member?.role ?? "");
     if (!member && !isSuper) return json({ error: "Sem acesso a esta organização." }, 403);
+    const userId = u.user.id;
     const memberActions = ["status", "labels_list", "labels_modify", "note_create"];
     if (!memberActions.includes(action) && !isManager && !isSuper) return json({ error: "Só proprietários e administradores podem alterar a ligação." }, 403);
 
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
     };
     const audit = async (what: string, data: Record<string, unknown>) => {
       try {
-        await admin.from("activity_logs").insert({ workspace_id: workspaceId, user_id: u.user.id, table_name: "whatsapp_wascript", action: what, new_data: data, module: "whatsapp" });
+        await admin.from("activity_logs").insert({ workspace_id: workspaceId, user_id: userId, table_name: "whatsapp_wascript", action: what, new_data: data, module: "whatsapp" });
       } catch { /* noop */ }
     };
 
