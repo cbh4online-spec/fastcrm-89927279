@@ -341,6 +341,8 @@ Deno.serve(async (req) => {
           .eq("workspace_id", body.workspaceId);
         return json({ error: sent.message, code: sent.code, fallback: true }, 200);
       }
+      await adminClient.from("whatsapp_wascript_connections").update({ status: "connected", last_error: null })
+        .eq("workspace_id", body.workspaceId).eq("status", "error");
       const now = new Date().toISOString();
       const externalId = `wascript:out:${crypto.randomUUID()}`;
       result = { success: true, providerMessageId: externalId };

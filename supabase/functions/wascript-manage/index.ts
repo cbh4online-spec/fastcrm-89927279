@@ -2,10 +2,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
-import { testWascript } from "../_shared/wascript.ts";
+import { testWascript, listWascriptLabels, modifyWascriptLabels, createWascriptNote, toWascriptPhone, isWascriptOfflineError } from "../_shared/wascript.ts";
 
 const Body = z.object({
-  action: z.enum(["status", "save", "test", "set_primary", "disconnect", "rotate_webhook"]),
+  action: z.enum(["status", "save", "test", "set_primary", "disconnect", "rotate_webhook", "labels_list", "labels_modify", "note_create", "samples"]),
+  phone: z.string().trim().min(6).max(40).optional(),
+  addLabels: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+  removeLabels: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+  text: z.string().trim().min(1).max(4000).optional(),
   workspaceId: z.string().uuid(),
   apiToken: z.string().trim().min(8).max(300).optional(),
   primary: z.boolean().optional(),
@@ -33,7 +37,8 @@ Deno.serve(async (req) => {
     const { data: isSuper } = await userClient.rpc("is_super_admin", { _user_id: u.user.id });
     const isManager = ["owner", "admin", "agency"].includes(member?.role ?? "");
     if (!member && !isSuper) return json({ error: "Sem acesso a esta organização." }, 403);
-    if (action !== "status" && !isManager && !isSuper) return json({ error: "Só proprietários e administradores podem alterar a ligação." }, 403);
+    const memberActions = ["status", "labels_list", "labels_modify", "note_create"];
+    if (!memberActions.includes(action) && !isManager && !isSuper) return json({ error: "Só proprietários e administradores podem alterar a ligação." }, 403);
 
     const webhookUrl = (token: string) => `${url}/functions/v1/wascript-webhook?t=${token}`;
     const { data: conn } = await admin.from("whatsapp_wascript_connections").select("*").eq("workspace_id", workspaceId).maybeSingle();
@@ -48,6 +53,7 @@ Deno.serve(async (req) => {
       lastInboundAt: c?.last_inbound_at ?? null,
       webhookUrl: c && isManager || c && isSuper ? webhookUrl(c.webhook_token) : null,
       isPrimary: inst?.provider_name === "wascript",
+      offline: isWascriptOfflineError(c?.last_error),
     });
 
     if (action === "status") return json(statusPayload(conn));
@@ -67,6 +73,52 @@ Deno.serve(async (req) => {
     }
 
     if (!conn) return json({ error: "A WAScript ainda não está ligada nesta organização." }, 200);
+
+    const markResult = async (t: { ok: boolean; message: string; code?: string }) => {
+      if (t.code === "WASCRIPT_OFFLINE" || t.code === "WASCRIPT_TOKEN_INVALID") {
+        await admin.from("whatsapp_wascript_connections").update({ status: "error", last_error: t.message, last_checked_at: new Date().toISOString() }).eq("workspace_id", workspaceId);
+      } else if (t.ok && conn.status === "error") {
+        await admin.from("whatsapp_wascript_connections").update({ status: "connected", last_error: null, last_checked_at: new Date().toISOString() }).eq("workspace_id", workspaceId);
+      }
+    };
+    const audit = async (what: string, data: Record<string, unknown>) => {
+      try {
+        await admin.from("activity_logs").insert({ workspace_id: workspaceId, user_id: u.user.id, table_name: "whatsapp_wascript", action: what, new_data: data, module: "whatsapp" });
+      } catch { /* noop */ }
+    };
+
+    if (action === "labels_list") {
+      const r = await listWascriptLabels(conn.api_token);
+      await markResult(r);
+      return json(r.ok ? { labels: r.labels } : { error: r.message, code: r.code });
+    }
+
+    if (action === "labels_modify" || action === "note_create") {
+      const phone = toWascriptPhone(parsed.data.phone);
+      if (!phone) return json({ error: "Número de telefone inválido." }, 400);
+      if (action === "labels_modify") {
+        const add = parsed.data.addLabels ?? []; const remove = parsed.data.removeLabels ?? [];
+        if (!add.length && !remove.length) return json({ error: "Escolha pelo menos uma etiqueta." }, 400);
+        const r = await modifyWascriptLabels(conn.api_token, phone, add, remove);
+        await markResult(r);
+        if (!r.ok) return json({ error: r.message, code: r.code });
+        await audit("wascript_labels_modify", { phone, add, remove });
+        return json({ ok: true, message: "Etiquetas atualizadas no WhatsApp." });
+      }
+      if (!parsed.data.text) return json({ error: "Escreva a nota." }, 400);
+      const r = await createWascriptNote(conn.api_token, phone, parsed.data.text);
+      await markResult(r);
+      if (!r.ok) return json({ error: r.message, code: r.code });
+      await audit("wascript_note_create", { phone, length: parsed.data.text.length });
+      return json({ ok: true, message: "Nota criada no WhatsApp." });
+    }
+
+    if (action === "samples") {
+      const { data: rows } = await admin.from("provider_request_logs").select("created_at, request_payload")
+        .eq("workspace_id", workspaceId).eq("provider_name", "wascript").eq("direction", "inbound")
+        .order("created_at", { ascending: false }).limit(20);
+      return json({ samples: (rows ?? []).map((r) => ({ at: r.created_at, payload: r.request_payload })) });
+    }
 
     if (action === "test") {
       const t = await testWascript(conn.api_token);
