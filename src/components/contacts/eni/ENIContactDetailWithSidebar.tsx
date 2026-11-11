@@ -1,5 +1,6 @@
 import { CloudtalkCallHistory } from "@/components/integrations/CloudtalkCallHistory";
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
+import { WascriptContactToolsGate } from "@/components/whatsapp-pro/WascriptContactToolsGate";
 import { ContactEssentialsCard } from "./ContactEssentialsCard";
 import { useWhatsAppStopSignals } from "@/hooks/useWhatsAppStopSignals";
 import { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
@@ -401,12 +402,15 @@ export function ENIContactDetailWithSidebar() {
               { id: 'tasks', label: 'Tarefas' },
               { id: 'automations', label: 'Automações' },
               { id: 'calls', label: 'Chamadas' },
+              { id: 'whatsapp', label: 'WhatsApp' },
             ]}
           >
             {(tab) => tab === 'tasks'
               ? <EntityTasksSection entityType="contact" entityId={id!} entityName={contact.name} />
               : tab === 'calls'
                 ? <CloudtalkCallHistory contactId={id!} />
+                : tab === 'whatsapp'
+                ? <WascriptContactToolsGate phone={contact.phone} />
                 : <EntityAutomationSection entityType="contact" entityId={id!} entityName={contact.name} />
             }
           </EntitySubTabs>

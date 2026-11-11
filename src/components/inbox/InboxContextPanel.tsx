@@ -34,6 +34,7 @@ import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { WascriptContactToolsGate } from "@/components/whatsapp-pro/WascriptContactToolsGate";
 
 interface InboxContextPanelProps {
   conversationId: string | null;
@@ -395,6 +396,7 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
         <TabsContent value="actions" className="flex-1 m-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-3 space-y-2">
+              {conversation?.channel === "whatsapp" && <WascriptContactToolsGate phone={displayPhone} />}
               <Button
                 variant="outline"
                 size="sm"
