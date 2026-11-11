@@ -45,6 +45,7 @@ import {
 } from "@/hooks/useWhatsAppPro";
 import { useWhatsAppZapiConnection } from "@/hooks/useWhatsAppZapiConnection";
 import { WhatsAppProviderConfigCard } from "@/components/whatsapp-pro/WhatsAppProviderConfigCard";
+import { WascriptConnectionCard } from "@/components/whatsapp-pro/WascriptConnectionCard";
 import { WhatsAppWebhookLogsTable } from "@/components/whatsapp-pro/WhatsAppWebhookLogsTable";
 import { WhatsAppSimulateInboundCard } from "@/components/whatsapp-pro/WhatsAppSimulateInboundCard";
 import { WhatsAppPaymentMessageCard } from "@/components/whatsapp-pro/WhatsAppPaymentMessageCard";
@@ -473,6 +474,7 @@ export default function WhatsAppPro() {
           </TabsContent>
 
           <TabsContent value="config" className="space-y-4">
+            <WascriptConnectionCard />
             <WhatsAppProviderConfigCard />
             <WhatsAppPaymentMessageCard />
             <Card className="p-4 space-y-3">
