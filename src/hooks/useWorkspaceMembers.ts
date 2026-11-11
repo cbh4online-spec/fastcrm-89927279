@@ -11,6 +11,7 @@ export interface WorkspaceMember {
   profile?: {
     full_name: string | null;
     email: string | null;
+    phone?: string | null;
     avatar_url: string | null;
   } | null;
 }
@@ -37,7 +38,7 @@ export function useWorkspaceMembers() {
       const userIds = members.map((m) => m.user_id);
       const { data: profiles } = await workspaceClient
         .from("profiles")
-        .select("user_id, full_name, email, avatar_url")
+        .select("user_id, full_name, email, phone, avatar_url")
         .in("user_id", userIds);
 
       // Map profiles to members
