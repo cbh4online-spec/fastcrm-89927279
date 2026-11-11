@@ -1,3 +1,4 @@
+import { UnifiedCallMenu } from "@/components/communications/UnifiedCallMenu";
 import { ZapiCallButton } from "@/components/whatsapp-pro/ZapiCallButton";
 import { CloudtalkCallHistory } from "@/components/integrations/CloudtalkCallHistory";
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
@@ -673,13 +674,8 @@ export function ENIContactDetailWithSidebar() {
             <EntityRecordPager navigation={contactNavigation} label="Contacto" className="shrink-0" />
             {contact.phone && whatsappState.canOpen && (
               <div className="hidden md:contents">
-                <WhatsAppCallButton
-                  phone={contact.phone}
-                  entityType="contact"
-                  entityId={contact.id}
-                  entityName={contact.name}
-                />
                 <WhatsAppMessageButton
+                  label="WhatsApp"
                   phone={contact.phone}
                   entityType="contact"
                   entityId={contact.id}
@@ -688,14 +684,7 @@ export function ENIContactDetailWithSidebar() {
                 />
               </div>
             )}
-            <CloudtalkCallButton phone={contact.phone} inHeader />
-            <ZapiCallButton phone={contact.phone} contactId={id} inHeader />
-            <GHLCallButton
-              entityType="contact"
-              entityId={contact.id}
-              entityName={contact.name}
-              phone={contact.phone}
-            />
+            <UnifiedCallMenu phone={contact.phone} entityType="contact" entityId={contact.id} entityName={contact.name} contactId={id} />
             {isActionVisible('action', 'new-invoice') && (
               <Button onClick={() => setShowInvoiceDialog(true)} className="gap-2">
                 <FileText className="w-4 h-4" />
