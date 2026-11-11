@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     await admin.from("activity_logs").insert({
       workspace_id: p.workspaceId, user_id: userId, table_name: "whatsapp_zapi_call", action: "call_ended",
       record_id: started.record_id, module: "whatsapp",
-      new_data: { ...(started.new_data as Record<string, unknown>), started_log_id: started.id, duration_seconds: p.durationSeconds ?? 0, outcome: p.outcome ?? "answered", notes: p.notes ?? null },
+      new_data: { ...(started.new_data as Record<string, unknown>), started_log_id: started.id, duration_seconds: p.durationSeconds ?? 0, outcome: p.outcome ?? null, notes: p.notes ?? null },
     });
     return json({ ok: true });
   } catch (e) {
