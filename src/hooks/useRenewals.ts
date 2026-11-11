@@ -198,6 +198,8 @@ export function useUpdateRenewalItem() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["renewal-items", data.contract_id] });
+      queryClient.invalidateQueries({ queryKey: ["renewal-contract"] });
+      queryClient.invalidateQueries({ queryKey: ["renewal-contracts"] });
       toast.success("Item atualizado");
     },
     onError: () => toast.error("Erro ao atualizar item"),
@@ -222,6 +224,8 @@ export function useDeleteRenewalItem() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["renewal-items", data.contractId] });
+      queryClient.invalidateQueries({ queryKey: ["renewal-contract"] });
+      queryClient.invalidateQueries({ queryKey: ["renewal-contracts"] });
       toast.success("Item removido");
     },
     onError: () => toast.error("Erro ao remover item"),
