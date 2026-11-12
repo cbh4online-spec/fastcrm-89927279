@@ -358,6 +358,7 @@ export function ProposalDetailContent({
         validityDays: proposal.validity_days || 30,
         notes: proposal.notes || "",
         currency: proposal.currency || "EUR",
+        priceDisplay: ((proposal.styles as any)?.price_display === "total_only" ? "total_only" : "detailed"),
       });
 
       // Initialize new section data from JSONB columns
@@ -441,6 +442,7 @@ export function ProposalDetailContent({
           validity_days: conditionsData.validityDays,
           notes: conditionsData.notes || null,
           currency: conditionsData.currency,
+          styles: { ...((proposal.styles as any) || {}), price_display: conditionsData.priceDisplay || "detailed" } as any,
           scope_data: JSON.parse(JSON.stringify(scopeData)) as any,
           timeline_data: JSON.parse(JSON.stringify(timelineData.phases)) as any,
           references_data: JSON.parse(JSON.stringify(referencesData)) as any,

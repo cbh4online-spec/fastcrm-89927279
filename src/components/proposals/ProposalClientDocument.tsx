@@ -128,6 +128,7 @@ export function ProposalClientDocument({
     : null;
   
   // Calculate totals only for enabled items
+  const totalOnly = (proposal.styles as any)?.price_display === "total_only";
   const enabledItems = items.filter(item => item.is_enabled !== false);
   const itemsTotal = enabledItems.reduce((sum, item) => sum + item.total_price, 0);
   const vatRate = 0.23; // 23% IVA
@@ -513,10 +514,10 @@ export function ProposalClientDocument({
                       <TableHead className="w-[7%] text-gray-600">Incluir</TableHead>
                     )}
                     <TableHead className="w-[5%] text-gray-600">#</TableHead>
-                    <TableHead className={cn(allowItemToggle ? "w-[47%]" : "w-[55%]", "text-gray-600")}>Item</TableHead>
-                    <TableHead className="w-[13%] text-right text-gray-600">Preço</TableHead>
-                    <TableHead className="w-[8%] text-center text-gray-600">Qtd</TableHead>
-                    <TableHead className="w-[12%] text-right text-gray-600">Total</TableHead>
+                    <TableHead className={cn(totalOnly ? (allowItemToggle ? "w-[73%]" : "w-[80%]") : (allowItemToggle ? "w-[47%]" : "w-[55%]"), "text-gray-600")}>Item</TableHead>
+                    {!totalOnly && <TableHead className="w-[13%] text-right text-gray-600">Preço</TableHead>}
+                    <TableHead className={cn(totalOnly ? "w-[15%]" : "w-[8%]", "text-center text-gray-600")}>Qtd</TableHead>
+                    {!totalOnly && <TableHead className="w-[12%] text-right text-gray-600">Total</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -579,21 +580,25 @@ export function ProposalClientDocument({
                               </div>
                             </div>
                           </TableCell>
+                          {!totalOnly && (
                           <TableCell className={cn("text-right text-gray-700 text-xs py-2", !isEnabled && "line-through text-gray-400")}>
                             {formatCurrency(item.unit_price, proposal.currency)}
                           </TableCell>
+                          )}
                           <TableCell className={cn("text-center text-gray-700 text-xs py-2", !isEnabled && "line-through text-gray-400")}>
                             {item.quantity}
                           </TableCell>
+                          {!totalOnly && (
                           <TableCell className={cn("text-right font-medium text-gray-900 text-xs py-2", !isEnabled && "line-through text-gray-400")}>
                             {formatCurrency(item.total_price, proposal.currency)}
                           </TableCell>
+                          )}
                         </TableRow>
                       );
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={allowItemToggle ? 6 : 5} className="text-center text-gray-500 py-8">
+                      <TableCell colSpan={(allowItemToggle ? 6 : 5) - (totalOnly ? 2 : 0)} className="text-center text-gray-500 py-8">
                         {proposal.title}
                         {proposal.price && (
                           <p className="mt-2 font-semibold text-lg">

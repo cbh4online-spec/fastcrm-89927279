@@ -26,6 +26,7 @@ export interface ConditionsData {
   validityDays: number;
   notes: string;
   currency: string;
+  priceDisplay?: "detailed" | "total_only";
   isAIGenerated?: boolean;
 }
 
@@ -117,6 +118,22 @@ export function ProposalConditionsSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Apresentação dos valores</Label>
+            <Select
+              value={data.priceDisplay || "detailed"}
+              onValueChange={(value) => onChange({ ...data, priceDisplay: value as "detailed" | "total_only" })}
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="detailed">Linha a linha (preço de cada item)</SelectItem>
+                <SelectItem value="total_only">Apenas o total (itens sem preço)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
