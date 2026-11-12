@@ -45,7 +45,7 @@ export function ProductSelector({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -70,8 +70,12 @@ export function ProductSelector({
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Pesquisar produtos..." />
-          <CommandList>
+          <CommandInput placeholder="Pesquisar produtos..." autoFocus />
+          <CommandList
+            className="max-h-[300px] overflow-y-auto overscroll-contain"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             {isLoading ? (
               <div className="p-4 text-center">
                 <Loader2 className="h-4 w-4 animate-spin mx-auto" />
@@ -83,7 +87,7 @@ export function ProductSelector({
                   {products?.map((product) => (
                     <CommandItem
                       key={product.id}
-                      value={`${product.name} ${product.category || ""}`}
+                      value={`${product.name} ${product.sku || ""} ${product.category || ""} ${product.id}`}
                       onSelect={() => {
                         onSelect(product.id === value ? null : product);
                         setOpen(false);
