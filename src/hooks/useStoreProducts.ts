@@ -144,7 +144,7 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
       const variantMatches = await findVariantReferences(workspaceId, normalizedSearch);
       let query = supabase
         .from("products")
-        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
+        .select("id, store_slug, name, product_type, category, base_price, tax_included, tax_rate_estimate_pct, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
         .eq("ai_commerce_gate_blocked", false)
@@ -200,7 +200,7 @@ export interface InfiniteStoreProductsOptions extends UseStoreProductsOptions {
   brands?: string[];
 }
 
-const FULL_SELECT = "id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, brand";
+const FULL_SELECT = "id, store_slug, name, product_type, category, base_price, tax_included, tax_rate_estimate_pct, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, barcode, saft_product_code, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, brand";
 
 /**
  * Catálogo paginado. Constrói primeiro um índice leve de TODO o catálogo que
@@ -314,7 +314,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
 
       let query = supabase
         .from("products")
-        .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata, seo_title, seo_description, schema_type, canonical_url")
+        .select("id, store_slug, name, product_type, category, base_price, tax_included, tax_rate_estimate_pct, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata, seo_title, seo_description, schema_type, canonical_url")
         .eq("store_published", true)
         .eq("ai_commerce_gate_blocked", false)
         .eq("status", "active");
@@ -335,7 +335,7 @@ export function useStoreProduct(productIdOrSlug: string | undefined, workspaceId
       if (!UUID_RE.test(productIdOrSlug) && productIdOrSlug.length >= 8) {
         let fallback = supabase
           .from("products")
-          .select("id, store_slug, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata, seo_title, seo_description, schema_type, canonical_url")
+          .select("id, store_slug, name, product_type, category, base_price, tax_included, tax_rate_estimate_pct, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition, price_on_request, compare_at_price, promo_start_at, promo_end_at, promo_label, lowest_price_30d, metadata, seo_title, seo_description, schema_type, canonical_url")
           .eq("store_published", true)
         .eq("ai_commerce_gate_blocked", false)
           .eq("status", "active")

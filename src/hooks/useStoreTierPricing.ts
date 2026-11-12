@@ -118,8 +118,10 @@ export function getStorePrice(
   basePrice: number,
   productId: string,
   tierPricing?: StoreTierPricing | null,
-  product?: { compare_at_price?: number | null; promo_start_at?: string | null; promo_end_at?: string | null; promo_label?: string | null; lowest_price_30d?: number | null }
+  product?: { compare_at_price?: number | null; promo_start_at?: string | null; promo_end_at?: string | null; promo_label?: string | null; lowest_price_30d?: number | null; tax_included?: boolean | null; tax_rate_estimate_pct?: number | null }
 ): StorePriceResult {
+  // Loja B2C mostra preços finais: produtos guardados sem IVA recebem o IVA do artigo.
+  if (!(tierPricing?.isB2B) && product) basePrice = storeGrossPrice(basePrice, product);
   // B2B tier pricing takes priority
   if (tierPricing?.isB2B && tierPricing.tier) {
     const tierPrice = tierPricing.tierPrices.get(productId);
@@ -159,4 +161,12 @@ export function getStorePrice(
   }
 
   return { price: basePrice, isDiscounted: false };
+}
+
+/** Preço final c/ IVA para a loja (espelhado em _shared/store-pricing.ts). */
+export function storeGrossPrice(price: number, p: { tax_included?: boolean | null; tax_rate_estimate_pct?: number | null }): number {
+  const v = Number(price) || 0;
+  if (p.tax_included !== false) return v;
+  const rate = Number(p.tax_rate_estimate_pct ?? 23) || 0;
+  return rate > 0 ? Math.round(v * (1 + rate / 100) * 100) / 100 : v;
 }

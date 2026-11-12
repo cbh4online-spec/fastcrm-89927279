@@ -79,6 +79,14 @@ const log = (msg: string, data?: unknown) =>
 /*  resolveStoreProducts                                               */
 /* ------------------------------------------------------------------ */
 
+/** Preço final c/ IVA (espelha storeGrossPrice em useStoreTierPricing.ts). */
+export function storeGrossPrice(p: { base_price: number; tax_included?: boolean | null; tax_rate_estimate_pct?: number | null }): number {
+  const v = Number(p.base_price) || 0;
+  if (p.tax_included !== false) return v;
+  const rate = Number(p.tax_rate_estimate_pct ?? 23) || 0;
+  return rate > 0 ? Math.round(v * (1 + rate / 100) * 100) / 100 : v;
+}
+
 export function availableToSell(p: {
   track_stock?: boolean | null;
   stock_quantity?: number | null;
@@ -99,7 +107,7 @@ export async function resolveStoreProducts(
   const { data: products, error } = await supabase
     .from("products")
     .select(
-      "id, name, base_price, currency, sku, short_description, images, primary_image_index, stock_quantity, stock_reserved, track_stock, stock_status, weight, billing_type, billing_frequency, category_id:store_category_id",
+      "id, name, base_price, tax_included, tax_rate_estimate_pct, currency, sku, short_description, images, primary_image_index, stock_quantity, stock_reserved, track_stock, stock_status, weight, billing_type, billing_frequency, category_id:store_category_id",
     )
     .eq("workspace_id", workspaceId)
     .eq("store_published", true)
@@ -134,7 +142,7 @@ export async function resolveStoreProducts(
       product_id: p.id,
       name: p.name,
       quantity: item.quantity,
-      unit_price: p.base_price,
+      unit_price: storeGrossPrice(p as any),
       sku: p.sku,
       category_id: p.category_id ?? null,
     };
