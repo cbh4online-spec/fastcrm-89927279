@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,6 +36,23 @@ export function RenewalPaymentDialog({
   const prefKey = (k: string) => `renewal-pay:${currentWorkspace?.id ?? "x"}:${k}`;
   const [revolutRaw, setRevolutRaw] = useState(() => safeStorageGet("local", prefKey("revolut")) || "");
   const [mbwayPhone, setMbwayPhone] = useState(() => safeStorageGet("local", prefKey("mbway")) || "");
+  const [title, setTitle] = useState(() => safeStorageGet("local", prefKey(`title:${contract.id}`)) || "Pagamento da renovação");
+  // Guardar automaticamente ao escrever
+  useEffect(() => { safeStorageSet("local", prefKey("revolut"), revolutRaw.trim()); }, [revolutRaw]);
+  useEffect(() => { safeStorageSet("local", prefKey("mbway"), mbwayPhone.trim()); }, [mbwayPhone]);
+  useEffect(() => { safeStorageSet("local", prefKey(`title:${contract.id}`), title); }, [title]);
+
+  // Último link Stripe pendente deste contrato (guardado no servidor)
+  const { data: lastStripe } = useQuery({
+    queryKey: ["renewal-last-stripe-link", contract.id],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase.from("renewal_payment_links").select("stripe_url, status")
+        .eq("contract_id", contract.id).eq("status", "pending").order("created_at", { ascending: false }).limit(1);
+      return data?.[0]?.stripe_url ?? null;
+    },
+  });
+  useEffect(() => { if (lastStripe && !paymentUrl) setPaymentUrl(lastStripe); }, [lastStripe]);
 
   const activeItems = items.filter(i => ["active", "pending_renewal", "overdue"].includes(i.status));
 
@@ -50,6 +68,34 @@ export function RenewalPaymentDialog({
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-PT", { style: "currency", currency: contract.currency || "EUR" }).format(val);
+
+  const INTERVAL_LABEL: Record<string, string> = { monthly: "mensal", quarterly: "trimestral", semi_annual: "semestral", yearly: "anual" };
+  const msgLines = activeItems.filter(i => selectedItemIds.includes(i.id)).map(i => ({
+    name: i.name, qty: Number(i.qty), amountLabel: formatCurrency(Number(i.qty) * Number(i.unit_price)),
+  }));
+  const reference = contract.id.slice(0, 8).toUpperCase();
+  const clientName = (contract as any).contact?.name || contract.company?.name || "";
+  const email = (contract as any).contact?.email || "";
+  const periodLabel = INTERVAL_LABEL[contract.renewal_interval] || "";
+  const sendActions = (msg: string, ready: boolean) => (
+    <div className="grid grid-cols-3 gap-2">
+      <Button variant="outline" disabled={!ready} onClick={() => { navigator.clipboard.writeText(msg); toast.success("Mensagem copiada!"); }}>
+        <Copy className="mr-2 h-4 w-4" /> Copiar
+      </Button>
+      <Button variant="outline" disabled={!ready} onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank")}>
+        <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
+      </Button>
+      <Button variant="outline" disabled={!ready} onClick={() => window.open(`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(title || "Pagamento da renovação " + reference)}&body=${encodeURIComponent(msg)}`)}>
+        <Mail className="mr-2 h-4 w-4" /> Email
+      </Button>
+    </div>
+  );
+  const titleField = (
+    <div className="space-y-1.5">
+      <Label htmlFor="pay-title">Título da mensagem</Label>
+      <Input id="pay-title" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
+    </div>
+  );
 
   const handleGenerate = async () => {
     if (!currentWorkspace?.id || selectedItemIds.length === 0) return;
@@ -103,17 +149,10 @@ export function RenewalPaymentDialog({
 
         {method !== "stripe" ? (() => {
           const amountLabel = formatCurrency(selectedTotal);
-          const reference = contract.id.slice(0, 8).toUpperCase();
-          const clientName = (contract as any).contact?.name || contract.company?.name || "";
-          const email = (contract as any).contact?.email || "";
           const link = buildRevolutLink(revolutRaw, selectedTotal);
           const phoneOk = /^\+?[\d\s]{9,15}$/.test(mbwayPhone.trim());
           const ready = selectedItemIds.length > 0 && (method === "revolut" ? !!link : phoneOk);
-          const msg = ready ? buildManualMessage({ method, clientName, amountLabel, reference, link, phone: mbwayPhone.trim() }) : "";
-          const remember = () => {
-            if (method === "revolut") safeStorageSet("local", prefKey("revolut"), revolutRaw.trim());
-            else safeStorageSet("local", prefKey("mbway"), mbwayPhone.trim());
-          };
+          const msg = ready ? buildManualMessage({ method, clientName, amountLabel, reference, link, phone: mbwayPhone.trim(), title, lines: msgLines, periodLabel }) : "";
           return (
             <div className="space-y-4">
               <div className="flex justify-between items-center text-sm">
@@ -124,29 +163,21 @@ export function RenewalPaymentDialog({
                 <div className="space-y-1.5">
                   <Label htmlFor="revolut-link">Link Revolut</Label>
                   <Input id="revolut-link" maxLength={300} placeholder="revolut.me/suaempresa ou link de pagamento" value={revolutRaw} onChange={(e) => setRevolutRaw(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">Num link revolut.me o valor é acrescentado automaticamente. Links completos são usados tal como estão.</p>
+                  <p className="text-xs text-muted-foreground">Fica guardado. Num link revolut.me o valor é acrescentado automaticamente; se colar a mensagem da Revolut, usamos só o link.</p>
                 </div>
               ) : (
                 <div className="space-y-1.5">
                   <Label htmlFor="mbway-phone">Telemóvel MB WAY da empresa</Label>
                   <Input id="mbway-phone" maxLength={20} placeholder="912 345 678" value={mbwayPhone} onChange={(e) => setMbwayPhone(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Fica guardado para as próximas cobranças.</p>
                 </div>
               )}
+              {titleField}
               <div className="space-y-1.5">
                 <Label>Mensagem</Label>
-                <Textarea readOnly rows={5} value={msg} placeholder="Preencha os dados acima para gerar a mensagem." />
+                <Textarea readOnly rows={8} value={msg} placeholder="Preencha os dados acima para gerar a mensagem." />
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Button variant="outline" disabled={!ready} onClick={() => { remember(); navigator.clipboard.writeText(msg); toast.success("Mensagem copiada!"); }}>
-                  <Copy className="mr-2 h-4 w-4" /> Copiar
-                </Button>
-                <Button variant="outline" disabled={!ready} onClick={() => { remember(); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank"); }}>
-                  <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
-                </Button>
-                <Button variant="outline" disabled={!ready} onClick={() => { remember(); window.open(`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("Pagamento da renovação " + reference)}&body=${encodeURIComponent(msg)}`); }}>
-                  <Mail className="mr-2 h-4 w-4" /> Email
-                </Button>
-              </div>
+              {sendActions(msg, ready)}
               <p className="text-xs text-muted-foreground">Estes pagamentos não são confirmados automaticamente. Quando o cliente pagar, registe o pagamento manualmente.</p>
             </div>
           );
@@ -207,19 +238,16 @@ export function RenewalPaymentDialog({
                 <ExternalLink className="mr-2 h-4 w-4" /> Abrir
               </Button>
             </div>
-
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                onOpenChange(false);
-                onPaymentCreated?.(paymentUrl);
-              }}
-            >
-              <Mail className="mr-2 h-4 w-4" /> Enviar por Email
-            </Button>
-
-            <Button variant="ghost" className="w-full" onClick={() => { setPaymentUrl(null); onOpenChange(false); }}>
+            {titleField}
+            {(() => {
+              const msg = buildManualMessage({ method: "stripe", clientName, amountLabel: formatCurrency(selectedTotal), reference, link: paymentUrl, title, lines: msgLines, periodLabel });
+              return (<>
+                <div className="space-y-1.5"><Label>Mensagem</Label><Textarea readOnly rows={8} value={msg} /></div>
+                {sendActions(msg, true)}
+              </>);
+            })()}
+            <Button variant="outline" className="w-full" onClick={() => setPaymentUrl(null)}>Gerar novo link</Button>
+            <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
               Fechar
             </Button>
           </div>
