@@ -16,7 +16,8 @@ export const VALIDITY_DAYS_OPTIONS = [7, 15, 30, 45, 60, 90] as const;
 export const CLIENT_TYPE_OPTIONS = [
   { value: 'contact', label: 'Pessoa Singular', description: 'Contacto individual' },
   { value: 'company', label: 'Empresa', description: 'Entidade empresarial' },
+  { value: 'lead', label: 'Lead', description: 'Potencial cliente' },
 ] as const;
 
 export type PaymentConditionValue = typeof PAYMENT_CONDITIONS[number]['value'];
-export type ClientType = 'contact' | 'company';
+export type ClientType = 'contact' | 'company' | 'lead';

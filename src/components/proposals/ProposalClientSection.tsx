@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Building2, User, FileText, MapPin, Link2, Pencil, Info } from "lucide-react";
+import { Building2, User, FileText, MapPin, Link2, Pencil, Info, Sparkles } from "lucide-react";
 import { ClientSearchSelect } from "./ClientSearchSelect";
 import { CLIENT_TYPE_OPTIONS, type ClientType } from "./proposalConstants";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ interface ClientData {
   clientType: ClientType;
   contactId: string | null;
   companyId: string | null;
+  leadId?: string | null;
   billingName: string;
   billingNif: string;
   billingAddress: string;
@@ -32,7 +33,7 @@ export function ProposalClientSection({
 }: ProposalClientSectionProps) {
   const [editingBilling, setEditingBilling] = useState(false);
 
-  const hasClient = data.clientType === "contact" ? !!data.contactId : !!data.companyId;
+  const hasClient = data.clientType === "contact" ? !!data.contactId : data.clientType === "lead" ? !!data.leadId : !!data.companyId;
   const hasBillingData = !!(data.billingName || data.billingNif || data.billingAddress);
 
   const handleClientTypeChange = (value: ClientType) => {
@@ -41,6 +42,7 @@ export function ProposalClientSection({
       clientType: value,
       contactId: value === "contact" ? data.contactId : null,
       companyId: value === "company" ? data.companyId : null,
+      leadId: value === "lead" ? data.leadId ?? null : null,
       billingName: "",
       billingNif: "",
       billingAddress: "",
@@ -52,7 +54,15 @@ export function ProposalClientSection({
     id: string | null,
     client: { name: string; email?: string | null; tax_id?: string | null; address?: string | null } | null
   ) => {
-    if (data.clientType === "contact") {
+    if (data.clientType === "lead") {
+      onChange({
+        ...data,
+        leadId: id,
+        billingName: client?.name || "",
+        billingNif: client?.tax_id || "",
+        billingAddress: client?.address || "",
+      });
+    } else if (data.clientType === "contact") {
       onChange({
         ...data,
         contactId: id,
@@ -86,11 +96,11 @@ export function ProposalClientSection({
           <RadioGroup
             value={data.clientType}
             onValueChange={(v) => handleClientTypeChange(v as ClientType)}
-            className="grid grid-cols-2 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4"
             disabled={disabled}
           >
             {CLIENT_TYPE_OPTIONS.map((option) => {
-              const Icon = option.value === "company" ? Building2 : User;
+              const Icon = option.value === "company" ? Building2 : option.value === "lead" ? Sparkles : User;
               return (
                 <Label
                   key={option.value}
@@ -126,15 +136,15 @@ export function ProposalClientSection({
             ) : (
               <User className="h-4 w-4" />
             )}
-            Selecionar {data.clientType === "contact" ? "Contacto" : "Empresa"}
+            Selecionar {data.clientType === "contact" ? "Contacto" : data.clientType === "lead" ? "Lead" : "Empresa"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ClientSearchSelect
             clientType={data.clientType}
-            value={data.clientType === "contact" ? data.contactId : data.companyId}
+            value={data.clientType === "contact" ? data.contactId : data.clientType === "lead" ? data.leadId ?? null : data.companyId}
             onChange={handleClientSelect}
-            placeholder={`Pesquisar ${data.clientType === "contact" ? "contacto" : "empresa"}...`}
+            placeholder={`Pesquisar ${data.clientType === "contact" ? "contacto" : data.clientType === "lead" ? "lead" : "empresa"}...`}
             disabled={disabled}
           />
         </CardContent>

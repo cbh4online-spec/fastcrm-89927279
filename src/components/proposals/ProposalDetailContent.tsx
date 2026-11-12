@@ -136,6 +136,7 @@ export function ProposalDetailContent({
     clientType: "contact" as ClientType,
     contactId: null as string | null,
     companyId: null as string | null,
+    leadId: null as string | null,
     billingName: "",
     billingNif: "",
     billingAddress: "",
@@ -336,11 +337,14 @@ export function ProposalDetailContent({
       
       // Initialize client data
       const hasCompany = !!proposal.company_id;
+      const oppLead = proposal.opportunity?.lead;
+      const useLead = !proposal.company_id && !proposal.contact_id && !!oppLead;
       setClientData({
-        clientType: hasCompany ? "company" : "contact",
+        clientType: hasCompany ? "company" : useLead ? "lead" : "contact",
         contactId: proposal.contact_id,
         companyId: proposal.company_id,
-        billingName: proposal.contact?.name || proposal.company?.name || "",
+        leadId: useLead ? oppLead!.id : null,
+        billingName: proposal.contact?.name || proposal.company?.name || (useLead ? oppLead!.name : "") || "",
         billingNif: proposal.billing_nif || proposal.contact?.tax_id || proposal.company?.tax_id || "",
         billingAddress: proposal.billing_address || proposal.contact?.address || proposal.company?.address || "",
       });
@@ -498,7 +502,7 @@ export function ProposalDetailContent({
     if (timelineData.phases.length > 0) completed.add(2);
     if (conditionsData.paymentConditions) completed.add(3);
     if (referencesData.projects.length > 0 || referencesData.testimonial.quote) completed.add(4);
-    if (clientData.contactId || clientData.companyId) completed.add(5);
+    if (clientData.contactId || clientData.companyId || clientData.leadId) completed.add(5);
     return completed;
   }, [proposalItems, scopeData, timelineData, conditionsData, referencesData, clientData]);
 

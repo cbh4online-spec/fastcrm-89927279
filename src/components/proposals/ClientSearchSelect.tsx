@@ -1,6 +1,5 @@
-import { normalizeSearchTerm } from "@/lib/search/normalize";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Check, ChevronsUpDown, Building2, User, Plus, Search, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Building2, User, Plus, Search, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -18,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanies } from "@/hooks/useCompanies";
+import { useLeads } from "@/hooks/useLeads";
 import type { ClientType } from "./proposalConstants";
 
 interface ClientOption {
@@ -57,10 +57,22 @@ export function ClientSearchSelect({
   const { contacts, isLoading: loadingContacts } = useContacts();
   const { companies, isLoading: loadingCompanies } = useCompanies();
 
-  const isLoading = clientType === "contact" ? loadingContacts : loadingCompanies;
+  const { data: leads, isLoading: loadingLeads } = useLeads();
+
+  const isLoading = clientType === "contact" ? loadingContacts : clientType === "lead" ? loadingLeads : loadingCompanies;
 
   // Map data to common ClientOption format
   const options: ClientOption[] = useMemo(() => {
+    if (clientType === "lead") {
+      return (leads || []).map((l: any) => ({
+        id: l.id,
+        name: l.name || l.company_name || "—",
+        email: l.email,
+        phone: l.phone,
+        tax_id: l.nif ?? l.tax_id ?? null,
+        address: l.address ?? null,
+      }));
+    }
     if (clientType === "contact") {
       return (contacts || []).map((c) => ({
         id: c.id,
@@ -80,18 +92,18 @@ export function ClientSearchSelect({
         address: c.address,
       }));
     }
-  }, [clientType, contacts, companies]);
+  }, [clientType, contacts, companies, leads]);
 
   // Filter options based on search
   const filteredOptions = useMemo(() => {
     if (!search.trim()) return options;
-    const searchLower = search.toLowerCase();
-    return options.filter(
-      (opt) =>
-        opt.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
-        opt.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower)) ||
-        opt.tax_id?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(searchLower))
-    );
+    const norm = (v?: string | null) =>
+      (v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const terms = norm(search).split(/\s+/).filter(Boolean);
+    return options.filter((opt) => {
+      const hay = [opt.name, opt.email, opt.phone, opt.tax_id].map(norm).join(" ");
+      return terms.every((t) => hay.includes(t));
+    });
   }, [options, search]);
 
   const selectedClient = options.find((opt) => opt.id === value);
@@ -109,7 +121,7 @@ export function ClientSearchSelect({
     setSearch("");
   };
 
-  const Icon = clientType === "company" ? Building2 : User;
+  const Icon = clientType === "company" ? Building2 : clientType === "lead" ? Sparkles : User;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -136,7 +148,7 @@ export function ClientSearchSelect({
         <Command shouldFilter={false}>
           <CommandInput
             ref={inputRef}
-            placeholder={`Pesquisar ${clientType === "contact" ? "contacto" : "empresa"}...`}
+            placeholder={`Pesquisar ${clientType === "contact" ? "contacto" : clientType === "lead" ? "lead" : "empresa"} (nome, email, telefone, NIF)...`}
             value={search}
             onValueChange={setSearch}
           />
@@ -151,7 +163,7 @@ export function ClientSearchSelect({
                 <div className="text-center py-4">
                   <Search className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Nenhum {clientType === "contact" ? "contacto" : "empresa"} encontrado
+                    Nenhum resultado encontrado
                   </p>
                 </div>
               </CommandEmpty>
