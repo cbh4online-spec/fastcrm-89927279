@@ -1,4 +1,4 @@
-import { normalizeSearchTerm } from "@/lib/search/normalize";
+import { normalizeSearchTerm, matchesAllWords } from "@/lib/search/normalize";
 import { displayLabel } from "@/lib/crm/displayLabels";
 import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
@@ -246,11 +246,7 @@ export function ContactsListIX() {
     const q = search.trim().toLowerCase();
     let arr = all;
     if (q) {
-      arr = arr.filter((c) =>
-        [c.name, c.email, c.tax_id, c.company, c.phone]
-          .filter(Boolean)
-          .some((v) => String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(q))),
-      );
+      arr = arr.filter((c) => matchesAllWords([c.name, c.email, c.tax_id, c.company, c.phone], q));
     }
     arr = arr.filter(
       (c) =>

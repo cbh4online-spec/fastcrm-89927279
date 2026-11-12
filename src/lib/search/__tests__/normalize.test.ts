@@ -13,3 +13,12 @@ describe("pesquisa sem acentos nem maiúsculas", () => {
   it("telefone continua a funcionar", () =>
     expect(matchesGlobalSearch("913 428 951", { phones: ["+351913428951"] })).toBe(true));
 });
+
+import { matchesAllWords } from "../normalize";
+describe("matchesAllWords", () => {
+  it("ignora acentos, maiúsculas e ordem", () => {
+    expect(matchesAllWords(["Simone Marques", "x@y.pt"], "MARQUES simóne")).toBe(true);
+    expect(matchesAllWords(["Clínica João"], "clinica joao")).toBe(true);
+    expect(matchesAllWords(["Clínica João"], "clinica pedro")).toBe(false);
+  });
+});

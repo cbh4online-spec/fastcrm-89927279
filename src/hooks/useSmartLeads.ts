@@ -192,8 +192,16 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
       }
       if (filters?.search) {
         // Pesquisa sem acentos nem maiúsculas (coluna gerada search_norm).
-        const term = normalizeSearchTerm(filters.search).replace(/[,()%_*\\]/g, " ").trim();
-        if (term) query = query.ilike("search_norm" as any, `%${term}%`);
+        // Cada palavra tem de existir (ordem livre). "_" e "%" são escapados para pesquisar e-mails.
+        const words = normalizeSearchTerm(filters.search)
+          .replace(/[,()*\\]/g, " ")
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 8);
+        for (const w of words) {
+          const escaped = w.replace(/[%_]/g, (m) => `\\${m}`);
+          query = query.ilike("search_norm" as any, `%${escaped}%`);
+        }
       }
 
       // Apply column presence filters

@@ -18,3 +18,15 @@ export function matchesSearch(target: unknown | unknown[], rawQuery: string): bo
   const list = Array.isArray(target) ? target : [target];
   return list.some((v) => normalizeSearchTerm(v).includes(q));
 }
+
+/**
+ * true se cada palavra do termo existe em pelo menos um dos campos
+ * (sem acentos, sem maiúsculas, ordem das palavras livre).
+ * "marques simone" encontra "Simone Marques".
+ */
+export function matchesAllWords(fields: unknown[], rawQuery: string): boolean {
+  const words = normalizeSearchTerm(rawQuery).split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const haystack = fields.map((f) => normalizeSearchTerm(f)).join(" ");
+  return words.every((w) => haystack.includes(w));
+}
