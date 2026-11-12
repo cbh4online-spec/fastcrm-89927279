@@ -641,13 +641,15 @@ export default function RenewalDetailPage() {
                           <div className="flex-1 pb-4">
                             <div className="flex items-center justify-between">
                               <p className="text-sm font-medium">
-                                {RENEWAL_EVENT_LABELS[event.event_type] || event.event_type}
+                                {(event.payload_json as any)?.kind === "payment_request"
+                                  ? `Pedido de pagamento enviado (${({ stripe: "Stripe", revolut: "Revolut", mbway: "MB WAY" } as any)[(event.payload_json as any).method] || (event.payload_json as any).method} · ${({ whatsapp: "WhatsApp", email: "Email", copy: "copiado" } as any)[(event.payload_json as any).channel] || ""} · ${formatCurrency(Number((event.payload_json as any).amount || 0), contract.currency)})`
+                                  : RENEWAL_EVENT_LABELS[event.event_type] || event.event_type}
                               </p>
                               <span className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(event.created_at), { addSuffix: true, locale: pt })}
                               </span>
                             </div>
-                            {event.payload_json && Object.keys(event.payload_json).length > 0 && (
+                            {event.payload_json && (event.payload_json as any).kind !== "payment_request" && Object.keys(event.payload_json).length > 0 && (
                               <p className="text-xs text-muted-foreground mt-1">
                                 {JSON.stringify(event.payload_json)}
                               </p>

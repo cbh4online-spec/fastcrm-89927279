@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { safeStorageGet, safeStorageSet } from "@/lib/browser/safeBrowser";
 import { buildRevolutLink, buildManualMessage, type ManualMethod } from "@/lib/renewals/manualPayment";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -29,18 +28,42 @@ export function RenewalPaymentDialog({
   open, onOpenChange, contract, items, onPaymentCreated,
 }: RenewalPaymentDialogProps) {
   const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>(items.map(i => i.id));
   const [isLoading, setIsLoading] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [method, setMethod] = useState<"stripe" | ManualMethod>("stripe");
-  const prefKey = (k: string) => `renewal-pay:${currentWorkspace?.id ?? "x"}:${k}`;
-  const [revolutRaw, setRevolutRaw] = useState(() => safeStorageGet("local", prefKey("revolut")) || "");
-  const [mbwayPhone, setMbwayPhone] = useState(() => safeStorageGet("local", prefKey("mbway")) || "");
-  const [title, setTitle] = useState(() => safeStorageGet("local", prefKey(`title:${contract.id}`)) || "Pagamento da renovação");
-  // Guardar automaticamente ao escrever
-  useEffect(() => { safeStorageSet("local", prefKey("revolut"), revolutRaw.trim()); }, [revolutRaw]);
-  useEffect(() => { safeStorageSet("local", prefKey("mbway"), mbwayPhone.trim()); }, [mbwayPhone]);
-  useEffect(() => { safeStorageSet("local", prefKey(`title:${contract.id}`), title); }, [title]);
+  const saved = ((contract as any).alert_settings?.payment ?? {}) as { revolut?: string; mbway?: string; title?: string };
+  const [revolutRaw, setRevolutRaw] = useState(saved.revolut || "");
+  const [mbwayPhone, setMbwayPhone] = useState(saved.mbway || "");
+  const [title, setTitle] = useState(saved.title || "Pagamento da renovação");
+  // Guardar na renovação (servidor), para funcionar em qualquer navegador
+  useEffect(() => {
+    if (!open) return;
+    const next = { revolut: revolutRaw.trim(), mbway: mbwayPhone.trim(), title };
+    if (next.revolut === (saved.revolut || "") && next.mbway === (saved.mbway || "") && next.title === (saved.title || "Pagamento da renovação")) return;
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("renewal_contracts").select("alert_settings").eq("id", contract.id).maybeSingle();
+      const current = ((data?.alert_settings as any) || {}) as Record<string, unknown>;
+      const { error } = await supabase.from("renewal_contracts")
+        .update({ alert_settings: { ...current, payment: { ...(current.payment as object || {}), ...next } } as any })
+        .eq("id", contract.id);
+      if (error) toast.error("Não foi possível guardar os dados de pagamento");
+      else { (contract as any).alert_settings = { ...current, payment: next }; }
+    }, 800);
+    return () => clearTimeout(t);
+  }, [revolutRaw, mbwayPhone, title, open]);
+
+  const logSent = async (channel: "whatsapp" | "email" | "copy") => {
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("renewal_events").insert({
+      workspace_id: contract.workspace_id, contract_id: contract.id, event_type: "invoice_sent",
+      payload_json: { kind: "payment_request", method, channel, amount: selectedTotal, title,
+        items: msgLines.map(l => l.name), sent_by: u.user?.id ?? null },
+    });
+    if (error) toast.error("A mensagem não ficou registada no histórico");
+    else { toast.success("Envio registado no histórico da renovação"); queryClient.invalidateQueries({ queryKey: ["renewal-events", contract.id] }); }
+  };
 
   // Último link Stripe pendente deste contrato (guardado no servidor)
   const { data: lastStripe } = useQuery({
@@ -79,13 +102,13 @@ export function RenewalPaymentDialog({
   const periodLabel = INTERVAL_LABEL[contract.renewal_interval] || "";
   const sendActions = (msg: string, ready: boolean) => (
     <div className="grid grid-cols-3 gap-2">
-      <Button variant="outline" disabled={!ready} onClick={() => { navigator.clipboard.writeText(msg); toast.success("Mensagem copiada!"); }}>
+      <Button variant="outline" disabled={!ready} onClick={() => { navigator.clipboard.writeText(msg); logSent("copy"); }}>
         <Copy className="mr-2 h-4 w-4" /> Copiar
       </Button>
-      <Button variant="outline" disabled={!ready} onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank")}>
+      <Button variant="outline" disabled={!ready} onClick={() => { logSent("whatsapp"); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank"); }}>
         <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
       </Button>
-      <Button variant="outline" disabled={!ready} onClick={() => window.open(`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(title || "Pagamento da renovação " + reference)}&body=${encodeURIComponent(msg)}`)}>
+      <Button variant="outline" disabled={!ready} onClick={() => { logSent("email"); window.open(`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(title || "Pagamento da renovação " + reference)}&body=${encodeURIComponent(msg)}`); }}>
         <Mail className="mr-2 h-4 w-4" /> Email
       </Button>
     </div>
