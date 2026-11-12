@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Loader2, Mail, CreditCard } from "lucide-react";
+import { Copy, ExternalLink, Loader2, Mail, CreditCard, MessageCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { safeStorageGet, safeStorageSet } from "@/lib/browser/safeBrowser";
+import { buildRevolutLink, buildManualMessage, type ManualMethod } from "@/lib/renewals/manualPayment";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import type { RenewalItem, RenewalContract } from "@/types/renewal";
@@ -25,6 +31,10 @@ export function RenewalPaymentDialog({
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>(items.map(i => i.id));
   const [isLoading, setIsLoading] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [method, setMethod] = useState<"stripe" | ManualMethod>("stripe");
+  const prefKey = (k: string) => `renewal-pay:${currentWorkspace?.id ?? "x"}:${k}`;
+  const [revolutRaw, setRevolutRaw] = useState(() => safeStorageGet("local", prefKey("revolut")) || "");
+  const [mbwayPhone, setMbwayPhone] = useState(() => safeStorageGet("local", prefKey("mbway")) || "");
 
   const activeItems = items.filter(i => ["active", "pending_renewal", "overdue"].includes(i.status));
 
@@ -83,7 +93,64 @@ export function RenewalPaymentDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {!paymentUrl ? (
+        <Tabs value={method} onValueChange={(v) => setMethod(v as any)}>
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="stripe">Stripe</TabsTrigger>
+            <TabsTrigger value="revolut">Revolut</TabsTrigger>
+            <TabsTrigger value="mbway">MB WAY</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {method !== "stripe" ? (() => {
+          const amountLabel = formatCurrency(selectedTotal);
+          const reference = contract.id.slice(0, 8).toUpperCase();
+          const clientName = (contract as any).contact?.name || contract.company?.name || "";
+          const email = (contract as any).contact?.email || "";
+          const link = buildRevolutLink(revolutRaw, selectedTotal);
+          const phoneOk = /^\+?[\d\s]{9,15}$/.test(mbwayPhone.trim());
+          const ready = selectedItemIds.length > 0 && (method === "revolut" ? !!link : phoneOk);
+          const msg = ready ? buildManualMessage({ method, clientName, amountLabel, reference, link, phone: mbwayPhone.trim() }) : "";
+          const remember = () => {
+            if (method === "revolut") safeStorageSet("local", prefKey("revolut"), revolutRaw.trim());
+            else safeStorageSet("local", prefKey("mbway"), mbwayPhone.trim());
+          };
+          return (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Total dos itens selecionados</span>
+                <span className="font-bold">{amountLabel}</span>
+              </div>
+              {method === "revolut" ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="revolut-link">Link Revolut</Label>
+                  <Input id="revolut-link" maxLength={300} placeholder="revolut.me/suaempresa ou link de pagamento" value={revolutRaw} onChange={(e) => setRevolutRaw(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Num link revolut.me o valor é acrescentado automaticamente. Links completos são usados tal como estão.</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label htmlFor="mbway-phone">Telemóvel MB WAY da empresa</Label>
+                  <Input id="mbway-phone" maxLength={20} placeholder="912 345 678" value={mbwayPhone} onChange={(e) => setMbwayPhone(e.target.value)} />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label>Mensagem</Label>
+                <Textarea readOnly rows={5} value={msg} placeholder="Preencha os dados acima para gerar a mensagem." />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button variant="outline" disabled={!ready} onClick={() => { remember(); navigator.clipboard.writeText(msg); toast.success("Mensagem copiada!"); }}>
+                  <Copy className="mr-2 h-4 w-4" /> Copiar
+                </Button>
+                <Button variant="outline" disabled={!ready} onClick={() => { remember(); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank"); }}>
+                  <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
+                </Button>
+                <Button variant="outline" disabled={!ready} onClick={() => { remember(); window.open(`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("Pagamento da renovação " + reference)}&body=${encodeURIComponent(msg)}`); }}>
+                  <Mail className="mr-2 h-4 w-4" /> Email
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Estes pagamentos não são confirmados automaticamente. Quando o cliente pagar, registe o pagamento manualmente.</p>
+            </div>
+          );
+        })() : !paymentUrl ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Selecione os itens a incluir no link de pagamento Stripe:
