@@ -708,7 +708,7 @@ export function ProposalDetailContent({
             <div className="max-w-2xl mx-auto p-1">
               <ProposalClientSection
                 data={clientData}
-                onChange={setClientData}
+                onChange={(d) => setClientData({ ...d, leadId: d.leadId ?? null })}
                 disabled={mode !== "edit"}
               />
             </div>
