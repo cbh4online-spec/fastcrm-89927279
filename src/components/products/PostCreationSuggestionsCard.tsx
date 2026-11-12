@@ -36,7 +36,7 @@ export function PostCreationSuggestionsCard({
     return (
       <Card className="border-destructive/30 bg-destructive/5">
         <CardContent className="p-4 flex items-center justify-between">
-          <p className="text-sm text-destructive">Não foi possível sugerir relações: {error}</p>
+          <p className="text-sm text-destructive min-w-0 break-words">Não foi possível sugerir relações: {error}</p>
           <Button variant="ghost" size="sm" onClick={onDismiss}>
             <X className="h-4 w-4" />
           </Button>
@@ -86,9 +86,9 @@ export function PostCreationSuggestionsCard({
   );
 
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-base flex items-center gap-2">
+    <Card className="border-primary/20 bg-primary/5 min-w-0 overflow-hidden">
+      <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-base flex items-center gap-2 min-w-0">
           <Sparkles className="h-4 w-4 text-amber-500" />
           {added} {added === 1 ? "relação adicionada" : "relações adicionadas"} com IA
         </CardTitle>
@@ -96,7 +96,7 @@ export function PostCreationSuggestionsCard({
           <X className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 min-w-0">
         {Object.entries(grouped).map(([type, items]) => {
           const config = typeConfig[type] || typeConfig.compatible;
           return (
@@ -110,9 +110,9 @@ export function PostCreationSuggestionsCard({
                     key={s.targetId}
                     className="flex items-center justify-between gap-2 text-sm py-1 px-2 rounded bg-background/60"
                   >
-                    <div className="min-w-0">
-                      <span className="font-medium truncate block">{s.targetName}</span>
-                      <span className="text-xs text-muted-foreground">{s.label} — {s.reason}</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium block break-words line-clamp-2" title={s.targetName}>{s.targetName}</span>
+                      <span className="text-xs text-muted-foreground block break-words">{s.label} — {s.reason}</span>
                     </div>
                   </div>
                 ))}

@@ -840,9 +840,9 @@ export function CreateProductDialog({
   if (createdProduct) {
     return (
       <Dialog open={open} onOpenChange={() => { setCreatedProduct(null); onOpenChange(false); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 pr-6">
               <Sparkles className="h-5 w-5 text-amber-500" />
               Sugestões de Cross-sell & Up-sell
             </DialogTitle>
