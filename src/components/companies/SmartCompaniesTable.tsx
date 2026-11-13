@@ -15,6 +15,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { TableViewsMenu } from "@/components/common/TableViewsMenu";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles } from "@/components/common/StickyTable";
 import { Button } from "@/components/ui/button";
@@ -118,7 +120,7 @@ export function SmartCompaniesTable() {
     { value: "revenue_desc", label: t("sortHighestRevenue") },
   ], [t]);
 
-  const [filters, setFilters] = useState<SmartCompaniesFilters>({});
+  const [filters, setFilters] = usePersistedState<SmartCompaniesFilters>("companies-table-filters", {});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -128,9 +130,9 @@ export function SmartCompaniesTable() {
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("companies");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
-  const [searchValue, setSearchValue] = useState("");
-  const [sortValue, setSortValue] = useState("created_desc");
+  const [activeFilterId, setActiveFilterId] = usePersistedState<string | undefined>("companies-table-active-filter", undefined);
+  const [searchValue, setSearchValue] = usePersistedState<string>("companies-table-search", "");
+  const [sortValue, setSortValue] = usePersistedState<string>("companies-table-sort", "created_desc");
   
   const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("companies-table-columns", COMPANY_COLUMNS);
   
@@ -330,6 +332,7 @@ export function SmartCompaniesTable() {
           leftActions={<Button variant="ghost" size="sm" onClick={() => setShowFilterSidebar(!showFilterSidebar)} className="gap-2">{showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}</Button>}
           rightActions={
             <div className="flex items-center gap-2">
+              <TableViewsMenu storageKey="companies-table" getState={() => ({ visibleColumns: Array.from(visibleColumns), columnOrder, filters: filters as Record<string, unknown>, activeFilterId, sortValue, searchValue })} onApply={(v) => { setVisibleColumns(new Set(v.visibleColumns)); if (v.columnOrder?.length) setColumnOrder(v.columnOrder); setFilters({ ...(v.filters as any),  }); setActiveFilterId(v.activeFilterId); if (v.sortValue) setSortValue(v.sortValue); setSearchValue(v.searchValue ?? ""); }} />
               <ColumnSelector columns={COMPANY_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
               <Button variant="outline" size="sm" onClick={() => setIsDuplicatesOpen(true)} className="gap-2"><Users className="w-4 h-4" />{t("duplicates")}</Button>
               <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2"><RefreshCw className="w-4 h-4" />{t("refresh")}</Button>

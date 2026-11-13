@@ -17,6 +17,8 @@ import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { TableViewsMenu } from "@/components/common/TableViewsMenu";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles, stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
 import { InlineEditableTableCell } from "@/components/common/InlineEditableTableCell";
@@ -188,7 +190,7 @@ export function SmartLeadsTable() {
     { value: "last_contact_desc", label: t("sortLastContact") },
   ], [t]);
 
-  const [filters, setFilters] = useState<SmartLeadsFilters>({ page: 0, pageSize: 25 });
+  const [filters, setFilters] = usePersistedState<SmartLeadsFilters>("leads-table-filters", { page: 0, pageSize: 25 });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -201,8 +203,8 @@ export function SmartLeadsTable() {
   const setPageSize = (s: number) => setFilters(prev => ({ ...prev, pageSize: s, page: 0 }));
   const [activeTab, setActiveTab] = useState("leads");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
-  const [searchValue, setSearchValue] = useState(sourceFromUrl);
+  const [activeFilterId, setActiveFilterId] = usePersistedState<string | undefined>("leads-table-active-filter", undefined);
+  const [searchValue, setSearchValue] = useState(sourceFromUrl || filters.search || "");
 
   useEffect(() => {
     if (sourceFromUrl) {
@@ -210,7 +212,7 @@ export function SmartLeadsTable() {
       setFilters(prev => ({ ...prev, search: sourceFromUrl }));
     }
   }, [sourceFromUrl]);
-  const [sortValue, setSortValue] = useState("created_desc");
+  const [sortValue, setSortValue] = usePersistedState<string>("leads-table-sort", "created_desc");
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -387,6 +389,7 @@ export function SmartLeadsTable() {
           leftActions={<Button variant="ghost" size="sm" onClick={() => setShowFilterSidebar(!showFilterSidebar)} className="gap-2 hidden sm:inline-flex">{showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}</Button>}
           rightActions={
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <TableViewsMenu storageKey="leads-table" getState={() => ({ visibleColumns: Array.from(visibleColumns), columnOrder, filters: filters as Record<string, unknown>, activeFilterId, sortValue, searchValue })} onApply={(v) => { setVisibleColumns(new Set(v.visibleColumns)); if (v.columnOrder?.length) setColumnOrder(v.columnOrder); setFilters({ ...(v.filters as any), page: 0, pageSize: (v.filters as any).pageSize ?? pageSize }); setActiveFilterId(v.activeFilterId); if (v.sortValue) setSortValue(v.sortValue); setSearchValue(v.searchValue ?? ""); }} />
               <ColumnSelector columns={LEAD_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
               <Button variant="outline" size="sm" onClick={() => setActiveTab("duplicates")} className={cn("gap-1.5 text-xs sm:text-sm", duplicateGroups.length > 0 && "border-warning/40")}>
                 <Users className="w-4 h-4" />

@@ -13,6 +13,8 @@ import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
+import { TableViewsMenu } from "@/components/common/TableViewsMenu";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles, stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
 import { DynamicTableCell } from "@/components/common/DynamicTableCell";
@@ -354,7 +356,7 @@ export function SmartContactsTable() {
     { value: "score_asc", label: t("sortLowestScore") },
   ], [t]);
 
-  const [filters, setFilters] = useState<SmartContactsFilters>({});
+  const [filters, setFilters] = usePersistedState<SmartContactsFilters>("contacts-table-filters", {});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
@@ -364,9 +366,9 @@ export function SmartContactsTable() {
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("contacts");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
-  const [searchValue, setSearchValue] = useState("");
-  const [sortValue, setSortValue] = useState("created_desc");
+  const [activeFilterId, setActiveFilterId] = usePersistedState<string | undefined>("contacts-table-active-filter", undefined);
+  const [searchValue, setSearchValue] = usePersistedState<string>("contacts-table-search", "");
+  const [sortValue, setSortValue] = usePersistedState<string>("contacts-table-sort", "created_desc");
   const [smartListConditions, setSmartListConditions] = useState<FilterCondition[]>([]);
 
   // Column visibility and order state with persistence
@@ -683,6 +685,7 @@ export function SmartContactsTable() {
                 <Copy className="w-4 h-4" />
                 {t("duplicates")}
               </Button>
+              <TableViewsMenu storageKey="contacts-table" getState={() => ({ visibleColumns: Array.from(visibleColumns), columnOrder, filters: filters as Record<string, unknown>, activeFilterId, sortValue, searchValue })} onApply={(v) => { setVisibleColumns(new Set(v.visibleColumns)); if (v.columnOrder?.length) setColumnOrder(v.columnOrder); setFilters({ ...(v.filters as any),  }); setActiveFilterId(v.activeFilterId); if (v.sortValue) setSortValue(v.sortValue); setSearchValue(v.searchValue ?? ""); }} />
               <ColumnSelector
                 columns={CONTACT_COLUMNS}
                 visibleColumns={visibleColumns}
