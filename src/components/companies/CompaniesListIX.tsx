@@ -1,3 +1,5 @@
+import { TableViewsMenu } from "@/components/common/TableViewsMenu";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { normalizeSearchTerm, matchesAllWords } from "@/lib/search/normalize";
 import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
 import { ListColumnsHeader } from "@/components/documents/listing/ListColumnsHeader";
@@ -313,11 +315,11 @@ export function CompaniesListIX() {
     return Array.from({ length: 6 }, (_, i) => y - i);
   }, []);
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = usePersistedState<string>("companies-ix-search", "");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = usePersistedState<SortKey>("companies-ix-sortBy", "name");
+  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("companies-ix-sortDir", "asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
@@ -327,11 +329,11 @@ export function CompaniesListIX() {
   const toggleQuick = (k: string) => { setQuick((q) => (q === k ? null : k)); setPage(0); };
   const [mergeOpen, setMergeOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
-  const [tagFilter, setTagFilter] = useState<string[]>([]);
-  const [industryFilter, setIndustryFilter] = useState<string[]>([]);
-  const [cityFilter, setCityFilter] = useState<string[]>([]);
-  const [abcFilter, setAbcFilter] = useState<string[]>([]);
+  const [sourceFilter, setSourceFilter] = usePersistedState<string[]>("companies-ix-sourceFilter", []);
+  const [tagFilter, setTagFilter] = usePersistedState<string[]>("companies-ix-tagFilter", []);
+  const [industryFilter, setIndustryFilter] = usePersistedState<string[]>("companies-ix-industryFilter", []);
+  const [cityFilter, setCityFilter] = usePersistedState<string[]>("companies-ix-cityFilter", []);
+  const [abcFilter, setAbcFilter] = usePersistedState<string[]>("companies-ix-abcFilter", []);
 
   const { isElementVisible } = usePageElementVisibility("companies");
   const availableColumns = useMemo(
@@ -572,6 +574,7 @@ export function CompaniesListIX() {
                 <option value="idle_90">+90 dias</option>
                 <option value="idle_180">+180 dias</option>
               </select>
+              <TableViewsMenu storageKey="companies-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setIndustryFilter(Array.isArray(fv.industryFilter) ? fv.industryFilter as string[] : []); setCityFilter(Array.isArray(fv.cityFilter) ? fv.cityFilter as string[] : []); setAbcFilter(Array.isArray(fv.abcFilter) ? fv.abcFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
               <div className="hidden md:block"><ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} /></div>
             </div>
           }

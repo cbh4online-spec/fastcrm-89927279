@@ -1,3 +1,5 @@
+import { TableViewsMenu } from "@/components/common/TableViewsMenu";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { normalizeSearchTerm, matchesAllWords } from "@/lib/search/normalize";
 import { displayLabel } from "@/lib/crm/displayLabels";
 import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
@@ -181,21 +183,21 @@ export function ContactsListIX() {
   const navigate = useNavigate();
   const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
   const { contacts, isLoading } = useContacts({ archiveState });
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = usePersistedState<string>("contacts-ix-search", "");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = usePersistedState<SortKey>("contacts-ix-sortBy", "name");
+  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("contacts-ix-sortDir", "asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
-  const [tagFilter, setTagFilter] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [cityFilter, setCityFilter] = useState<string[]>([]);
+  const [sourceFilter, setSourceFilter] = usePersistedState<string[]>("contacts-ix-sourceFilter", []);
+  const [tagFilter, setTagFilter] = usePersistedState<string[]>("contacts-ix-tagFilter", []);
+  const [statusFilter, setStatusFilter] = usePersistedState<string[]>("contacts-ix-statusFilter", []);
+  const [cityFilter, setCityFilter] = usePersistedState<string[]>("contacts-ix-cityFilter", []);
   const { isElementVisible } = usePageElementVisibility("contacts");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
@@ -378,6 +380,7 @@ export function ContactsListIX() {
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
               <EntityFacetFilters facets={facets} />
+              <TableViewsMenu storageKey="contacts-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, statusFilter, cityFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setStatusFilter(Array.isArray(fv.statusFilter) ? fv.statusFilter as string[] : []); setCityFilter(Array.isArray(fv.cityFilter) ? fv.cityFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
               <div className="hidden md:block"><ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} /></div>
             </div>
           }

@@ -1,3 +1,5 @@
+import { TableViewsMenu } from "@/components/common/TableViewsMenu";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { IcpScoreBadge } from "@/components/crm/LeadIcpScoreCard";
 import { computeLeadPageKpis } from "@/lib/crm/leadKpis";
 import { mobileCellClass, mobileCellLabel } from "@/components/documents/listing/mobileCardCell";
@@ -248,11 +250,11 @@ const NUMERIC_COLUMNS = ["score", "icp", "value", "created_at", "last_contact"];
 
 export function LeadsListIX() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = usePersistedState<string>("leads-ix-search", "");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = usePersistedState<SortKey>("leads-ix-sortBy", "name");
+  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("leads-ix-sortDir", "asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);
@@ -260,11 +262,11 @@ export function LeadsListIX() {
   const { columns, setColumns } = useLeadColumns();
 
   const [archiveState, setArchiveState] = useState<EntityArchiveState>("active");
-  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
-  const [tagFilter, setTagFilter] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [temperatureFilter, setTemperatureFilter] = useState<string[]>([]);
-  const [icpFilter, setIcpFilter] = useState<string[]>([]);
+  const [sourceFilter, setSourceFilter] = usePersistedState<string[]>("leads-ix-sourceFilter", []);
+  const [tagFilter, setTagFilter] = usePersistedState<string[]>("leads-ix-tagFilter", []);
+  const [statusFilter, setStatusFilter] = usePersistedState<string[]>("leads-ix-statusFilter", []);
+  const [temperatureFilter, setTemperatureFilter] = usePersistedState<string[]>("leads-ix-temperatureFilter", []);
+  const [icpFilter, setIcpFilter] = usePersistedState<string[]>("leads-ix-icpFilter", []);
 
   const { data, isLoading } = useSmartLeads({
     search,
@@ -430,6 +432,7 @@ export function LeadsListIX() {
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
               <EntityFacetFilters facets={facets} />
+              <TableViewsMenu storageKey="leads-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, statusFilter, temperatureFilter, icpFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setStatusFilter(Array.isArray(fv.statusFilter) ? fv.statusFilter as string[] : []); setTemperatureFilter(Array.isArray(fv.temperatureFilter) ? fv.temperatureFilter as string[] : []); setIcpFilter(Array.isArray(fv.icpFilter) ? fv.icpFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
               <div className="hidden md:block"><LeadsColumnsPicker value={columns} onChange={setColumns} /></div>
             </div>
           }
