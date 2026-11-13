@@ -40,16 +40,18 @@ function formatDueDate(dueAt: string | null): { label: string; isOverdue: boolea
   
   const date = parseISO(dueAt);
   const overdue = isPast(date) && !isToday(date);
+  const hasTime = date.getHours() !== 0 || date.getMinutes() !== 0;
+  const time = hasTime ? ` ${format(date, 'HH:mm')}` : '';
   
   if (isToday(date)) {
-    return { label: 'Hoje', isOverdue: false, isToday: true };
+    return { label: `Hoje${time}`, isOverdue: false, isToday: true };
   }
   if (isTomorrow(date)) {
-    return { label: 'Amanhã', isOverdue: false, isToday: false };
+    return { label: `Amanhã${time}`, isOverdue: false, isToday: false };
   }
   
   return { 
-    label: format(date, "d MMM", { locale: pt }), 
+    label: format(date, "d MMM", { locale: pt }) + time, 
     isOverdue: overdue,
     isToday: false
   };

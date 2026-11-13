@@ -59,6 +59,7 @@ export function CreateTaskDialog({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [dueDate, setDueDate] = useState<Date | undefined>(addDays(new Date(), initialDueDays));
+  const [dueTime, setDueTime] = useState<string>("");
   const [isAIEnhancing, setIsAIEnhancing] = useState(false);
 
   // Entity association state
@@ -77,6 +78,7 @@ export function CreateTaskDialog({
     if (open) {
       setTitle(initialTitle);
       setDueDate(addDays(new Date(), initialDueDays));
+      setDueTime("");
       setRelatedType("none");
       setRelatedId(null);
       setRelatedName(null);
@@ -117,7 +119,13 @@ export function CreateTaskDialog({
     
     onCreateTask({
       title: title.trim(),
-      due_at: dueDate?.toISOString(),
+      due_at: (() => {
+        if (!dueDate) return undefined;
+        const d = new Date(dueDate);
+        const m = /^(\d{2}):(\d{2})$/.exec(dueTime);
+        if (m) d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+        return d.toISOString();
+      })(),
       ...(relatedType !== "none" && relatedId ? { related_type: relatedType === "contact" ? "contact" : relatedType === "lead" ? "lead" : "company", related_id: relatedId } : {}),
     });
     
@@ -126,6 +134,7 @@ export function CreateTaskDialog({
     setDescription("");
     setPriority('medium');
     setDueDate(addDays(new Date(), 3));
+    setDueTime("");
     setRelatedType("none");
     setRelatedId(null);
     setRelatedName(null);
@@ -387,6 +396,29 @@ export function CreateTaskDialog({
                 />
               </PopoverContent>
             </Popover>
+            <div className="space-y-2 pt-1">
+              <Label htmlFor="task-due-time">Hora (opcional)</Label>
+              <div className="flex gap-2 flex-wrap">
+                <Input
+                  id="task-due-time"
+                  type="time"
+                  step={300}
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  className="w-32"
+                />
+                {["09:00", "11:00", "14:30", "16:00", "18:00"].map((t) => (
+                  <Button key={t} type="button" variant="outline" size="sm"
+                    onClick={() => setDueTime(t)}
+                    className={cn("text-xs", dueTime === t && "bg-primary text-primary-foreground")}>
+                    {t}
+                  </Button>
+                ))}
+                {dueTime && (
+                  <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => setDueTime("")}>Sem hora</Button>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* AI Tip */}
