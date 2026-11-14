@@ -94,7 +94,7 @@ const commercialProfileOptions: { value: CommercialProfile; label: string; descr
 ];
 
 export function WorkspaceSettings({ searchQuery = "", matchedSections }: WorkspaceSettingsProps) {
-  const { currentWorkspace, refreshWorkspaces } = useWorkspace();
+  const { currentWorkspace, refreshWorkspaces, isSuperAdmin } = useWorkspace();
   const { user } = useAuth();
   const { data: members = [], isLoading: membersLoading, refetch: refetchMembers } = useWorkspaceMembers();
   const { 
@@ -561,17 +561,19 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                       <Badge className={roleColors[member.role]}>
                         {roleLabels[member.role]}
                       </Badge>
+                      {member.user_id !== user?.id && (isSuperAdmin || (canManageMembers && member.role !== "owner")) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Alterar palavra-passe"
+                          title="Alterar palavra-passe"
+                          onClick={() => setPasswordMember(member)}
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      )}
                       {canManageMembers && member.role !== "owner" && member.user_id !== user?.id && (
                         <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="Alterar palavra-passe"
-                            title="Alterar palavra-passe"
-                            onClick={() => setPasswordMember(member)}
-                          >
-                            <KeyRound className="h-4 w-4" />
-                          </Button>
                           <Button 
                             variant="ghost" 
                             size="icon"
