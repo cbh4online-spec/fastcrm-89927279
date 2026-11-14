@@ -51,8 +51,10 @@ import {
   UserCheck,
   ImagePlus,
   Upload,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { MemberPasswordDialog } from "../MemberPasswordDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { WorkspaceLayoutConfigPanel } from "../WorkspaceLayoutConfigPanel";
 import { ClientInviteTemplateEditor } from "./client-portal/ClientInviteTemplateEditor";
@@ -113,6 +115,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
   const [editMemberDialogOpen, setEditMemberDialogOpen] = useState(false);
   const [deleteMemberDialogOpen, setDeleteMemberDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<WorkspaceMember | null>(null);
+  const [passwordMember, setPasswordMember] = useState<WorkspaceMember | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -560,6 +563,15 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                       </Badge>
                       {canManageMembers && member.role !== "owner" && member.user_id !== user?.id && (
                         <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Alterar palavra-passe"
+                            title="Alterar palavra-passe"
+                            onClick={() => setPasswordMember(member)}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
                           <Button 
                             variant="ghost" 
                             size="icon"
@@ -807,6 +819,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       )}
 
       {/* Invite Member Dialog */}
+      <MemberPasswordDialog open={!!passwordMember} onOpenChange={(o) => !o && setPasswordMember(null)} workspaceId={currentWorkspace?.id} member={passwordMember} />
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
         <DialogContent>
           <DialogHeader>
