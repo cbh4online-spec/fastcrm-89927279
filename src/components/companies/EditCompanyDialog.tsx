@@ -147,7 +147,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
             Atualize as informações da empresa.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} onKeyDown={(e) => { const t = e.target as HTMLElement; if (e.key === "Enter" && !(e.ctrlKey || e.metaKey) && t.tagName === "INPUT") e.preventDefault(); }} className="space-y-4">
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nome da Empresa</Label>

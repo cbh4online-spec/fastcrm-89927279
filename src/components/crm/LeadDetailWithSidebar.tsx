@@ -164,7 +164,7 @@ export function LeadDetailWithSidebar() {
     ];
   }, [counts]);
 
-  if (isLoading || isPending || isFetching) {
+  if (!lead && (isLoading || isPending)) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />

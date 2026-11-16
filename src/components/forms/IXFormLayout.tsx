@@ -54,6 +54,7 @@ export function IXFormLayout({
           e.preventDefault();
           onSubmit?.();
         }}
+        onKeyDown={(e) => { const t = e.target as HTMLElement; if (e.key === "Enter" && !(e.ctrlKey || e.metaKey) && t.tagName === "INPUT") e.preventDefault(); }}
         className="mx-auto mt-8 max-w-5xl space-y-10 px-6"
       >
         {children}

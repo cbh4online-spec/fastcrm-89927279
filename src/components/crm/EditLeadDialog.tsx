@@ -133,7 +133,7 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
           <DialogTitle>Editar Lead</DialogTitle>
           <DialogDescription>Atualize as informações do lead.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} onKeyDown={(e) => { const t = e.target as HTMLElement; if (e.key === "Enter" && !(e.ctrlKey || e.metaKey) && t.tagName === "INPUT") e.preventDefault(); }} className="space-y-4">
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="edit-lead-name">Nome</Label>
