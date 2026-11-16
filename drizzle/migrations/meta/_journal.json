@@ -967,6 +967,13 @@
       "when": 1794403185885,
       "tag": "0137_wascript_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1794831775644,
+      "tag": "0138_align_companies_financials",
+      "breakpoints": true
     }
   ]
 }
