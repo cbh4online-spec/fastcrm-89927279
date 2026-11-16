@@ -974,6 +974,13 @@
       "when": 1794831775644,
       "tag": "0138_align_companies_financials",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1794839404144,
+      "tag": "0139_harden_quota_and_campaign_stat",
+      "breakpoints": true
     }
   ]
 }
