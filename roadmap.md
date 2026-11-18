@@ -75,3 +75,8 @@
 - [x] Completar o resumo de avenças, projetos, suporte e horas no portal de serviços, sem alterar o portal de loja; nove testes passaram e compilação sem erros.
 - [x] Validar saldo partilhado, exclusão de tempo não faturável, horas extra e recusa da sessão sem acesso (42501, sem dados); função sem acesso anónimo.
 - [ ] Confirmar resumo e navegação com cliente autorizado do Método PARE — a sessão disponível não tem perfil de cliente neste workspace.
+
+## Importação histórica PHARLISS (2026-11-18)
+- [x] Fixar compatibilidade `xlsx`/`done` da RPC atual numa migração aditiva, sem importar nem alterar o catálogo.
+- [x] Permitir reutilizar o mesmo ficheiro noutra edição no passo 5, limpando apenas o estado da execução anterior.
+- [x] Validar localmente sem escritas na produção e sem publicar.

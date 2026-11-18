@@ -171,6 +171,14 @@ export default function SJHistoricalImport() {
   }
 
   const reset = () => { setStep(1); setRows([]); setHeaders([]); setSummary(null); setCohortId(""); setPreview(null); setFile(null); setConfirmed(false); };
+  const reuseFileForAnotherCohort = () => {
+    setCohortId("");
+    setPreview(null);
+    setSummary(null);
+    setConfirmed(false);
+    setProgress(0);
+    setStep(2);
+  };
 
   if (roleLoading) return <div className="p-6"><Loader2 className="h-5 w-5 animate-spin" aria-label="A carregar" /></div>;
   if (!canManage) return (
@@ -361,7 +369,10 @@ export default function SJHistoricalImport() {
                 </ul>
               </div>
             )}
-            <Button onClick={reset}>Nova importação</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={reuseFileForAnotherCohort}>Usar o mesmo ficheiro noutra edição</Button>
+              <Button onClick={reset}>Nova importação</Button>
+            </div>
           </CardContent>
         </Card>
       )}
