@@ -981,6 +981,20 @@
       "when": 1794839404144,
       "tag": "0139_harden_quota_and_campaign_stat",
       "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1795029216311,
+      "tag": "0140_sj_safe_historical_import",
+      "breakpoints": true
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1795029396022,
+      "tag": "0141_sj_import_contact_created_by",
+      "breakpoints": true
     }
   ]
 }

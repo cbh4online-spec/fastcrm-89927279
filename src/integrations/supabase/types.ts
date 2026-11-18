@@ -86503,6 +86503,7 @@ export type Database = {
           duplicate_approved: boolean
           duplicate_approved_by: string | null
           financial_status: string | null
+          financial_unknown: boolean
           id: string
           import_source_file: string | null
           import_source_row: string | null
@@ -86533,6 +86534,7 @@ export type Database = {
           duplicate_approved?: boolean
           duplicate_approved_by?: string | null
           financial_status?: string | null
+          financial_unknown?: boolean
           id?: string
           import_source_file?: string | null
           import_source_row?: string | null
@@ -86563,6 +86565,7 @@ export type Database = {
           duplicate_approved?: boolean
           duplicate_approved_by?: string | null
           financial_status?: string | null
+          financial_unknown?: boolean
           id?: string
           import_source_file?: string | null
           import_source_row?: string | null
@@ -86724,6 +86727,172 @@ export type Database = {
           },
           {
             foreignKeyName: "sj_import_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_import_label_maps: {
+        Row: {
+          cohort_id: string | null
+          course_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label_norm: string
+          label_raw: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cohort_id?: string | null
+          course_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label_norm: string
+          label_raw: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cohort_id?: string | null
+          course_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label_norm?: string
+          label_raw?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_import_label_maps_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_label_maps_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts_with_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_label_maps_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "sj_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_label_maps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_label_maps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sj_import_label_maps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_label_maps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sj_import_provenance: {
+        Row: {
+          action: string
+          cells: Json
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          file_hash: string
+          file_name: string | null
+          id: string
+          job_id: string | null
+          row_ref: string
+          sheet_name: string
+          source_label: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          cells?: Json
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          file_hash: string
+          file_name?: string | null
+          id?: string
+          job_id?: string | null
+          row_ref: string
+          sheet_name?: string
+          source_label: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          cells?: Json
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          file_hash?: string
+          file_name?: string | null
+          id?: string
+          job_id?: string | null
+          row_ref?: string
+          sheet_name?: string
+          source_label?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_import_provenance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_provenance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sj_import_provenance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_provenance_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces_public"
@@ -86902,9 +87071,100 @@ export type Database = {
           },
         ]
       }
+      sj_profile_merges: {
+        Row: {
+          contact_moved_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          moved: Json
+          reason: string
+          reverted_at: string | null
+          reverted_by: string | null
+          source_profile_id: string
+          source_snapshot: Json
+          target_profile_id: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_moved_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          moved?: Json
+          reason: string
+          reverted_at?: string | null
+          reverted_by?: string | null
+          source_profile_id: string
+          source_snapshot?: Json
+          target_profile_id: string
+          workspace_id: string
+        }
+        Update: {
+          contact_moved_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          moved?: Json
+          reason?: string
+          reverted_at?: string | null
+          reverted_by?: string | null
+          source_profile_id?: string
+          source_snapshot?: Json
+          target_profile_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_profile_merges_source_profile_id_fkey"
+            columns: ["source_profile_id"]
+            isOneToOne: false
+            referencedRelation: "sj_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_profile_merges_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "sj_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_profile_merges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_profile_merges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sj_profile_merges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_profile_merges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_profiles: {
         Row: {
           activation_potential: string | null
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           contact_id: string | null
           created_at: string | null
           current_level: string | null
@@ -86918,6 +87178,7 @@ export type Database = {
           last_activity_at: string | null
           last_course_completed_at: string | null
           lifecycle_stage: string
+          merged_into_profile_id: string | null
           next_best_action: string | null
           next_follow_up_at: string | null
           owner_user_id: string | null
@@ -86927,6 +87188,7 @@ export type Database = {
           primary_specialty: string | null
           recommendations_enabled: boolean | null
           role: string | null
+          source: string | null
           specialties_progress: Json | null
           student_score: number | null
           total_courses_completed: number | null
@@ -86935,6 +87197,9 @@ export type Database = {
         }
         Insert: {
           activation_potential?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           contact_id?: string | null
           created_at?: string | null
           current_level?: string | null
@@ -86948,6 +87213,7 @@ export type Database = {
           last_activity_at?: string | null
           last_course_completed_at?: string | null
           lifecycle_stage?: string
+          merged_into_profile_id?: string | null
           next_best_action?: string | null
           next_follow_up_at?: string | null
           owner_user_id?: string | null
@@ -86957,6 +87223,7 @@ export type Database = {
           primary_specialty?: string | null
           recommendations_enabled?: boolean | null
           role?: string | null
+          source?: string | null
           specialties_progress?: Json | null
           student_score?: number | null
           total_courses_completed?: number | null
@@ -86965,6 +87232,9 @@ export type Database = {
         }
         Update: {
           activation_potential?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           contact_id?: string | null
           created_at?: string | null
           current_level?: string | null
@@ -86978,6 +87248,7 @@ export type Database = {
           last_activity_at?: string | null
           last_course_completed_at?: string | null
           lifecycle_stage?: string
+          merged_into_profile_id?: string | null
           next_best_action?: string | null
           next_follow_up_at?: string | null
           owner_user_id?: string | null
@@ -86987,6 +87258,7 @@ export type Database = {
           primary_specialty?: string | null
           recommendations_enabled?: boolean | null
           role?: string | null
+          source?: string | null
           specialties_progress?: Json | null
           student_score?: number | null
           total_courses_completed?: number | null
@@ -86999,6 +87271,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_profiles_merged_into_profile_id_fkey"
+            columns: ["merged_into_profile_id"]
+            isOneToOne: false
+            referencedRelation: "sj_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -112357,15 +112636,56 @@ export type Database = {
         Args: { _roles: string[]; _workspace_id: string }
         Returns: boolean
       }
-      sj_import_historical_rows: {
+      sj_import_classify: {
         Args: {
+          _file_hash?: string
+          _row: Json
+          _sheet?: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
+      sj_import_historical_rows:
+        | {
+            Args: {
+              _batch: Json
+              _cohort_id: string
+              _rows: Json
+              _workspace_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _cohort_id: string
+              _dedupe_key: string
+              _file_name?: string
+              _rows: Json
+              _workspace_id: string
+            }
+            Returns: Json
+          }
+      sj_import_preview: {
+        Args: {
+          _batch: Json
           _cohort_id: string
-          _dedupe_key: string
-          _file_name?: string
           _rows: Json
           _workspace_id: string
         }
         Returns: Json
+      }
+      sj_import_resolve: {
+        Args: { _cls: Json; _decision: Json }
+        Returns: Json
+      }
+      sj_import_set_label_map: {
+        Args: {
+          _cohort_id: string
+          _course_id: string
+          _label: string
+          _workspace_id: string
+        }
+        Returns: string
       }
       sj_link_invoice: {
         Args: {
@@ -112378,6 +112698,30 @@ export type Database = {
       sj_match_profile_to_contact: {
         Args: { p_profile_id: string }
         Returns: string
+      }
+      sj_names_compatible: {
+        Args: { _a: string; _b: string }
+        Returns: boolean
+      }
+      sj_nif_kind: { Args: { _s: string }; Returns: string }
+      sj_norm_phone: { Args: { _s: string }; Returns: string }
+      sj_norm_text: { Args: { _s: string }; Returns: string }
+      sj_profile_merge: {
+        Args: {
+          _reason: string
+          _source: string
+          _target: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
+      sj_profile_merge_preview: {
+        Args: { _source: string; _target: string; _workspace_id: string }
+        Returns: Json
+      }
+      sj_profile_merge_revert: {
+        Args: { _merge_id: string; _workspace_id: string }
+        Returns: Json
       }
       sj_reallocate_payments: {
         Args: { _enrollment_id: string }
@@ -112408,6 +112752,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      sj_valid_nif: { Args: { _s: string }; Returns: boolean }
       skip_optout_recipients: {
         Args: { p_campaign_id: string }
         Returns: number
