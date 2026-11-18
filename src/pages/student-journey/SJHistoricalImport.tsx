@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
-import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Loader2, Lock, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Loader2, Lock, Play, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { parseExcelFile } from "@/utils/excelUtils";
-import { autoMapColumns, IMPORT_FIELDS, prepareRows, TEMPLATE_HEADERS, type ImportField, type PreparedRow } from "@/lib/studentJourney/historicalImport";
+import { autoMapColumns, IMPORT_FIELDS, partitionRowsForEdition, prepareRows, TEMPLATE_HEADERS, type ImportField, type PreparedRow } from "@/lib/studentJourney/historicalImport";
 import { hintLabel, isRowReady, normText, reasonLabel, sha256Hex, STATUS_LABEL, type PreviewRow, type RowStatus } from "@/lib/studentJourney/importReconciliation";
 import { useSjRole } from "@/hooks/useSjImportAccess";
 import { ImportDecisionDialog } from "@/components/student-journey/ImportDecisionDialog";
@@ -89,6 +89,10 @@ export default function SJHistoricalImport() {
     return [...m.entries()].map(([norm, v]) => ({ norm, ...v })).sort((a, b) => b.count - a.count);
   }, [prepared.valid]);
   const mapByNorm = useMemo(() => new Map((labelMaps.data ?? []).map((m) => [m.label_norm, m])), [labelMaps.data]);
+  const editionRows = useMemo(
+    () => partitionRowsForEdition(prepared.valid, labelMaps.data ?? [], cohort?.course_id ?? "", cohortId),
+    [prepared.valid, labelMaps.data, cohort?.course_id, cohortId],
+  );
 
   async function onFile(f: File) {
     try {
@@ -124,11 +128,15 @@ export default function SJHistoricalImport() {
 
   async function runPreview() {
     if (!ws || !cohortId) return;
+    if (!editionRows.eligible.length) {
+      toast.error("Não há ocorrências com todas as designações mapeadas para esta edição.");
+      return;
+    }
     setLoadingPreview(true);
     try {
       const out: PreviewRow[] = [];
-      for (let i = 0; i < prepared.valid.length; i += CHUNK) {
-        const { data, error } = await db.rpc("sj_import_preview", { _workspace_id: ws, _cohort_id: cohortId, _batch: batch, _rows: prepared.valid.slice(i, i + CHUNK).map(payload) });
+      for (let i = 0; i < editionRows.eligible.length; i += CHUNK) {
+        const { data, error } = await db.rpc("sj_import_preview", { _workspace_id: ws, _cohort_id: cohortId, _batch: batch, _rows: editionRows.eligible.slice(i, i + CHUNK).map(payload) });
         if (error) throw error;
         out.push(...(data ?? []));
       }
@@ -138,7 +146,7 @@ export default function SJHistoricalImport() {
   }
 
   const previewByRow = useMemo(() => new Map((preview ?? []).map((p) => [p.source_row, p])), [preview]);
-  const readyRows = useMemo(() => prepared.valid.filter((r) => { const p = previewByRow.get(r.source_row); return p ? isRowReady(p) : false; }), [prepared.valid, previewByRow]);
+  const readyRows = useMemo(() => editionRows.eligible.filter((r) => { const p = previewByRow.get(r.source_row); return p ? isRowReady(p) : false; }), [editionRows.eligible, previewByRow]);
   const plan = useMemo(() => {
     const ps = readyRows.map((r) => previewByRow.get(r.source_row)!);
     return {
@@ -261,6 +269,23 @@ export default function SJHistoricalImport() {
         <Card>
           <CardHeader><CardTitle className="text-base">Designações → curso e edição</CardTitle></CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Stat label="Ocorrências desta edição" value={editionRows.eligible.length} />
+              <Stat label="De outras edições" value={editionRows.otherEditions.length} />
+              <Stat label="Sem mapeamento" value={editionRows.unmapped.length} />
+            </div>
+            <p className="text-xs text-muted-foreground">Só as ocorrências desta edição entram na prévia. As de outras edições ficam para a respetiva execução.</p>
+            {editionRows.unmapped.length > 0 && (
+              <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                <p className="flex items-center gap-2 font-semibold text-destructive"><AlertTriangle className="h-4 w-4" /> Ocorrências sem mapeamento completo — não entram nesta edição</p>
+                <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-xs">
+                  {editionRows.unmapped.slice(0, 100).map(({ row, missingLabels }) => (
+                    <li key={row.source_row}><strong>Linha {row.source_row}:</strong> {missingLabels.length ? missingLabels.join(", ") : "designação da formação em falta"}</li>
+                  ))}
+                </ul>
+                {editionRows.unmapped.length > 100 && <p className="mt-2 text-xs text-muted-foreground">Existem mais {editionRows.unmapped.length - 100} ocorrências com designações por mapear.</p>}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">Cada designação do ficheiro precisa de ser associada explicitamente. Só conta a mesma designação (ignorando maiúsculas, acentos e espaços); variantes, erros e rótulos truncados ficam por mapear. Nada é criado automaticamente.</p>
             <div className="overflow-auto rounded-lg border border-border">
               <Table>
@@ -283,7 +308,7 @@ export default function SJHistoricalImport() {
             </div>
             <div className="flex justify-between">
               <Button variant="ghost" onClick={() => setStep(2)}>Voltar</Button>
-              <Button disabled={loadingPreview} onClick={runPreview}>{loadingPreview && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Pré-visualizar conciliação</Button>
+              <Button disabled={loadingPreview || !editionRows.eligible.length} onClick={runPreview}>{loadingPreview ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}Pré-visualizar {editionRows.eligible.length} ocorrências</Button>
             </div>
           </CardContent>
         </Card>

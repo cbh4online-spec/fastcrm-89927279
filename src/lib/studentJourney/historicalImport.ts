@@ -1,4 +1,4 @@
-import { buildOccurrences } from "./importReconciliation";
+import { buildOccurrences, normText } from "./importReconciliation";
 
 /** Fase F — importação histórica: mapeamento de colunas, normalização e validação (sem rede). */
 
@@ -140,6 +140,44 @@ export function prepareRows(
     }
   });
   return { valid, issues };
+}
+
+export interface ImportLabelMap {
+  label_norm: string;
+  course_id: string;
+  cohort_id: string | null;
+}
+
+export interface EditionRowSelection {
+  eligible: PreparedRow[];
+  otherEditions: PreparedRow[];
+  unmapped: { row: PreparedRow; missingLabels: string[] }[];
+}
+
+/** Separa localmente as ocorrências sem alterar o ficheiro nem substituir a validação do servidor. */
+export function partitionRowsForEdition(
+  rows: PreparedRow[],
+  labelMaps: ImportLabelMap[],
+  courseId: string,
+  cohortId: string,
+): EditionRowSelection {
+  const maps = new Map(labelMaps.map((m) => [m.label_norm, m]));
+  const selection: EditionRowSelection = { eligible: [], otherEditions: [], unmapped: [] };
+
+  for (const row of rows) {
+    const labels = row.labels.map((raw) => ({ raw, norm: normText(raw) }));
+    const missingLabels = labels.filter(({ norm }) => !norm || !maps.has(norm)).map(({ raw }) => raw);
+    if (!labels.length || missingLabels.length) {
+      selection.unmapped.push({ row, missingLabels });
+      continue;
+    }
+    const belongsToEdition = labels.every(({ norm }) => {
+      const map = maps.get(norm!);
+      return map?.course_id === courseId && map?.cohort_id === cohortId;
+    });
+    (belongsToEdition ? selection.eligible : selection.otherEditions).push(row);
+  }
+  return selection;
 }
 
 export const TEMPLATE_HEADERS = IMPORT_FIELDS.filter((f) => !f.key.startsWith("certificate")).map((f) => f.label);
