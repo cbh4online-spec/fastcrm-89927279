@@ -103,6 +103,10 @@ const REASON_LABEL: Record<string, string> = {
   "conflict:profile_name_mismatch": "Conflito: perfil candidato com nome incompatível",
   "conflict:shared_identifier_different_nif": "Conflito: e-mail/telefone partilhado por pessoa com outro NIF",
   "conflict:name_only": "Só coincide pelo nome — acrescente um identificador",
+  name_hint: "Existe contacto com nome semelhante — confirmar se é a mesma pessoa",
+  profile_name_hint: "Existe perfil com nome semelhante — confirmar se é a mesma pessoa",
+  phone_without_country_code: "Telefone sem indicativo e não português — confirmar o país",
+  identity_not_proven: "Sem identificador comum — descreva a prova de que é a mesma pessoa",
   "conflict:phone_hint_only": "Só coincide por um telefone que estava no campo de e-mail",
   "conflict:missing_name": "Nome em falta",
   contact_candidates_exist: "Já existem contactos candidatos — não é criado outro",
@@ -152,7 +156,7 @@ export interface PreviewRow {
   reasons: string[];
   hints: { code: string; value: string }[];
   contacts: { id: string; name: string; email: string | null; phone: string | null; tax_id: string | null; matched_by: string[]; name_ok: boolean; nif_conflict: boolean }[];
-  profiles: { id: string; full_name: string; email: string | null; phone: string | null; contact_id: string | null; name_ok: boolean; enrollments: number }[];
+  profiles: { id: string; full_name: string; email: string | null; phone: string | null; contact_id: string | null; name_ok: boolean; name_only?: boolean; enrollments: number }[];
   resolution: { pending?: string; contact?: string; profile?: string; legacy?: string | null; decision_id?: string; previous?: boolean };
   stored_decision: null | { stale?: boolean; id: string; reason?: string; contact?: string; profile?: string; legacy?: string | null };
   legacy_enrollments: { id: string; pedagogic_status: string | null; admin_status: string | null; financial_status: string | null; created_at: string }[];

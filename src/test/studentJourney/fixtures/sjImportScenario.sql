@@ -75,7 +75,13 @@ BEGIN
   -- E) consolidação e reimportação: perfil do Rui fundido noutro perfil
   INSERT INTO sj_profiles(workspace_id,full_name) VALUES (w1,'Rui Costa') RETURNING id INTO m2;
   SELECT id INTO m1 FROM sj_profiles WHERE contact_id=cb;
-  mg := sj_profile_merge(w1,m1,m2,'Duplicado confirmado');
+  pv := sj_profile_merge_preview(w1,m1,m2);
+  BEGIN PERFORM sj_profile_merge(w1,m1,m2,'Duplicado confirmado','fingerprint-falsa','Confirmado pela secretaria por telefone');
+    INSERT INTO t_res VALUES ('merge_bad_fp','false');
+  EXCEPTION WHEN OTHERS THEN INSERT INTO t_res VALUES ('merge_bad_fp','true'); END;
+  INSERT INTO t_res VALUES ('merge_no_evidence', sj_profile_merge(w1,m1,m2,'Duplicado confirmado',pv->>'fingerprint',NULL)->'blockers');
+  pv := sj_profile_merge_preview(w1,m1,m2);
+  mg := sj_profile_merge(w1,m1,m2,'Duplicado confirmado',pv->>'fingerprint','Confirmado pela secretaria por telefone');
   INSERT INTO t_res VALUES ('merge', jsonb_build_object('status',mg->>'status','m1_archived',(SELECT merged_into_profile_id=m2 FROM sj_profiles WHERE id=m1),
      'm2_contact',(SELECT contact_id=cb FROM sj_profiles WHERE id=m2)));
   r := sj_import_historical_rows(w1,k1,b,rows);
@@ -84,7 +90,8 @@ BEGIN
   -- F) colisão registada como bloqueada, sem mover nada
   INSERT INTO sj_profiles(workspace_id,full_name) VALUES (w1,'Rui Costa') RETURNING id INTO m3;
   INSERT INTO sj_enrollments(workspace_id,profile_id,course_id,cohort_id,financial_status,agreed_amount) VALUES (w1,m3,c1,k1,'unpaid',100);
-  mg := sj_profile_merge(w1,m3,m2,'Teste colisão');
+  pv := sj_profile_merge_preview(w1,m3,m2);
+  mg := sj_profile_merge(w1,m3,m2,'Teste colisão',pv->>'fingerprint','Confirmado pela secretaria por telefone');
   INSERT INTO t_res VALUES ('coincident', jsonb_build_object('status',mg->>'status','blockers',mg->'blockers','m3_enr',(SELECT count(*) FROM sj_enrollments WHERE profile_id=m3),
      'm3_active',(SELECT archived_at IS NULL FROM sj_profiles WHERE id=m3)));
   -- dependente de outro workspace bloqueia
@@ -97,13 +104,59 @@ BEGIN
   INSERT INTO t_res VALUES ('revert', jsonb_build_object('m1_active',(SELECT archived_at IS NULL FROM sj_profiles WHERE id=m1),'m1_contact',(SELECT contact_id=cb FROM sj_profiles WHERE id=m1),
      'm1_enr',(SELECT count(*) FROM sj_enrollments WHERE profile_id=m1)));
 
+  PERFORM set_config('sj.historical_import','on',false);
+  -- G) estatísticas do perfil: histórico sem data não inventa conclusão nem termina outro curso ativo
+  INSERT INTO sj_profiles(workspace_id,full_name,lifecycle_stage) VALUES (w1,'Perfil Ativo','active') RETURNING id INTO m1;
+  INSERT INTO sj_enrollments(workspace_id,profile_id,course_id,status,admin_status,pedagogic_status) VALUES (w1,m1,c2,'enrolled','confirmed','in_training');
+  INSERT INTO sj_enrollments(workspace_id,profile_id,course_id,cohort_id,status,admin_status,pedagogic_status,source) VALUES (w1,m1,c1,k1,'completed','admin_completed','completed','import');
+  INSERT INTO sj_profiles(workspace_id,full_name,lifecycle_stage) VALUES (w1,'Perfil Inativo','inactive') RETURNING id INTO m2;
+  INSERT INTO sj_enrollments(workspace_id,profile_id,course_id,cohort_id,status,admin_status,pedagogic_status,source) VALUES (w1,m2,c1,k1,'completed','admin_completed','completed','import');
+  INSERT INTO sj_profiles(workspace_id,full_name,lifecycle_stage) VALUES (w1,'Perfil Inscrito','enrolled') RETURNING id INTO m3;
+  INSERT INTO sj_enrollments(workspace_id,profile_id,course_id,cohort_id,status,admin_status,pedagogic_status,source) VALUES (w1,m3,c1,k1,'completed','admin_completed','completed','import');
+  INSERT INTO t_res VALUES ('stats', (SELECT jsonb_object_agg(full_name, jsonb_build_object('stage',lifecycle_stage,'total',total_courses_completed,'last',last_course_completed_at))
+     FROM sj_profiles WHERE id IN (m1,m2,m3)));
+  -- merge/reversão com datas distintas
+  INSERT INTO sj_profiles(workspace_id,full_name,email) VALUES (w1,'Datas Origem','datas@t.pt') RETURNING id INTO m1;
+  INSERT INTO sj_profiles(workspace_id,full_name,email) VALUES (w1,'Datas Origem','datas@t.pt') RETURNING id INTO m2;
+  INSERT INTO sj_enrollments(workspace_id,profile_id,course_id,status,pedagogic_status,completed_at,source) VALUES (w1,m1,c2,'completed','completed','2023-06-01','import');
+  INSERT INTO sj_enrollments(workspace_id,profile_id,course_id,status,pedagogic_status,completed_at,source) VALUES (w1,m2,c1,'completed','completed','2021-01-01','import');
+  PERFORM set_config('sj.historical_import','off',false);
+  pv := sj_profile_merge_preview(w1,m1,m2);
+  mg := sj_profile_merge(w1,m1,m2,'Mesmo e-mail',pv->>'fingerprint',NULL);
+  INSERT INTO t_res VALUES ('dates_merge', jsonb_build_object('status',mg->>'status','evidence',pv->'identity_evidence',
+     'target_last',(SELECT last_course_completed_at::date FROM sj_profiles WHERE id=m2),'target_total',(SELECT total_courses_completed FROM sj_profiles WHERE id=m2)));
+  PERFORM sj_profile_merge_revert(w1,(mg->>'merge_id')::uuid);
+  INSERT INTO t_res VALUES ('dates_revert', jsonb_build_object('target_last',(SELECT last_course_completed_at::date FROM sj_profiles WHERE id=m2),
+     'source_last',(SELECT last_course_completed_at::date FROM sj_profiles WHERE id=m1),'target_total',(SELECT total_courses_completed FROM sj_profiles WHERE id=m2)));
+  -- identidades incompatíveis
+  INSERT INTO contacts(workspace_id,created_by,name,tax_id) VALUES (w1,mgr,'Inês Barros','123456789') RETURNING id INTO ca;
+  INSERT INTO contacts(workspace_id,created_by,name,tax_id) VALUES (w1,mgr,'Hugo Santos','999999990') RETURNING id INTO cb;
+  INSERT INTO sj_profiles(workspace_id,contact_id,full_name) VALUES (w1,ca,'Inês Barros') RETURNING id INTO m1;
+  INSERT INTO sj_profiles(workspace_id,contact_id,full_name) VALUES (w1,cb,'Hugo Santos') RETURNING id INTO m2;
+  INSERT INTO t_res VALUES ('incompatible_merge', sj_profile_merge_preview(w1,m1,m2)->'blockers');
+  -- nome existente com chaves novas / campos deslocados; telefone internacional sem '+'
+  INSERT INTO sj_profiles(workspace_id,full_name,email) VALUES (w1,'Sofia Martins','912345678');
+  INSERT INTO contacts(workspace_id,created_by,name) VALUES (w1,mgr,'Luís Pereira');
+  pv := sj_import_preview(w1,k1,b,jsonb_build_array(
+    jsonb_build_object('source_row','50','full_name','Sofia Martins','email','sofia.nova@t.pt','labels',jsonb_build_array('FBTC PORTO24/1')),
+    jsonb_build_object('source_row','51','full_name','Luis Pereira','phone','+351933000111','labels',jsonb_build_array('FBTC PORTO24/1')),
+    jsonb_build_object('source_row','52','full_name','Zeca Novo','phone','447700900123','labels',jsonb_build_array('FBTC PORTO24/1'))));
+  INSERT INTO t_res VALUES ('name_hints', (SELECT jsonb_object_agg(x->>'source_row', jsonb_build_object('status',x->>'status','reasons',x->'reasons','pending',x->'resolution'->>'pending'))
+     FROM jsonb_array_elements(pv) x));
+  SELECT count(*) INTO n FROM sj_profiles WHERE workspace_id=w1;
+  r := sj_import_historical_rows(w1,k1,b,jsonb_build_array(
+    jsonb_build_object('source_row','50','full_name','Sofia Martins','email','sofia.nova@t.pt','pedagogic_status','completed','labels',jsonb_build_array('FBTC PORTO24/1')),
+    jsonb_build_object('source_row','51','full_name','Luis Pereira','phone','+351933000111','pedagogic_status','completed','labels',jsonb_build_array('FBTC PORTO24/1'))));
+  INSERT INTO t_res VALUES ('name_hint_run', jsonb_build_object('profiles_created', r->'profiles_created', 'contacts_created', r->'contacts_created',
+     'pending', r->'pending', 'profiles_delta', (SELECT count(*) FROM sj_profiles WHERE workspace_id=w1) - n));
+
   -- B) permissões
   PERFORM set_config('test.uid', exmember::text, false);
   INSERT INTO t_res VALUES ('old_helper_accepts_exmember', to_jsonb(sj_has_any_role(w1, ARRAY['gestao'])));
   BEGIN PERFORM sj_import_preview(w1,k1,b,rows); INSERT INTO t_res VALUES ('exmember_blocked','false');
   EXCEPTION WHEN OTHERS THEN INSERT INTO t_res VALUES ('exmember_blocked','true'); END;
   PERFORM set_config('test.uid', stranger::text, false);
-  BEGIN PERFORM sj_profile_merge(w1,m1,m2,'sem permissao'); INSERT INTO t_res VALUES ('stranger_merge_blocked','false');
+  BEGIN PERFORM sj_profile_merge(w1,m1,m2,'sem permissao','x','x'); INSERT INTO t_res VALUES ('stranger_merge_blocked','false');
   EXCEPTION WHEN OTHERS THEN INSERT INTO t_res VALUES ('stranger_merge_blocked','true'); END;
   BEGIN PERFORM sj_import_historical_rows(w2,k1,b,rows); INSERT INTO t_res VALUES ('cross_ws_cohort_blocked','false');
   EXCEPTION WHEN OTHERS THEN INSERT INTO t_res VALUES ('cross_ws_cohort_blocked','true'); END;

@@ -15,11 +15,17 @@ const BLOCKER_LABEL: Record<string, string> = {
   same_profile: "É o mesmo perfil.",
   archived_profile: "Um dos perfis já está arquivado.",
   different_contacts: "Os perfis estão ligados a contactos diferentes — consolide primeiro os contactos.",
+  names_incompatible: "Os nomes não são compatíveis — não é a mesma pessoa.",
+  different_nif: "Os contactos têm NIF diferentes.",
+  different_emails: "Os perfis têm e-mails diferentes — confirme e corrija antes de consolidar.",
+  identity_not_proven: "Sem identificador em comum: é obrigatório descrever a prova de identidade.",
   coincident_enrollments: "Há inscrições no mesmo curso/edição nos dois perfis — finanças e certificados não são juntos automaticamente.",
 };
 export const mergeBlockerLabel = (b: string) =>
   BLOCKER_LABEL[b] ?? (b.startsWith("unsupported_relation:") ? `Relação não suportada: ${b.slice(21)}` :
     b.startsWith("cross_workspace_dependent:") ? `Dados de outra organização em ${b.slice(26)}` : b);
+
+const EVIDENCE_LABEL: Record<string, string> = { same_contact: "mesmo contacto", same_email: "mesmo e-mail", same_phone: "mesmo telefone", same_nif: "mesmo NIF" };
 
 const DEP_LABEL: Record<string, string> = {
   "sj_enrollments.profile_id": "Inscrições", "sj_touchpoints.profile_id": "Interações", "sj_tasks.profile_id": "Tarefas",
@@ -40,6 +46,7 @@ export function ProfileMergeDialog({ open, onOpenChange, workspaceId, source }: 
   const [targetId, setTargetId] = useState<string | null>(null);
   const [preview, setPreview] = useState<any | null>(null);
   const [reason, setReason] = useState("");
+  const [evidenceNote, setEvidenceNote] = useState("");
   const [busy, setBusy] = useState(false);
 
   const candidates = useQuery({
@@ -55,7 +62,7 @@ export function ProfileMergeDialog({ open, onOpenChange, workspaceId, source }: 
     },
   });
 
-  const reset = () => { setTerm(""); setTargetId(null); setPreview(null); setReason(""); };
+  const reset = () => { setTerm(""); setTargetId(null); setPreview(null); setReason(""); setEvidenceNote(""); };
 
   async function loadPreview(id: string) {
     setTargetId(id); setPreview(null); setBusy(true);
@@ -68,9 +75,10 @@ export function ProfileMergeDialog({ open, onOpenChange, workspaceId, source }: 
   async function confirm() {
     if (!targetId || !preview?.can_merge) return;
     setBusy(true);
-    const { data, error } = await db.rpc("sj_profile_merge", { _workspace_id: workspaceId, _source: source.id, _target: targetId, _reason: reason.trim() });
+    const { data, error } = await db.rpc("sj_profile_merge", { _workspace_id: workspaceId, _source: source.id, _target: targetId, _reason: reason.trim(),
+      _preview_fingerprint: preview.fingerprint, _evidence_note: evidenceNote.trim() || null });
     setBusy(false);
-    if (error) { toast.error(`Consolidação recusada: ${error.message}`); return; }
+    if (error) { toast.error(`Consolidação recusada: ${error.message}`); if (/prévia mudou/.test(error.message)) loadPreview(targetId); return; }
     if (data?.status !== "completed") {
       toast.error("Consolidação bloqueada e registada para revisão. Nada foi alterado.");
       setPreview({ ...preview, can_merge: false, blockers: data?.blockers ?? [] });
@@ -113,7 +121,9 @@ export function ProfileMergeDialog({ open, onOpenChange, workspaceId, source }: 
           {preview && (
             <div className="space-y-3 rounded-lg border border-border p-3 text-sm">
               <p><b>{preview.source.full_name}</b> → <b>{preview.target.full_name}</b></p>
-              {!preview.names_compatible && <p className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-4 w-4" />Os nomes não são compatíveis — confirme que é mesmo a mesma pessoa.</p>}
+              <p>{preview.identity_evidence?.length
+                ? <>Prova de identidade: {preview.identity_evidence.map((e: string) => EVIDENCE_LABEL[e] ?? e).join(", ")}</>
+                : <span className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-4 w-4" />Nenhum identificador em comum. Um nome igual não prova que é a mesma pessoa.</span>}</p>
               <p className="text-muted-foreground">A mover: {deps.length ? deps.map(([k, n]) => `${DEP_LABEL[k] ?? k}: ${n}`).join(" · ") : "nenhum registo dependente"}</p>
               {preview.blockers?.length > 0 && (
                 <ul className="list-disc space-y-1 pl-5 text-destructive">{preview.blockers.map((b: string) => <li key={b}>{mergeBlockerLabel(b)}</li>)}</ul>
@@ -122,6 +132,11 @@ export function ProfileMergeDialog({ open, onOpenChange, workspaceId, source }: 
                 <div className="space-y-1">
                   <Label htmlFor="merge-reason">Motivo (obrigatório)</Label>
                   <Textarea id="merge-reason" value={reason} maxLength={1000} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: mesmo NIF e e-mail confirmados pela secretaria" />
+                  {preview.requires_manual_evidence && <>
+                    <Label htmlFor="merge-evidence">Prova de identidade (obrigatória, mín. 15 caracteres)</Label>
+                    <Textarea id="merge-evidence" value={evidenceNote} maxLength={1000} onChange={(e) => setEvidenceNote(e.target.value)}
+                      placeholder="Ex.: confirmado por telefone com a aluna em 18/11; mesma data de nascimento no processo" />
+                  </>}
                 </div>
               )}
             </div>
@@ -129,7 +144,7 @@ export function ProfileMergeDialog({ open, onOpenChange, workspaceId, source }: 
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!preview?.can_merge || reason.trim().length < 5 || busy} onClick={confirm}>
+          <Button disabled={!preview?.can_merge || reason.trim().length < 5 || (preview?.requires_manual_evidence && evidenceNote.trim().length < 15) || busy} onClick={confirm}>
             {busy && preview ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Consolidar
           </Button>
         </DialogFooter>

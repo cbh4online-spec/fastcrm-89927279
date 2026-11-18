@@ -87180,8 +87180,11 @@ export type Database = {
           contact_moved_id: string | null
           created_at: string
           created_by: string | null
+          evidence_note: string | null
           id: string
+          identity_evidence: Json | null
           moved: Json
+          preview_fingerprint: string | null
           reason: string
           reverted_at: string | null
           reverted_by: string | null
@@ -87196,8 +87199,11 @@ export type Database = {
           contact_moved_id?: string | null
           created_at?: string
           created_by?: string | null
+          evidence_note?: string | null
           id?: string
+          identity_evidence?: Json | null
           moved?: Json
+          preview_fingerprint?: string | null
           reason: string
           reverted_at?: string | null
           reverted_by?: string | null
@@ -87212,8 +87218,11 @@ export type Database = {
           contact_moved_id?: string | null
           created_at?: string
           created_by?: string | null
+          evidence_note?: string | null
           id?: string
+          identity_evidence?: Json | null
           moved?: Json
+          preview_fingerprint?: string | null
           reason?: string
           reverted_at?: string | null
           reverted_by?: string | null
@@ -112870,15 +112879,27 @@ export type Database = {
       sj_nif_kind: { Args: { _s: string }; Returns: string }
       sj_norm_phone: { Args: { _s: string }; Returns: string }
       sj_norm_text: { Args: { _s: string }; Returns: string }
-      sj_profile_merge: {
-        Args: {
-          _reason: string
-          _source: string
-          _target: string
-          _workspace_id: string
-        }
-        Returns: Json
-      }
+      sj_profile_merge:
+        | {
+            Args: {
+              _reason: string
+              _source: string
+              _target: string
+              _workspace_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _evidence_note?: string
+              _preview_fingerprint: string
+              _reason: string
+              _source: string
+              _target: string
+              _workspace_id: string
+            }
+            Returns: Json
+          }
       sj_profile_merge_preview: {
         Args: { _source: string; _target: string; _workspace_id: string }
         Returns: Json
@@ -112894,6 +112915,10 @@ export type Database = {
       sj_recompute_financial_status: {
         Args: { _enrollment_id: string }
         Returns: string
+      }
+      sj_recompute_profile_course_stats: {
+        Args: { _profile_id: string; _workspace_id: string }
+        Returns: undefined
       }
       sj_register_payment: {
         Args: {

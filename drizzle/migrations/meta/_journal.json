@@ -1002,6 +1002,13 @@
       "when": 1795030365483,
       "tag": "0142_sj_import_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 143,
+      "version": "7",
+      "when": 1795031453868,
+      "tag": "0143_sj_profile_stats_identity",
+      "breakpoints": true
     }
   ]
 }

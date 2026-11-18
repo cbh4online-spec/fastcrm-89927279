@@ -44,3 +44,15 @@ CREATE TABLE sj_course_recommendations (id uuid PRIMARY KEY DEFAULT gen_random_u
 CREATE FUNCTION sj_completion_requires_attendance() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
 CREATE TRIGGER sj_enr_completion_guard BEFORE INSERT OR UPDATE ON sj_enrollments FOR EACH ROW EXECUTE FUNCTION sj_completion_requires_attendance();
 CREATE FUNCTION sj_import_historical_rows(_workspace_id uuid, _cohort_id uuid, _dedupe_key text, _rows jsonb, _file_name text DEFAULT NULL) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
+-- trigger original instalado (usa now() e muda o estado sem olhar a outras inscrições); 0143 substitui-o
+CREATE FUNCTION update_sj_profile_course_stats() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.status = 'completed' AND (OLD.status IS NULL OR OLD.status != 'completed') THEN
+    UPDATE sj_profiles SET total_courses_completed = COALESCE(total_courses_completed,0)+1,
+      last_course_completed_at = COALESCE(NEW.completed_at, now()),
+      lifecycle_stage = CASE WHEN lifecycle_stage IN ('active','enrolled') THEN 'completed' ELSE lifecycle_stage END
+    WHERE id = NEW.profile_id;
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trigger_update_profile_course_stats AFTER INSERT OR UPDATE ON sj_enrollments FOR EACH ROW EXECUTE FUNCTION update_sj_profile_course_stats();

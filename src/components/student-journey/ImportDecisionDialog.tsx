@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { acceptableContacts, reasonLabel, type PreviewRow } from "@/lib/studentJourney/importReconciliation";
 
 const db = supabase as any;
-const MATCH_LABEL: Record<string, string> = { nif: "NIF", email: "e-mail", phone: "telefone", client_number: "nº cliente", previous_import: "importação anterior", phone_hint: "telefone no e-mail", name_only: "só nome" };
+const MATCH_LABEL: Record<string, string> = { nif: "NIF", email: "e-mail", phone: "telefone", client_number: "nº cliente", previous_import: "importação anterior", phone_hint: "telefone no e-mail", name_only: "só nome", name_hint: "nome semelhante" };
 
 interface Props {
   open: boolean; onOpenChange: (v: boolean) => void; workspaceId: string; cohortId: string;
@@ -33,7 +33,9 @@ export function ImportDecisionDialog({ open, onOpenChange, workspaceId, cohortId
 
   const profileOptions = preview.profiles.filter((p) => p.name_ok && (!p.contact_id || p.contact_id === contact));
   const contactProfile = preview.profiles.find((p) => p.contact_id === contact);
-  const canNewProfile = preview.profiles.length === 0;
+  // Só se pode declarar «pessoa diferente» contra candidatos que coincidem apenas pelo nome.
+  const canNewContact = preview.contacts.every((c) => c.matched_by.length === 1 && c.matched_by[0] === "name_hint");
+  const canNewProfile = preview.profiles.every((p) => p.name_only === true);
   const needsLegacy = preview.legacy_enrollments.length > 0 && !preview.existing_in_cohort.length;
 
   async function save() {
@@ -64,8 +66,9 @@ export function ImportDecisionDialog({ open, onOpenChange, workspaceId, cohortId
                 <div key={c.id} className="flex items-center gap-2"><RadioGroupItem value={c.id} id={`c-${c.id}`} />
                   <Label htmlFor={`c-${c.id}`} className="font-normal">{c.name} · {c.email || c.phone || c.tax_id || "—"} <span className="text-muted-foreground">({c.matched_by.map((m) => MATCH_LABEL[m] ?? m).join(", ")})</span></Label></div>
               ))}
-              {preview.contacts.length === 0 && (
-                <div className="flex items-center gap-2"><RadioGroupItem value="new" id="c-new" /><Label htmlFor="c-new" className="font-normal">Criar contacto novo</Label></div>
+              {canNewContact && (
+                <div className="flex items-center gap-2"><RadioGroupItem value="new" id="c-new" /><Label htmlFor="c-new" className="font-normal">
+                  {preview.contacts.length ? "É outra pessoa (coincide só pelo nome) — criar contacto novo" : "Criar contacto novo"}</Label></div>
               )}
             </RadioGroup>
             {blocked.length > 0 && <p className="text-muted-foreground">Não selecionáveis (conflito): {blocked.map((c) => c.name).join(", ")}</p>}
@@ -77,9 +80,9 @@ export function ImportDecisionDialog({ open, onOpenChange, workspaceId, cohortId
                 <div key={p.id} className="flex items-center gap-2"><RadioGroupItem value={p.id} id={`p-${p.id}`} />
                   <Label htmlFor={`p-${p.id}`} className="font-normal">{p.full_name} · {p.email || p.phone || "—"} · {p.enrollments} inscrições {p.contact_id ? "" : "(sem contacto)"}</Label></div>
               ))}
-              {canNewProfile && <div className="flex items-center gap-2"><RadioGroupItem value="new" id="p-new" /><Label htmlFor="p-new" className="font-normal">Criar perfil novo</Label></div>}
+              {canNewProfile && <div className="flex items-center gap-2"><RadioGroupItem value="new" id="p-new" /><Label htmlFor="p-new" className="font-normal">{preview.profiles.length ? "É outra pessoa (coincide só pelo nome) — criar perfil novo" : "Criar perfil novo"}</Label></div>}
             </RadioGroup>
-            {!canNewProfile && <p className="text-muted-foreground">Existe pelo menos um perfil candidato: não é criado outro. Se forem duplicados, consolide-os primeiro.</p>}
+            {!canNewProfile && <p className="text-muted-foreground">Existe perfil candidato com identificador em comum: não é criado outro. Se forem duplicados, consolide-os primeiro.</p>}
           </fieldset>
           {needsLegacy && (
             <fieldset className="space-y-2">
