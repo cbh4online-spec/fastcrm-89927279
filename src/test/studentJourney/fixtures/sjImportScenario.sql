@@ -164,4 +164,33 @@ BEGIN
   BEGIN PERFORM sj_import_preview(w1,k1,b,rows); INSERT INTO t_res VALUES ('anon_blocked','false');
   EXCEPTION WHEN OTHERS THEN INSERT INTO t_res VALUES ('anon_blocked','true'); END;
 END $t$;
+
+DO $h$
+DECLARE w1 uuid; mgr uuid; k1 uuid; ct uuid; pt uuid; pv jsonb; r jsonb; n int; b jsonb := jsonb_build_object('source_label','Homónimos','file_name','h.xlsx','file_hash',repeat('b',64),'sheet_name','F');
+BEGIN
+  SELECT id INTO w1 FROM workspaces WHERE slug='w1';
+  SELECT user_id INTO mgr FROM workspace_members WHERE workspace_id=w1 LIMIT 1;
+  PERFORM set_config('test.uid', mgr::text, false);
+  SELECT id INTO k1 FROM sj_cohorts WHERE workspace_id=w1 AND name='PORTO24/1';
+  -- (a) alvo certo por NIF+email+telefone + homónimos com NIF diferente
+  INSERT INTO contacts(workspace_id,created_by,name,email,phone,tax_id) VALUES (w1,mgr,'Ana Paula Oliveira','apo@t.pt','+351961000001','111111110') RETURNING id INTO ct;
+  INSERT INTO sj_profiles(workspace_id,contact_id,full_name) VALUES (w1,ct,'Ana Paula Oliveira') RETURNING id INTO pt;
+  INSERT INTO contacts(workspace_id,created_by,name,tax_id) VALUES (w1,mgr,'Ana Oliveira','222222220'),(w1,mgr,'Ana Sofia Oliveira','333333330');
+  INSERT INTO sj_profiles(workspace_id,contact_id,full_name) SELECT w1,id,name FROM contacts WHERE workspace_id=w1 AND tax_id IN ('222222220','333333330');
+  -- (b) só nome igual com NIF diferente; (c) e-mail partilhado com NIF divergente; (d) sem identificadores
+  INSERT INTO contacts(workspace_id,created_by,name,email,tax_id) VALUES (w1,mgr,'Bruno Teles','bt@t.pt','244444447');
+  pv := sj_import_preview(w1,k1,b,jsonb_build_array(
+    jsonb_build_object('source_row','a','full_name','Ana Paula Oliveira','email','apo@t.pt','phone','961000001','nif','111111110','labels',jsonb_build_array('FBTC PORTO24/1')),
+    jsonb_build_object('source_row','b','full_name','Bruno Teles','nif','255555555','labels',jsonb_build_array('FBTC PORTO24/1')),
+    jsonb_build_object('source_row','c','full_name','Bruno Teles','email','bt@t.pt','nif','255555555','labels',jsonb_build_array('FBTC PORTO24/1')),
+    jsonb_build_object('source_row','d','full_name','Zulmira Quaresma','labels',jsonb_build_array('FBTC PORTO24/1'))));
+  INSERT INTO t_res VALUES ('homonyms', (SELECT jsonb_object_agg(x->>'source_row', jsonb_build_object('status',x->>'status','pending',x->'resolution'->>'pending',
+     'reasons',x->'reasons','auto',x->>'auto_contact_id'=ct::text,'auto_profile',x->>'auto_profile_id'=pt::text,'homonyms',jsonb_array_length(x->'homonyms'))) FROM jsonb_array_elements(pv) x));
+  SELECT count(*) INTO n FROM sj_profiles WHERE workspace_id=w1;
+  r := sj_import_historical_rows(w1,k1,b,jsonb_build_array(
+    jsonb_build_object('source_row','a','full_name','Ana Paula Oliveira','email','apo@t.pt','phone','961000001','nif','111111110','pedagogic_status','completed','labels',jsonb_build_array('FBTC PORTO24/1')),
+    jsonb_build_object('source_row','d','full_name','Zulmira Quaresma','pedagogic_status','completed','labels',jsonb_build_array('FBTC PORTO24/1'))));
+  INSERT INTO t_res VALUES ('homonyms_run', jsonb_build_object('contacts_created',r->'contacts_created','profiles_created',r->'profiles_created','pending',r->'pending',
+     'target_enr',(SELECT count(*) FROM sj_enrollments WHERE profile_id=pt AND cohort_id=k1),'profiles_delta',(SELECT count(*) FROM sj_profiles WHERE workspace_id=w1)-n));
+END $h$;
 SELECT k, v FROM t_res;

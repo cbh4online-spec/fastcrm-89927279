@@ -103,6 +103,8 @@ const REASON_LABEL: Record<string, string> = {
   "conflict:profile_name_mismatch": "Conflito: perfil candidato com nome incompatível",
   "conflict:shared_identifier_different_nif": "Conflito: e-mail/telefone partilhado por pessoa com outro NIF",
   "conflict:name_only": "Só coincide pelo nome — acrescente um identificador",
+  no_identifier: "Linha sem e-mail, telefone, NIF nem nº de cliente — confirmar antes de criar",
+  homonym_other_nif: "Existe pessoa com o mesmo nome mas outro NIF — confirmar que é outra pessoa",
   name_hint: "Existe contacto com nome semelhante — confirmar se é a mesma pessoa",
   profile_name_hint: "Existe perfil com nome semelhante — confirmar se é a mesma pessoa",
   phone_without_country_code: "Telefone sem indicativo e não português — confirmar o país",

@@ -15,7 +15,7 @@ let res: Record<string, any> = {};
 beforeAll(async () => {
   const db = new PGlite();
   await db.exec(read("src/test/studentJourney/fixtures/sjImportStubSchema.sql"));
-  for (const m of ["0140_sj_safe_historical_import", "0141_sj_import_contact_created_by", "0142_sj_import_hardening", "0143_sj_profile_stats_identity"])
+  for (const m of ["0140_sj_safe_historical_import", "0141_sj_import_contact_created_by", "0142_sj_import_hardening", "0143_sj_profile_stats_identity", "0144_sj_import_homonyms_not_conflict"])
     await db.exec(read(`drizzle/migrations/${m}.sql`));
   const out = await db.exec(read("src/test/studentJourney/fixtures/sjImportScenario.sql"));
   res = Object.fromEntries((out[out.length - 1].rows as any[]).map((r) => [r.k, r.v]));
@@ -100,5 +100,17 @@ describe("importação histórica (base isolada)", () => {
     expect(res.name_hints["51"].reasons).toContain("name_hint");
     expect(res.name_hints["52"].reasons).toContain("phone_without_country_code");
     expect(res.name_hint_run).toMatchObject({ profiles_created: 0, contacts_created: 0, profiles_delta: 0 });
+  });
+  it("homónimos só por nome com NIF diferente não bloqueiam a ficha certa; partilha real continua bloqueada", () => {
+    const h = res.homonyms;
+    expect(h.a).toMatchObject({ status: "match", auto: true, auto_profile: true, homonyms: 2 });
+    expect(h.b.status).toBe("review");                       // só nome + NIF diferente: homónimo, nunca liga
+    expect(h.b.auto).not.toBe(true);
+    expect(h.b.reasons).toContain("homonym_other_nif");
+    expect(h.c.pending).toBe("conflict:shared_identifier_different_nif");
+    expect(h.d.reasons).toContain("no_identifier");
+    expect(h.d.status).toBe("review");
+    expect(res.homonyms_run).toMatchObject({ contacts_created: 0, profiles_created: 0, target_enr: 1, profiles_delta: 0 });
+    expect(res.homonyms_run.pending).toEqual([{ row: "d", reason: "needs_decision" }]);
   });
 });
