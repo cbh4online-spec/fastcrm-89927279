@@ -253,6 +253,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@eslint/js": "^9.32.0",
     "@faker-js/faker": "^10.4.0",
     "@lovable.dev/vite-plugin-dev-server-bridge": "^1.0.2",

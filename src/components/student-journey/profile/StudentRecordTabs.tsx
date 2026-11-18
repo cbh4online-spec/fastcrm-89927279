@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, Award, CalendarCheck, Clock, Lock, Route, Wallet, Zap } from "lucide-react";
 import type { SJEnrollment } from "@/types/studentJourney";
-import { agreedAmount, computeEnrollmentFinance, deriveFinancialStatus, FINANCIAL_STATUS_LABEL } from "@/lib/studentJourney/enrollmentFinance";
+import { agreedAmount, computeEnrollmentFinance, deriveFinancialStatus, FINANCIAL_STATUS_LABEL, isFinanceUnknown, FINANCE_UNKNOWN_LABEL } from "@/lib/studentJourney/enrollmentFinance";
 import { EnrollmentFinanceActions } from "@/components/student-journey/finance/EnrollmentFinanceActions";
 import { lisbonTodayYmd } from "@/lib/dates/lisbonDays";
 import type { TimelineEvent } from "@/lib/studentJourney/timeline";
@@ -88,6 +88,19 @@ export function FinanceTab({
         const contracted = agreedAmount(raw.base_amount ?? null, Number(raw.discount_amount ?? 0), raw.agreed_amount ?? null);
         const inst = data?.installments.filter((i) => i.enrollment_id === e.id) ?? [];
         const invs = data?.invoices.filter((i) => i.enrollment_id === e.id) ?? [];
+        if (isFinanceUnknown(raw, inst.length, invs.length)) {
+          return (
+            <Card key={e.id}>
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
+                <CardTitle className="text-base">{courseName(e)}</CardTitle>
+                <Badge variant="outline">{FINANCE_UNKNOWN_LABEL}</Badge>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Sem informação financeira registada (por exemplo, histórico importado). Não é considerado pago nem em dívida.</p>
+              </CardContent>
+            </Card>
+          );
+        }
         const f = computeEnrollmentFinance(contracted, inst, invs, today);
         const st = deriveFinancialStatus(inst, today);
         return (

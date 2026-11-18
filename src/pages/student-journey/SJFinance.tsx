@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { agreedAmount, computeEnrollmentFinance } from "@/lib/studentJourney/enrollmentFinance";
+import { agreedAmount, computeEnrollmentFinance, isFinanceUnknown } from "@/lib/studentJourney/enrollmentFinance";
 import { calendarDaysFromToday, lisbonTodayYmd } from "@/lib/dates/lisbonDays";
 
 const db = supabase as any;
@@ -53,7 +53,7 @@ export default function SJFinance() {
     queryFn: async () => {
       const [enr, inst, links] = await Promise.all([
         fetchAll((f, t) => db.from("sj_enrollments")
-          .select("id, base_amount, discount_amount, agreed_amount, financial_status, cohort_id, course:sj_courses(id,name), cohort:sj_cohorts(id,name), profile:sj_profiles(id,full_name)")
+          .select("id, base_amount, discount_amount, agreed_amount, financial_status, financial_unknown, cohort_id, course:sj_courses(id,name), cohort:sj_cohorts(id,name), profile:sj_profiles(id,full_name)")
           .eq("workspace_id", ws).order("id").range(f, t)),
         fetchAll((f, t) => db.from("sj_installments").select("id, enrollment_id, installment_no, amount, due_date, paid_amount")
           .eq("workspace_id", ws).order("id").range(f, t)),
@@ -79,8 +79,12 @@ export default function SJFinance() {
     inst.forEach((i: any) => { const a = byEnr.get(i.enrollment_id) ?? []; a.push(i); byEnr.set(i.enrollment_id, a); });
     const tot = { contracted: 0, paid: 0, invoiced: 0, overdue: 0, open: 0 };
     const enrMap = new Map<string, any>();
+    let unknown = 0;
     for (const e of enr) {
       enrMap.set(e.id, e);
+      const linkCount = links.filter((l: any) => l.enrollment_id === e.id).length;
+      // Sem informação financeira: não entra nos totais (nunca conta como 0 € pago/em dívida)
+      if (isFinanceUnknown(e, (byEnr.get(e.id) ?? []).length, linkCount)) { unknown++; continue; }
       const contracted = agreedAmount(e.base_amount == null ? null : Number(e.base_amount), Number(e.discount_amount ?? 0), e.agreed_amount == null ? null : Number(e.agreed_amount));
       const invs = links.filter((l: any) => l.enrollment_id === e.id).map((l: any) => {
         const iv = invMap.get(l.invoice_id);
@@ -96,7 +100,7 @@ export default function SJFinance() {
         student: e?.profile?.full_name ?? "—", profileId: e?.profile?.id, course: e?.course?.name ?? "—", courseId: e?.course?.id, cohort: e?.cohort?.name };
     });
     const courses = [...new Map(rows.filter((r: any) => r.courseId).map((r: any) => [r.courseId, r.course])).entries()];
-    return { tot, rows, courses };
+    return { tot, rows, courses, unknown };
   }, [data.data, today]);
 
   const filtered = useMemo(() => {
@@ -125,7 +129,7 @@ export default function SJFinance() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Financeiro</h1>
-        <p className="text-sm text-muted-foreground">Contratado, pago e faturado são contados separadamente. Nada é faturado automaticamente.</p>
+        <p className="text-sm text-muted-foreground">Contratado, pago e faturado são contados separadamente. Nada é faturado automaticamente.{computed?.unknown ? ` ${computed.unknown} inscrições sem informação financeira (Não informado) não entram nos totais.` : ""}</p>
       </div>
       {data.isError && <div role="alert" className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"><AlertTriangle className="h-4 w-4" aria-hidden />Não foi possível carregar os dados financeiros.</div>}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">

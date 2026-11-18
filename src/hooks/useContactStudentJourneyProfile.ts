@@ -21,6 +21,7 @@ export function useContactStudentJourneyProfile(contactId: string | undefined) {
         .select("id, full_name, lifecycle_stage")
         .eq("contact_id", contactId)
         .eq("workspace_id", currentWorkspace.id)
+        .is("archived_at", null)
         .maybeSingle();
       
       if (error) throw error;

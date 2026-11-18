@@ -59,6 +59,9 @@ import {
   StudentTimeline,
 } from "@/components/student-journey/profile/StudentRecordTabs";
 import { AddInterestDialog } from "@/components/student-journey/AddInterestDialog";
+import { ProfileMergeDialog } from "@/components/student-journey/ProfileMergeDialog";
+import { ProfileProvenanceCard, ArchivedProfileBanner } from "@/components/student-journey/profile/ProfileProvenanceCard";
+import { useSjRole } from "@/hooks/useSjImportAccess";
 import {
   useSjFinanceAccess,
   useSjAttendance,
@@ -113,6 +116,8 @@ export default function SJProfileDetail() {
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState<SJEnrollment | null>(null);
   const [interestDialogOpen, setInterestDialogOpen] = useState(false);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const { data: canManageImport = false } = useSjRole();
 
   // Separadores da ficha única (o separador ativo fica no endereço)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -228,12 +233,23 @@ export default function SJProfileDetail() {
             <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
             SJ Copilot
           </Button>
+          {canManageImport && !(profile as any).archived_at && (
+            <Button variant="outline" size="sm" onClick={() => setMergeDialogOpen(true)}>
+              Consolidar perfil
+            </Button>
+          )}
           <Button size="sm" onClick={() => setEnrollmentDialogOpen(true)}>
             <ClipboardList className="h-4 w-4 mr-2" />
             Nova Inscrição
           </Button>
         </div>
       </div>
+
+      <ArchivedProfileBanner profile={profile as any} />
+      {canManageImport && (
+        <ProfileMergeDialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}
+          workspaceId={profile.workspace_id} source={{ id: profile.id, full_name: profile.full_name }} />
+      )}
 
       {/* Next Best Action - Highlighted */}
       <NextBestActionCard 
@@ -259,6 +275,8 @@ export default function SJProfileDetail() {
             </div>
 
             <TabsContent value="profile" className="mt-4 space-y-4">
+          <ProfileProvenanceCard workspaceId={profile.workspace_id} profileId={profile.id} contactId={profile.contact_id}
+            enrollments={enrollments as any} />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">

@@ -10,7 +10,7 @@ export async function parseExcelFile(
     expectedFields?: string[];
     normalizeHeader?: (h: string) => string;
   }
-): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
+): Promise<{ headers: string[]; rows: Record<string, string>[]; sheetName?: string }> {
   const ExcelJS = (await import("exceljs")).default;
   const workbook = new (ExcelJS as any).Workbook() as ExcelJS_NS.Workbook;
   await workbook.xlsx.load(buffer);
@@ -82,7 +82,7 @@ export async function parseExcelFile(
     }
   }
 
-  return { headers, rows };
+  return { headers, rows, sheetName: worksheet.name };
 }
 
 /**

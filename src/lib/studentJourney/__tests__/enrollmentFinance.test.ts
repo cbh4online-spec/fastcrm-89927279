@@ -39,3 +39,13 @@ describe("enrollmentFinance", () => {
     expect(isDuplicateEnrollment([{ profile_id: "p", cohort_id: "e2" }], c)).toBe(false);
   });
 });
+
+import { isFinanceUnknown } from "../enrollmentFinance";
+describe("finanças desconhecidas", () => {
+  it("sem valores nem prestações é Não informado, não zero", () => {
+    expect(isFinanceUnknown({ financial_unknown: true }, 0, 0)).toBe(true);
+    expect(isFinanceUnknown({ agreed_amount: null, base_amount: null }, 0, 0)).toBe(true);
+    expect(isFinanceUnknown({ agreed_amount: 0, base_amount: null }, 0, 0)).toBe(false);
+    expect(isFinanceUnknown({ financial_unknown: true }, 1, 0)).toBe(false);
+  });
+});

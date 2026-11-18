@@ -66,6 +66,7 @@ export function useProfiles() {
           contact:contacts(id, name, email)
         `)
         .eq("workspace_id", currentWorkspace.id)
+        .is("archived_at", null) // perfis consolidados ficam arquivados, não aparecem na lista
         .order("created_at", { ascending: false });
 
       if (error) throw error;

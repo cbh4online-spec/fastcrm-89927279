@@ -134,3 +134,21 @@ export function deriveFinancialStatus(installments: InstallmentLike[], today: st
   if (overdue) return "em_atraso";
   return paid > 0 ? "parcial" : "em_dia";
 }
+
+// ---------- Finanças desconhecidas (importação histórica) ----------
+export interface FinanceKnownInput {
+  financial_unknown?: boolean | null;
+  base_amount?: number | null;
+  agreed_amount?: number | null;
+}
+export const FINANCE_UNKNOWN_LABEL = "Não informado";
+
+/**
+ * Sem valor acordado/base e sem prestações ou faturas não há informação financeira:
+ * mostra-se «Não informado», nunca 0 €, pago ou em dívida.
+ */
+export function isFinanceUnknown(e: FinanceKnownInput, installmentsCount: number, invoicesCount: number): boolean {
+  if (installmentsCount > 0 || invoicesCount > 0) return false;
+  if (e.financial_unknown) return true;
+  return e.agreed_amount == null && e.base_amount == null;
+}

@@ -245,6 +245,7 @@
         "zxcvbn": "^4.4.2",
       },
       "devDependencies": {
+        "@electric-sql/pglite": "^0.5.16",
         "@eslint/js": "^9.32.0",
         "@faker-js/faker": "^10.4.0",
         "@lovable.dev/vite-plugin-dev-server-bridge": "^1.0.2",
@@ -481,6 +482,8 @@
     "@dnd-kit/utilities": ["@dnd-kit/utilities@3.2.2", "", { "dependencies": { "tslib": "^2.0.0" }, "peerDependencies": { "react": ">=16.8.0" } }, "sha512-+MKAJEOfaBe5SmV6t34p80MMKhjvUz0vRrvVJbPT0WElzaOJ/1xs+D+KDv+tD/NE5ujfrChEcshd4fLn0wpiqg=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@drizzle-team/brocli/-/brocli-0.10.2.tgz", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
+
+    "@electric-sql/pglite": ["@electric-sql/pglite@0.5.16", "", {}, "sha512-Nj8KcIsJL748W408U2N8q4+9IlONdpRIU8MJypIAAINMJ5nqKyqpX7Mgg/5XKkXiAib3AoZGR6hnJFlrlLBrcg=="],
 
     "@elevenlabs/client": ["@elevenlabs/client@0.13.1", "", { "dependencies": { "@elevenlabs/types": "0.4.0", "livekit-client": "^2.11.4" } }, "sha512-jBGWVy9Ttsx1/gJk1wL0Dtjjb12oZ4BJR9uHD/Vieb5Vri1ztfkqOQz2Wqev7OZXrjO1zn9lHmLJOZpoLCjEcg=="],
 

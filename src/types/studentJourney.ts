@@ -18,7 +18,7 @@ export type CohortStatus = 'planned' | 'open' | 'running' | 'finished';
 
 export type EnrollmentStatus = 'interested' | 'invited' | 'enrolled' | 'active' | 'completed' | 'dropped';
 
-export type PaymentStatus = 'unpaid' | 'paid' | 'partial' | 'refunded';
+export type PaymentStatus = 'unpaid' | 'paid' | 'partial' | 'refunded' | 'unknown';
 
 export type EnrollmentSource = 'manual' | 'import' | 'checkout';
 

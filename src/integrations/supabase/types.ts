@@ -86642,6 +86642,106 @@ export type Database = {
           },
         ]
       }
+      sj_import_decisions: {
+        Row: {
+          candidate_fingerprint: string
+          cohort_id: string | null
+          contact_choice: string
+          decided_at: string
+          decided_by: string
+          file_hash: string
+          id: string
+          legacy_choice: string | null
+          profile_choice: string
+          reason: string
+          revoked_at: string | null
+          revoked_by: string | null
+          row_fingerprint: string
+          row_ref: string
+          sheet_name: string
+          workspace_id: string
+        }
+        Insert: {
+          candidate_fingerprint: string
+          cohort_id?: string | null
+          contact_choice: string
+          decided_at?: string
+          decided_by: string
+          file_hash: string
+          id?: string
+          legacy_choice?: string | null
+          profile_choice: string
+          reason: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          row_fingerprint: string
+          row_ref: string
+          sheet_name?: string
+          workspace_id: string
+        }
+        Update: {
+          candidate_fingerprint?: string
+          cohort_id?: string | null
+          contact_choice?: string
+          decided_at?: string
+          decided_by?: string
+          file_hash?: string
+          id?: string
+          legacy_choice?: string | null
+          profile_choice?: string
+          reason?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          row_fingerprint?: string
+          row_ref?: string
+          sheet_name?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sj_import_decisions_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_decisions_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "sj_cohorts_with_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_decisions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_decisions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "sj_import_decisions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sj_import_decisions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sj_import_jobs: {
         Row: {
           completed_at: string | null
@@ -86824,6 +86924,7 @@ export type Database = {
         Row: {
           action: string
           cells: Json
+          changes: Json | null
           created_at: string
           created_by: string | null
           entity_id: string
@@ -86840,6 +86941,7 @@ export type Database = {
         Insert: {
           action: string
           cells?: Json
+          changes?: Json | null
           created_at?: string
           created_by?: string | null
           entity_id: string
@@ -86856,6 +86958,7 @@ export type Database = {
         Update: {
           action?: string
           cells?: Json
+          changes?: Json | null
           created_at?: string
           created_by?: string | null
           entity_id?: string
@@ -87073,6 +87176,7 @@ export type Database = {
       }
       sj_profile_merges: {
         Row: {
+          blockers: Json
           contact_moved_id: string | null
           created_at: string
           created_by: string | null
@@ -87083,10 +87187,12 @@ export type Database = {
           reverted_by: string | null
           source_profile_id: string
           source_snapshot: Json
+          status: string
           target_profile_id: string
           workspace_id: string
         }
         Insert: {
+          blockers?: Json
           contact_moved_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -87097,10 +87203,12 @@ export type Database = {
           reverted_by?: string | null
           source_profile_id: string
           source_snapshot?: Json
+          status?: string
           target_profile_id: string
           workspace_id: string
         }
         Update: {
+          blockers?: Json
           contact_moved_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -87111,6 +87219,7 @@ export type Database = {
           reverted_by?: string | null
           source_profile_id?: string
           source_snapshot?: Json
+          status?: string
           target_profile_id?: string
           workspace_id?: string
         }
@@ -112624,6 +112733,10 @@ export type Database = {
         Args: { p_conversation_id: string; p_workspace_id: string }
         Returns: Json
       }
+      sj_canonical_profile: {
+        Args: { _profile_id: string; _workspace_id: string }
+        Returns: string
+      }
       sj_convert_opportunity_to_enrollment: {
         Args: { _cohort_id: string; _opportunity_id: string }
         Returns: string
@@ -112635,6 +112748,16 @@ export type Database = {
       sj_has_any_role: {
         Args: { _roles: string[]; _workspace_id: string }
         Returns: boolean
+      }
+      sj_import_active_decision: {
+        Args: {
+          _cls: Json
+          _hash: string
+          _row_ref: string
+          _sheet: string
+          _workspace_id: string
+        }
+        Returns: Json
       }
       sj_import_classify: {
         Args: {
@@ -112665,6 +112788,19 @@ export type Database = {
             }
             Returns: Json
           }
+      sj_import_is_manager: {
+        Args: { _workspace_id: string }
+        Returns: boolean
+      }
+      sj_import_label_check: {
+        Args: {
+          _cohort_id: string
+          _course_id: string
+          _labels: Json
+          _workspace_id: string
+        }
+        Returns: string
+      }
       sj_import_preview: {
         Args: {
           _batch: Json
@@ -112674,9 +112810,37 @@ export type Database = {
         }
         Returns: Json
       }
+      sj_import_record_decision: {
+        Args: {
+          _batch: Json
+          _decision: Json
+          _reason: string
+          _row: Json
+          _workspace_id: string
+        }
+        Returns: string
+      }
       sj_import_resolve: {
         Args: { _cls: Json; _decision: Json }
         Returns: Json
+      }
+      sj_import_resolve_row: {
+        Args: {
+          _cls: Json
+          _hash: string
+          _row: Json
+          _sheet: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
+      sj_import_resolve_v2: {
+        Args: { _cls: Json; _decision: Json }
+        Returns: Json
+      }
+      sj_import_revoke_decision: {
+        Args: { _decision_id: string; _workspace_id: string }
+        Returns: boolean
       }
       sj_import_set_label_map: {
         Args: {
