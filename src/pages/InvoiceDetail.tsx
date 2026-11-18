@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useInvoice, useInvoiceItems, useMarkInvoicePaid, useSendInvoice, useForceInvoiceStatus, type InvoiceStatus } from "@/hooks/useInvoices";
@@ -244,7 +244,7 @@ export default function InvoiceDetail() {
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">{company?.name || "Empresa"}</p>
+                      <Link to={`/dashboard/companies/${invoice.company_id}`} className="font-medium text-primary hover:underline">{company?.name || "Empresa"}</Link>
                       <p className="text-sm text-muted-foreground">
                         {company?.tax_id ? `NIF ${company.tax_id}` : null}
                         {company?.tax_id && company?.email ? " · " : null}
@@ -253,11 +253,17 @@ export default function InvoiceDetail() {
                     </div>
                   </div>
                 )}
+                {invoice.lead_id && !invoice.company_id && !invoice.contact_id && (
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-muted-foreground" />
+                    <Link to={`/dashboard/leads/${invoice.lead_id}`} className="font-medium text-primary hover:underline">{invoice.lead?.name || invoice.client_name || "Lead"}</Link>
+                  </div>
+                )}
                 {invoice.contact_id && (
                   <div className="flex items-center gap-3">
                     <User className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">{contact?.name || "Contacto"}</p>
+                      <Link to={`/dashboard/contacts/${invoice.contact_id}`} className="font-medium text-primary hover:underline">{contact?.name || "Contacto"}</Link>
                       {contact?.email && (
                         <p className="text-sm text-muted-foreground">{contact.email}</p>
                       )}
