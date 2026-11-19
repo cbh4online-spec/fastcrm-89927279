@@ -39,7 +39,7 @@ export function LeadAuditSection({ leadId }: LeadAuditSectionProps) {
     assigned_to: 'Responsável', source: 'Fonte', notes: 'Notas', company_name: 'Empresa',
     tax_id: 'NIF', address: 'Morada', city: 'Localidade', postal_code: 'Código postal',
     ai_temperature: 'Temperatura', estimated_value: 'Valor estimado', website: 'Website',
-    lead_type: 'Tipo', archived_at: 'Arquivado em', deleted_at: 'Eliminado em',
+    lead_type: 'Tipo', icp_score_status: 'Estado do encaixe ICP', last_contact_at: 'Último contacto', archived_at: 'Arquivado em', deleted_at: 'Eliminado em',
   };
 
   const formatValue = (val: unknown): string => {
@@ -65,6 +65,7 @@ export function LeadAuditSection({ leadId }: LeadAuditSectionProps) {
                 <TableHead className="text-xs">Campo</TableHead>
                 <TableHead className="text-xs">Antes</TableHead>
                 <TableHead className="text-xs">Depois</TableHead>
+                <TableHead className="text-xs">Utilizador</TableHead>
                 <TableHead className="text-xs">Data</TableHead>
               </TableRow>
             </TableHeader>
@@ -81,6 +82,9 @@ export function LeadAuditSection({ leadId }: LeadAuditSectionProps) {
                   </TableCell>
                   <TableCell className="text-xs max-w-[200px] truncate">
                     {formatValue(entry.new_value)}
+                  </TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">
+                    {entry.user_name ?? <span className="text-muted-foreground">Sistema</span>}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {format(new Date(entry.changed_at), 'dd/MM/yyyy HH:mm')}

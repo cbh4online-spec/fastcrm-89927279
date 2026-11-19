@@ -10,6 +10,7 @@ export interface LeadAuditLogEntry {
   field_name: string;
   old_value: unknown;
   new_value: unknown;
+  user_name: string | null;
 }
 
 const IGNORED_FIELDS = new Set(["updated_at", "search_norm"]);
@@ -34,6 +35,7 @@ export function useLeadAuditLog(leadId: string | undefined) {
       const entries: LeadAuditLogEntry[] = [];
       for (const log of (data || []) as any[]) {
         const base = {
+          user_name: null as string | null,
           workspace_id: log.workspace_id,
           lead_id: leadId,
           changed_by: log.user_id,
@@ -49,6 +51,13 @@ export function useLeadAuditLog(leadId: string | undefined) {
             entries.push({ ...base, id: `${log.id}:${f}`, field_name: f, old_value: log.old_data?.[f], new_value: log.new_data?.[f] });
           }
         }
+      }
+      const ids = [...new Set(entries.map((e) => e.changed_by).filter(Boolean))] as string[];
+      if (ids.length) {
+        const { data: profs } = await workspaceClient
+          .from("profiles").select("user_id, full_name, email").in("user_id", ids);
+        const map = new Map((profs || []).map((p: any) => [p.user_id, p.full_name || p.email]));
+        for (const e of entries) if (e.changed_by) e.user_name = (map.get(e.changed_by) as string) ?? "Utilizador desconhecido";
       }
       return entries;
     },
