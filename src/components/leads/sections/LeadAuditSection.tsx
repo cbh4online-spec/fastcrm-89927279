@@ -34,8 +34,17 @@ export function LeadAuditSection({ leadId }: LeadAuditSectionProps) {
     );
   }
 
+  const FIELD_LABELS: Record<string, string> = {
+    name: 'Nome', email: 'Email', phone: 'Telefone', status: 'Estado', tags: 'Etiquetas',
+    assigned_to: 'Responsável', source: 'Fonte', notes: 'Notas', company_name: 'Empresa',
+    tax_id: 'NIF', address: 'Morada', city: 'Localidade', postal_code: 'Código postal',
+    ai_temperature: 'Temperatura', estimated_value: 'Valor estimado', website: 'Website',
+    lead_type: 'Tipo', archived_at: 'Arquivado em', deleted_at: 'Eliminado em',
+  };
+
   const formatValue = (val: unknown): string => {
     if (val === null || val === undefined) return '—';
+    if (Array.isArray(val)) return val.join(', ') || '—';
     if (typeof val === 'object') return JSON.stringify(val);
     return String(val);
   };
@@ -64,7 +73,7 @@ export function LeadAuditSection({ leadId }: LeadAuditSectionProps) {
                 <TableRow key={entry.id}>
                   <TableCell>
                     <Badge variant="outline" className="text-xs font-mono">
-                      {entry.field_name}
+                      {FIELD_LABELS[entry.field_name] ?? entry.field_name}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
