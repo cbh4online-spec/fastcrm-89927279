@@ -1,7 +1,7 @@
 import { matchesDueFilter, DUE_FILTERS, DUE_FILTER_LABEL, type DueFilter } from "@/lib/invoices/dueFilter";
 import { periodLabel } from "@/lib/dates/monthRange";
 import { normalizeSearchTerm } from "@/lib/search/normalize";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -137,13 +137,19 @@ export default function Invoices() {
     { value: "number_asc", label: t("sortNumberAsc") },
   ], [t]);
 
+  const [debouncedSearch, setDebouncedSearch] = useState(searchValue);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchValue), 350);
+    return () => clearTimeout(t);
+  }, [searchValue]);
   const invoiceFilters = useMemo(() => {
-    const f: { status?: InvoiceStatus; from?: string; to?: string } = {};
+    const f: { status?: InvoiceStatus; from?: string; to?: string; search?: string } = {};
+    if (debouncedSearch.trim().length >= 2) f.search = debouncedSearch.trim();
     if (statusFilter !== "all") f.status = statusFilter as InvoiceStatus;
     if (dateFrom) f.from = dateFrom;
     if (dateTo) f.to = dateTo;
     return Object.keys(f).length ? f : undefined;
-  }, [statusFilter, dateFrom, dateTo]);
+  }, [statusFilter, dateFrom, dateTo, debouncedSearch]);
   const { data: invoices, isLoading } = useInvoices(invoiceFilters);
   const stats = useInvoiceStats();
   const markPaid = useMarkInvoicePaid();
@@ -162,7 +168,9 @@ export default function Invoices() {
       result = result.filter(
         (inv) =>
           inv.client_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
-          inv.invoice_number.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)),
+          inv.invoice_number.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizeSearchTerm(lower)) ||
+          normalizeSearchTerm((inv as any).saft_invoice_no).includes(normalizeSearchTerm(lower)) ||
+          normalizeSearchTerm(inv.client_tax_id).includes(normalizeSearchTerm(lower)),
       );
     }
     // Sort

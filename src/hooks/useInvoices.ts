@@ -113,6 +113,7 @@ export function useInvoices(filters?: {
   lead_id?: string;
   from?: string;
   to?: string;
+  search?: string;
 }) {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
@@ -147,6 +148,12 @@ export function useInvoices(filters?: {
       }
       if (filters?.from) query = query.gte("issue_date", filters.from);
       if (filters?.to) query = query.lte("issue_date", filters.to);
+      // Pesquisa no servidor: encontra faturas fora das 1000 mais recentes.
+      const term = (filters?.search || "").replace(/[,()*%\\]/g, " ").trim();
+      if (term.length >= 2) {
+        const like = `%${term}%`;
+        query = query.or(`invoice_number.ilike.${like},saft_invoice_no.ilike.${like},client_name.ilike.${like},client_tax_id.ilike.${like}`);
+      }
 
       const { data, error } = await query;
       if (error) throw error;
