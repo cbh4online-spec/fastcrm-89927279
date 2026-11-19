@@ -1,3 +1,4 @@
+import { normalizeTaxIdInput, isPortugueseNifCandidate, toPortugueseNif, TAX_ID_MAX_LENGTH } from "@/utils/nif";
 import { useState, useRef } from "react";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
@@ -209,9 +210,9 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
 
   const handleNifSearch = async () => {
     const nif = form.getValues("tax_id");
-    const cleanNif = (nif || "").replace(/\D/g, "");
-    if (cleanNif.length !== 9) {
-      toast.error("NIF deve ter 9 dígitos");
+    const cleanNif = toPortugueseNif(nif || "");
+    if (!isPortugueseNifCandidate(nif || "")) {
+      toast.error("Pesquisa disponível apenas para NIF português (9 dígitos)");
       return;
     }
     form.setValue("tax_id", cleanNif);
@@ -417,10 +418,10 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                             <div className="flex gap-2">
                               <Input
                                 placeholder="123456789"
-                                maxLength={9}
+                                maxLength={TAX_ID_MAX_LENGTH}
                                 {...field}
                                 onChange={(e) => {
-                                  const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                                  const val = normalizeTaxIdInput(e.target.value);
                                   field.onChange(val);
                                 }}
                               />
@@ -430,7 +431,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                                 size="icon"
                                 className="shrink-0"
                                 onClick={handleNifSearch}
-                                disabled={isNifSearching || (field.value || "").replace(/\D/g, "").length !== 9}
+                                disabled={isNifSearching || !isPortugueseNifCandidate(field.value || "")}
                                 title="Pesquisar dados pelo NIF"
                               >
                                 {isNifSearching ? (

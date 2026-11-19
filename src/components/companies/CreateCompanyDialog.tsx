@@ -1,3 +1,4 @@
+import { normalizeTaxIdInput, isPortugueseNifCandidate, toPortugueseNif, TAX_ID_MAX_LENGTH } from "@/utils/nif";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -527,15 +528,15 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                   <Input
                     id="tax_id"
                     value={formData.tax_id}
-                    onChange={(e) => setFormData({ ...formData, tax_id: e.target.value.replace(/\D/g, '').slice(0, 9) })}
+                    onChange={(e) => setFormData({ ...formData, tax_id: normalizeTaxIdInput(e.target.value) })}
                     placeholder="Número de identificação fiscal"
-                    maxLength={9}
+                    maxLength={TAX_ID_MAX_LENGTH}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     onClick={async () => {
-                      const result: NifLookupResult | null = await nifLookup.lookup(formData.tax_id);
+                      const result: NifLookupResult | null = await nifLookup.lookup(toPortugueseNif(formData.tax_id));
                       if (result) {
                         setFormData(prev => ({
                           ...prev,
@@ -568,7 +569,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                         }
                       }
                     }}
-                    disabled={nifLookup.isLoading || formData.tax_id.length !== 9}
+                    disabled={nifLookup.isLoading || !isPortugueseNifCandidate(formData.tax_id)}
                   >
                     {nifLookup.isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

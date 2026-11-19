@@ -1,3 +1,4 @@
+import { normalizeTaxIdInput, isPortugueseNifCandidate, toPortugueseNif, TAX_ID_MAX_LENGTH } from "@/utils/nif";
 import { useEffect, useState } from "react";
 import { useUpdateLead, type Lead, type LeadStatus } from "@/hooks/useLeads";
 import {
@@ -196,10 +197,10 @@ export function EditLeadDialog({ lead, open, onOpenChange }: EditLeadDialogProps
                 <Label htmlFor="edit-lead-taxid">NIF</Label>
                 <Input
                   id="edit-lead-taxid"
-                  maxLength={9}
+                  maxLength={TAX_ID_MAX_LENGTH}
                   value={formData.tax_id}
                   onChange={(e) =>
-                    setFormData({ ...formData, tax_id: e.target.value.replace(/\D/g, "").slice(0, 9) })
+                    setFormData({ ...formData, tax_id: normalizeTaxIdInput(e.target.value) })
                   }
                   placeholder="123456789"
                 />

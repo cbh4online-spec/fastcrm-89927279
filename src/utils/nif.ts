@@ -25,3 +25,26 @@ export function formatNif(nif: string): string {
   if (cleaned.length <= 6) return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
   return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
 }
+
+/** Comprimento máximo aceite para NIF/VAT nacional ou estrangeiro. */
+export const TAX_ID_MAX_LENGTH = 20;
+
+/**
+ * Normaliza a escrita de um NIF nacional ou estrangeiro (ex.: ESB12345678,
+ * DE123456789, LU12345678, NIF de Angola/Cabo Verde): maiúsculas, apenas
+ * letras e números, sem espaços/pontos/traços, até 20 caracteres.
+ */
+export function normalizeTaxIdInput(value: string): string {
+  return (value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, TAX_ID_MAX_LENGTH);
+}
+
+/** NIF português pesquisável (9 dígitos, sem prefixo de país). */
+export function isPortugueseNifCandidate(value: string): boolean {
+  const v = normalizeTaxIdInput(value).replace(/^PT/, "");
+  return /^\d{9}$/.test(v);
+}
+
+/** Devolve os 9 dígitos de um NIF português, aceitando prefixo PT. */
+export function toPortugueseNif(value: string): string {
+  return normalizeTaxIdInput(value).replace(/^PT/, "");
+}

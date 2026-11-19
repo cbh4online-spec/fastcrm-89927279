@@ -1,3 +1,4 @@
+import { normalizeTaxIdInput, isPortugueseNifCandidate, toPortugueseNif, TAX_ID_MAX_LENGTH } from "@/utils/nif";
 import { useState, useEffect, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ export function InlineNifField({
   onChange,
   onDataReceived,
   icon,
-  placeholder = "Digite o NIF...",
+  placeholder = "NIF (ex.: 501234567, ESB12345678)",
 }: InlineNifFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedValue, setEditedValue] = useState<string>(value || "");
@@ -63,11 +64,11 @@ export function InlineNifField({
   };
 
   const handleSearch = async () => {
-    const cleanNif = editedValue.replace(/\s/g, '');
-    if (cleanNif.length !== 9) {
-      toast.error("NIF deve ter 9 dígitos");
+    if (!isPortugueseNifCandidate(editedValue)) {
+      toast.error("Pesquisa disponível apenas para NIF português (9 dígitos)");
       return;
     }
+    const cleanNif = toPortugueseNif(editedValue);
     // Save the NIF value first
     try {
       await onChange(cleanNif);
@@ -111,22 +112,22 @@ export function InlineNifField({
                 value={editedValue}
                 onChange={(e) => {
                   // Allow only digits
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 9);
+                  const val = normalizeTaxIdInput(e.target.value);
                   setEditedValue(val);
                 }}
                 onKeyDown={handleKeyDown}
                 className="h-8 text-sm font-mono"
                 autoFocus
                 placeholder={placeholder}
-                maxLength={9}
+                maxLength={TAX_ID_MAX_LENGTH}
               />
               <Button
                 variant="outline"
                 size="sm"
                 className="h-8 px-3 gap-1.5"
                 onClick={handleSearch}
-                disabled={isSearching || editedValue.length !== 9}
-                title="Pesquisar dados pelo NIF"
+                disabled={isSearching || !isPortugueseNifCandidate(editedValue)}
+                title="Pesquisar dados pelo NIF (apenas Portugal)"
               >
                 {isSearching ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
