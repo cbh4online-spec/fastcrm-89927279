@@ -1,3 +1,4 @@
+import { presenceOptions, normalizePresenceSelection, matchesPresence } from "@/lib/filters/presenceConditions";
 import { TableViewsMenu } from "@/components/common/TableViewsMenu";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { normalizeSearchTerm, matchesAllWords } from "@/lib/search/normalize";
@@ -334,6 +335,7 @@ export function CompaniesListIX() {
   const [industryFilter, setIndustryFilter] = usePersistedState<string[]>("companies-ix-industryFilter", []);
   const [cityFilter, setCityFilter] = usePersistedState<string[]>("companies-ix-cityFilter", []);
   const [abcFilter, setAbcFilter] = usePersistedState<string[]>("companies-ix-abcFilter", []);
+  const [presenceFilter, setPresenceFilter] = usePersistedState<string[]>("companies-ix-presenceFilter", []);
 
   const { isElementVisible } = usePageElementVisibility("companies");
   const availableColumns = useMemo(
@@ -346,6 +348,13 @@ export function CompaniesListIX() {
 
   const facets = useMemo<FacetDef[]>(
     () => [
+      {
+        key: "presence",
+        label: "Condições",
+        options: presenceOptions([{ key: "email", label: "email" }, { key: "phone", label: "telefone" }, { key: "tax_id", label: "NIF" }, { key: "website", label: "website" }]),
+        selected: presenceFilter,
+        onChange: (v) => { setPresenceFilter((prev) => normalizePresenceSelection(prev, v)); setPage(0); },
+      },
       {
         key: "source",
         label: "Origem",
@@ -382,7 +391,7 @@ export function CompaniesListIX() {
         onChange: (v) => { setAbcFilter(v); setPage(0); },
       },
     ],
-    [all, sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter],
+    [all, sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter, presenceFilter],
   );
 
   const filtered = useMemo(() => {
@@ -416,7 +425,8 @@ export function CompaniesListIX() {
         matchesFacet(tagFilter, c.tags) &&
         matchesFacet(industryFilter, c.industry) &&
         matchesFacet(cityFilter, (c as { city?: string | null }).city) &&
-        matchesFacet(abcFilter, c.abc_category),
+        matchesFacet(abcFilter, c.abc_category) &&
+        matchesPresence(presenceFilter, (f) => (c as unknown as Record<string, unknown>)[f]),
     );
     const time = (v?: string | null) => (v ? new Date(v).getTime() : 0);
     arr = [...arr].sort((a, b) => {
@@ -438,7 +448,7 @@ export function CompaniesListIX() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir, financialsById, quick, sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter]);
+  }, [all, search, sortBy, sortDir, financialsById, quick, sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter, presenceFilter]);
 
 
   const totalCount = filtered.length;
@@ -574,7 +584,7 @@ export function CompaniesListIX() {
                 <option value="idle_90">+90 dias</option>
                 <option value="idle_180">+180 dias</option>
               </select>
-              <TableViewsMenu storageKey="companies-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setIndustryFilter(Array.isArray(fv.industryFilter) ? fv.industryFilter as string[] : []); setCityFilter(Array.isArray(fv.cityFilter) ? fv.cityFilter as string[] : []); setAbcFilter(Array.isArray(fv.abcFilter) ? fv.abcFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
+              <TableViewsMenu storageKey="companies-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, industryFilter, cityFilter, abcFilter, presenceFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setIndustryFilter(Array.isArray(fv.industryFilter) ? fv.industryFilter as string[] : []); setCityFilter(Array.isArray(fv.cityFilter) ? fv.cityFilter as string[] : []); setAbcFilter(Array.isArray(fv.abcFilter) ? fv.abcFilter as string[] : []); setPresenceFilter(Array.isArray(fv.presenceFilter) ? fv.presenceFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
               <div className="hidden md:block"><ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} /></div>
             </div>
           }

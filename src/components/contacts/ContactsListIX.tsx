@@ -1,3 +1,4 @@
+import { presenceOptions, normalizePresenceSelection, matchesPresence } from "@/lib/filters/presenceConditions";
 import { TableViewsMenu } from "@/components/common/TableViewsMenu";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { normalizeSearchTerm, matchesAllWords } from "@/lib/search/normalize";
@@ -198,6 +199,7 @@ export function ContactsListIX() {
   const [tagFilter, setTagFilter] = usePersistedState<string[]>("contacts-ix-tagFilter", []);
   const [statusFilter, setStatusFilter] = usePersistedState<string[]>("contacts-ix-statusFilter", []);
   const [cityFilter, setCityFilter] = usePersistedState<string[]>("contacts-ix-cityFilter", []);
+  const [presenceFilter, setPresenceFilter] = usePersistedState<string[]>("contacts-ix-presenceFilter", []);
   const { isElementVisible } = usePageElementVisibility("contacts");
   const availableColumns = useMemo(
     () => COLUMNS.filter((c) => c.required || isElementVisible("column", c.key)),
@@ -211,6 +213,13 @@ export function ContactsListIX() {
 
   const facets = useMemo<FacetDef[]>(
     () => [
+      {
+        key: "presence",
+        label: "Condições",
+        options: presenceOptions([{ key: "email", label: "email" }, { key: "phone", label: "telefone" }, { key: "company", label: "empresa" }, { key: "tax_id", label: "NIF" }]),
+        selected: presenceFilter,
+        onChange: (v) => { setPresenceFilter((prev) => normalizePresenceSelection(prev, v)); setPage(0); },
+      },
       {
         key: "source",
         label: "Origem",
@@ -240,7 +249,7 @@ export function ContactsListIX() {
         onChange: (v) => { setCityFilter(v); setPage(0); },
       },
     ],
-    [all, sourceFilter, tagFilter, statusFilter, cityFilter],
+    [all, sourceFilter, tagFilter, statusFilter, cityFilter, presenceFilter],
   );
 
   const [quick, setQuick] = useState<string | null>(null);
@@ -255,7 +264,8 @@ export function ContactsListIX() {
         matchesFacet(sourceFilter, contactSource(c)) &&
         matchesFacet(tagFilter, c.tags) &&
         matchesFacet(statusFilter, c.lead_status) &&
-        matchesFacet(cityFilter, c.city),
+        matchesFacet(cityFilter, c.city) &&
+        matchesPresence(presenceFilter, (f) => (c as unknown as Record<string, unknown>)[f]),
     );
     const time = (v?: string | null) => (v ? new Date(v).getTime() : 0);
     arr = [...arr].sort((a, b) => {
@@ -270,7 +280,7 @@ export function ContactsListIX() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [all, search, sortBy, sortDir, sourceFilter, tagFilter, statusFilter, cityFilter]);
+  }, [all, search, sortBy, sortDir, sourceFilter, tagFilter, statusFilter, cityFilter, presenceFilter]);
 
   const filtered = useMemo(() => {
     if (!quick || quick === "total") return baseFiltered;
@@ -380,7 +390,7 @@ export function ContactsListIX() {
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
               <EntityFacetFilters facets={facets} />
-              <TableViewsMenu storageKey="contacts-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, statusFilter, cityFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setStatusFilter(Array.isArray(fv.statusFilter) ? fv.statusFilter as string[] : []); setCityFilter(Array.isArray(fv.cityFilter) ? fv.cityFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
+              <TableViewsMenu storageKey="contacts-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, statusFilter, cityFilter, presenceFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setStatusFilter(Array.isArray(fv.statusFilter) ? fv.statusFilter as string[] : []); setCityFilter(Array.isArray(fv.cityFilter) ? fv.cityFilter as string[] : []); setPresenceFilter(Array.isArray(fv.presenceFilter) ? fv.presenceFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
               <div className="hidden md:block"><ListColumnsPicker definitions={availableColumns} value={columns} onChange={setColumns} /></div>
             </div>
           }

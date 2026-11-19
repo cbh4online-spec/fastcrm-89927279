@@ -75,6 +75,8 @@ export interface SmartLeadsFilters {
   smartFilter?: SmartFilterType;
   assignedTo?: string | "all";
   hasField?: string;
+  /** Condições «campo:has|missing» (AND entre campos). */
+  presence?: string[];
   missingField?: string;
   sortBy?: string;
   page?: number;
@@ -210,6 +212,17 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
       }
       if (filters?.missingField) {
         query = query.is(filters.missingField as any, null);
+      }
+
+      if (filters?.presence?.length) {
+        const LEAD_PRESENCE_COLUMNS: Record<string, string> = { email: "email", phone: "phone", company: "company_name", website: "website" };
+        for (const cond of filters.presence) {
+          const [field, mode] = cond.split(":");
+          const col = LEAD_PRESENCE_COLUMNS[field];
+          if (!col) continue;
+          if (mode === "has") query = (query as any).not(col, "is", null).neq(col, "");
+          else if (mode === "missing") query = (query as any).or(`${col}.is.null,${col}.eq.`);
+        }
       }
 
       // Apply smart filters at SQL level

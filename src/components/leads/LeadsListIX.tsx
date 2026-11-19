@@ -1,3 +1,4 @@
+import { presenceOptions, normalizePresenceSelection, matchesPresence } from "@/lib/filters/presenceConditions";
 import { TableViewsMenu } from "@/components/common/TableViewsMenu";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { IcpScoreBadge } from "@/components/crm/LeadIcpScoreCard";
@@ -267,6 +268,7 @@ export function LeadsListIX() {
   const [statusFilter, setStatusFilter] = usePersistedState<string[]>("leads-ix-statusFilter", []);
   const [temperatureFilter, setTemperatureFilter] = usePersistedState<string[]>("leads-ix-temperatureFilter", []);
   const [icpFilter, setIcpFilter] = usePersistedState<string[]>("leads-ix-icpFilter", []);
+  const [presenceFilter, setPresenceFilter] = usePersistedState<string[]>("leads-ix-presenceFilter", []);
 
   const { data, isLoading } = useSmartLeads({
     search,
@@ -278,6 +280,7 @@ export function LeadsListIX() {
     tags: tagFilter,
     statuses: statusFilter,
     temperatures: temperatureFilter,
+    presence: presenceFilter,
     smartFilter: icpFilter.includes("call_worthy") ? "call_worthy" : undefined,
   });
 
@@ -287,6 +290,13 @@ export function LeadsListIX() {
     const toOptions = (values: string[] | undefined, labelize?: (v: string) => string): FacetOption[] =>
       (values ?? []).map((v) => ({ value: v, label: labelize ? labelize(v) : v, count: 0 }));
     return [
+      {
+        key: "presence",
+        label: "Condições",
+        options: presenceOptions([{ key: "email", label: "email" }, { key: "phone", label: "telefone" }, { key: "company", label: "empresa" }, { key: "website", label: "website" }]),
+        selected: presenceFilter,
+        onChange: (v) => { setPresenceFilter((prev) => normalizePresenceSelection(prev, v)); setPage(0); },
+      },
       {
         key: "source",
         label: "Origem",
@@ -323,7 +333,7 @@ export function LeadsListIX() {
         onChange: (v) => { setTagFilter(v); setPage(0); },
       },
     ];
-  }, [filterOptions, sourceFilter, statusFilter, temperatureFilter, tagFilter]);
+  }, [filterOptions, sourceFilter, statusFilter, temperatureFilter, tagFilter, presenceFilter]);
 
   const leads: SmartLead[] = data?.data ?? [];
   const totalCount = data?.totalCount ?? 0;
@@ -432,7 +442,7 @@ export function LeadsListIX() {
             <div className="flex items-center gap-2">
               <EntityArchiveFilter value={archiveState} onChange={(v) => { setArchiveState(v); setPage(0); }} />
               <EntityFacetFilters facets={facets} />
-              <TableViewsMenu storageKey="leads-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, statusFilter, temperatureFilter, icpFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setStatusFilter(Array.isArray(fv.statusFilter) ? fv.statusFilter as string[] : []); setTemperatureFilter(Array.isArray(fv.temperatureFilter) ? fv.temperatureFilter as string[] : []); setIcpFilter(Array.isArray(fv.icpFilter) ? fv.icpFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
+              <TableViewsMenu storageKey="leads-ix" getState={() => ({ visibleColumns: columns, columnOrder: columns, filters: { sourceFilter, tagFilter, statusFilter, temperatureFilter, icpFilter, presenceFilter }, sortValue: `${sortBy}:${sortDir}`, searchValue: search })} onApply={(v) => { const fv = v.filters as Record<string, unknown>; setSourceFilter(Array.isArray(fv.sourceFilter) ? fv.sourceFilter as string[] : []); setTagFilter(Array.isArray(fv.tagFilter) ? fv.tagFilter as string[] : []); setStatusFilter(Array.isArray(fv.statusFilter) ? fv.statusFilter as string[] : []); setTemperatureFilter(Array.isArray(fv.temperatureFilter) ? fv.temperatureFilter as string[] : []); setIcpFilter(Array.isArray(fv.icpFilter) ? fv.icpFilter as string[] : []); setPresenceFilter(Array.isArray(fv.presenceFilter) ? fv.presenceFilter as string[] : []); if (v.visibleColumns?.length) setColumns(v.visibleColumns as any); if (v.sortValue) { const [b, d] = v.sortValue.split(":"); setSortBy(b as SortKey); setSortDir(d === "desc" ? "desc" : "asc"); } setSearch(v.searchValue ?? ""); setPage(0); }} />
               <div className="hidden md:block"><LeadsColumnsPicker value={columns} onChange={setColumns} /></div>
             </div>
           }
