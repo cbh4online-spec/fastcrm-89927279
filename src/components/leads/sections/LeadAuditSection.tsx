@@ -1,4 +1,4 @@
-import { useLeadAuditLog } from "@/hooks/useLeadAuditLog";
+import { useEntityAuditLog } from "@/hooks/useLeadAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -6,12 +6,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { History, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
-interface LeadAuditSectionProps {
-  leadId: string;
+interface EntityAuditSectionProps {
+  table: "leads" | "contacts" | "companies";
+  recordId: string;
 }
 
-export function LeadAuditSection({ leadId }: LeadAuditSectionProps) {
-  const { data: entries, isLoading } = useLeadAuditLog(leadId);
+export function LeadAuditSection({ leadId }: { leadId: string }) {
+  return <EntityAuditSection table="leads" recordId={leadId} />;
+}
+
+export function EntityAuditSection({ table, recordId }: EntityAuditSectionProps) {
+  const { data: entries, isLoading } = useEntityAuditLog(table, recordId);
 
   if (isLoading) {
     return (
@@ -39,7 +44,7 @@ export function LeadAuditSection({ leadId }: LeadAuditSectionProps) {
     assigned_to: 'Responsável', source: 'Fonte', notes: 'Notas', company_name: 'Empresa',
     tax_id: 'NIF', address: 'Morada', city: 'Localidade', postal_code: 'Código postal',
     ai_temperature: 'Temperatura', estimated_value: 'Valor estimado', website: 'Website',
-    lead_type: 'Tipo', icp_score_status: 'Estado do encaixe ICP', last_contact_at: 'Último contacto', archived_at: 'Arquivado em', deleted_at: 'Eliminado em',
+    lead_type: 'Tipo', first_name: 'Nome próprio', last_name: 'Apelido', nif: 'NIF', vat_number: 'NIF', mobile: 'Telemóvel', job_title: 'Cargo', company_id: 'Empresa', industry: 'Setor', country: 'País', sales_rep_id: 'Vendedor', owner_id: 'Gestor', icp_score_status: 'Estado do encaixe ICP', last_contact_at: 'Último contacto', archived_at: 'Arquivado em', deleted_at: 'Eliminado em',
   };
 
   const formatValue = (val: unknown): string => {

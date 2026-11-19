@@ -16,17 +16,17 @@ export interface LeadAuditLogEntry {
 const IGNORED_FIELDS = new Set(["updated_at", "search_norm"]);
 
 /** Reads the shared audit trail (activity_logs) and expands it into one row per changed field. */
-export function useLeadAuditLog(leadId: string | undefined) {
+export function useEntityAuditLog(tableName: "leads" | "contacts" | "companies", leadId: string | undefined) {
   const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
-    queryKey: ["lead-audit-log", leadId],
+    queryKey: ["entity-audit-log", tableName, leadId],
     queryFn: async () => {
       if (!leadId) return [];
       const { data, error } = await workspaceClient
         .from("activity_logs")
         .select("id, workspace_id, user_id, action, changed_fields, old_data, new_data, created_at")
-        .eq("table_name", "leads")
+        .eq("table_name", tableName)
         .eq("record_id", leadId)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -63,4 +63,8 @@ export function useLeadAuditLog(leadId: string | undefined) {
     },
     enabled: !!leadId,
   });
+}
+
+export function useLeadAuditLog(leadId: string | undefined) {
+  return useEntityAuditLog("leads", leadId);
 }
