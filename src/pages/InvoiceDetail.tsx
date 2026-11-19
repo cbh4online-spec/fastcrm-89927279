@@ -240,6 +240,17 @@ export default function InvoiceDetail() {
                 <CardTitle className="text-base">Informações do Cliente</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="rounded-lg border border-border bg-muted/40 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Cliente no documento</p>
+                  <p className="font-semibold text-foreground">{invoice.client_name || "—"}</p>
+                  {invoice.client_tax_id && <p className="text-sm text-muted-foreground">NIF {invoice.client_tax_id}</p>}
+                  {invoice.company_id && company?.name && invoice.client_name &&
+                    company.name.trim().toLowerCase() !== invoice.client_name.trim().toLowerCase() && (
+                    <p className="mt-2 text-sm text-destructive">
+                      Atenção: a ficha associada ({company.name}) não corresponde ao cliente do documento.
+                    </p>
+                  )}
+                </div>
                 {invoice.company_id && (
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-muted-foreground" />
