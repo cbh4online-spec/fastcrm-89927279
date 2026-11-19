@@ -19,6 +19,7 @@ export interface LeadColumnDef {
 }
 
 export const LEAD_COLUMNS: LeadColumnDef[] = [
+  { key: "created_at", label: "Data de criação", required: true },
   { key: "status", label: "Estado", required: true },
   { key: "name", label: "Nome", required: true },
   { key: "email", label: "Email", defaultVisible: true },
@@ -29,7 +30,6 @@ export const LEAD_COLUMNS: LeadColumnDef[] = [
   { key: "score", label: "Score", defaultVisible: true },
   { key: "icp", label: "Encaixe", defaultVisible: true },
   { key: "value", label: "Valor estimado", defaultVisible: true },
-  { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "last_contact", label: "Último contacto", defaultVisible: false },
   { key: "assigned_to", label: "Responsável", defaultVisible: false },
   { key: "tags", label: "Tags", defaultVisible: false },

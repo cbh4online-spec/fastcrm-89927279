@@ -76,6 +76,7 @@ type SortKey =
   | "pare_score";
 
 const COLUMNS: ListColumnDef[] = [
+  { key: "created_at", label: "Data de criação", required: true },
   { key: "name", label: "Nome", required: true },
   { key: "tax_id", label: "NIF", defaultVisible: true },
   { key: "email", label: "Email", defaultVisible: true },
@@ -102,7 +103,6 @@ const COLUMNS: ListColumnDef[] = [
   { key: "last_purchase_value", label: "Valor última compra (s/IVA)", defaultVisible: false },
   { key: "days_since_purchase", label: "Dias sem comprar", defaultVisible: false },
   { key: "purchase_cycle", label: "Ciclo de compra", defaultVisible: true },
-  { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "tags", label: "Tags", defaultVisible: false },
 ];
 
@@ -318,8 +318,8 @@ export function CompaniesListIX() {
   const [search, setSearch] = usePersistedState<string>("companies-ix-search", "");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = usePersistedState<SortKey>("companies-ix-sortBy", "name");
-  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("companies-ix-sortDir", "asc");
+  const [sortBy, setSortBy] = usePersistedState<SortKey>("companies-ix-sortBy-v2", "created_at");
+  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("companies-ix-sortDir-v2", "desc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);

@@ -166,7 +166,7 @@ function renderCell(col: string, lead: SmartLead) {
       );
     case "created_at":
       return (
-        <div className="w-full text-right text-sm text-muted-foreground">
+        <div className="w-full text-sm text-muted-foreground">
           {formatDate(lead.created_at)}
         </div>
       );
@@ -246,15 +246,15 @@ const COLUMN_WIDTH: Record<string, string> = {
   country: "w-[120px] shrink-0",
 };
 
-const NUMERIC_COLUMNS = ["score", "icp", "value", "created_at", "last_contact"];
+const NUMERIC_COLUMNS = ["score", "icp", "value", "last_contact"];
 
 export function LeadsListIX() {
   const navigate = useNavigate();
   const [search, setSearch] = usePersistedState<string>("leads-ix-search", "");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = usePersistedState<SortKey>("leads-ix-sortBy", "name");
-  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("leads-ix-sortDir", "asc");
+  const [sortBy, setSortBy] = usePersistedState<SortKey>("leads-ix-sortBy-v2", "created_at");
+  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("leads-ix-sortDir-v2", "desc");
   const [createOpen, setCreateOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
   const [renameTarget, setRenameTarget] = useState<RenameEntityTarget | null>(null);

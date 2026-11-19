@@ -58,6 +58,7 @@ type SortKey =
   | "city";
 
 const COLUMNS: ListColumnDef[] = [
+  { key: "created_at", label: "Data de criação", required: true },
   { key: "name", label: "Nome", required: true },
   { key: "email", label: "Email", defaultVisible: true },
   { key: "phone", label: "Telefone", defaultVisible: true },
@@ -69,7 +70,6 @@ const COLUMNS: ListColumnDef[] = [
   { key: "pare_score", label: "Score PARE", defaultVisible: true },
   { key: "icp_fit_score", label: "Adequação ICP", defaultVisible: false },
   { key: "engagement_score", label: "Envolvimento", defaultVisible: false },
-  { key: "created_at", label: "Data de criação", defaultVisible: true },
   { key: "next_followup_at", label: "Próximo follow-up", defaultVisible: false },
   { key: "tags", label: "Tags", defaultVisible: false },
   { key: "address", label: "Morada", defaultVisible: false },
@@ -186,8 +186,8 @@ export function ContactsListIX() {
   const [search, setSearch] = usePersistedState<string>("contacts-ix-search", "");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = usePersistedState<SortKey>("contacts-ix-sortBy", "name");
-  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("contacts-ix-sortDir", "asc");
+  const [sortBy, setSortBy] = usePersistedState<SortKey>("contacts-ix-sortBy-v2", "created_at");
+  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">("contacts-ix-sortDir-v2", "desc");
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [entityAction, setEntityAction] = useState<EntityActionRequest>(null);
