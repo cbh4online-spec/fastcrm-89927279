@@ -20,6 +20,17 @@ function getInitials(name: string | null): string {
     .slice(0, 2);
 }
 
+const NAME_PARTICLES = new Set(["da", "de", "do", "das", "dos", "e"]);
+
+/** "Eugénia dos Anjos Lopes Preto" → "Eugénia Preto" */
+export function formatShortName(name: string | null): string {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "Utilizador";
+  if (parts.length <= 2) return parts.join(" ");
+  const last = [...parts].reverse().find((p) => !NAME_PARTICLES.has(p.toLowerCase())) ?? parts[parts.length - 1];
+  return `${parts[0]} ${last}`;
+}
+
 const OnlineUserRow = memo(function OnlineUserRow({ user }: { user: OnlineUser }) {
   return (
     <div className="flex items-center gap-2.5 py-1.5">
@@ -32,7 +43,9 @@ const OnlineUserRow = memo(function OnlineUserRow({ user }: { user: OnlineUser }
         </Avatar>
         <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
       </div>
-      <span className="text-sm truncate">{user.full_name || "Utilizador"}</span>
+      <span className="text-sm truncate" title={user.full_name ?? undefined}>
+        {formatShortName(user.full_name)}
+      </span>
     </div>
   );
 });
