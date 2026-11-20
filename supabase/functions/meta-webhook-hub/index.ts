@@ -1,4 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { readScopedMetaLead } from "../_shared/metaLeadFormScope.ts";
+
+class RetryLeadDelivery extends Error {}
 
 /**
  * Meta Webhook Hub — unified endpoint for all Meta webhook events:
@@ -78,7 +81,7 @@ Deno.serve(async (req) => {
       // Resolve workspace from asset
       const { data: asset } = await supabase
         .from("meta_assets")
-        .select("workspace_id, connection_id, asset_type, page_access_token")
+        .select("workspace_id, connection_id, asset_type, page_access_token, restrict_lead_forms")
         .eq("asset_id_external", externalId)
         .eq("selected_for_use", true)
         .maybeSingle();
@@ -88,6 +91,29 @@ Deno.serve(async (req) => {
       // Process changes (leadgen, messaging, etc.)
       for (const change of entry.changes || []) {
         const eventType = change.field; // "leadgen", "feed", etc.
+
+        // Reject non-selected forms before saving the notification or queuing a CRM lead.
+        let scopedLead: ReturnType<typeof readScopedMetaLead> = null;
+        if (eventType === "leadgen" && asset?.asset_type === "page" && asset.restrict_lead_forms) {
+          scopedLead = readScopedMetaLead(change.value, externalId);
+          if (!scopedLead) continue;
+
+          const { data: selectedForm, error: formError } = await supabase
+            .from("meta_assets")
+            .select("id")
+            .eq("workspace_id", asset.workspace_id)
+            .eq("connection_id", asset.connection_id)
+            .eq("asset_type", "lead_form")
+            .eq("asset_id_external", scopedLead.formId)
+            .eq("metadata_json->>linked_page_id", scopedLead.pageId)
+            .eq("selected_for_use", true)
+            .maybeSingle();
+
+          if (formError) throw new RetryLeadDelivery("Could not verify the selected form");
+          if (!selectedForm) continue;
+
+          await queueScopedLead(supabase, asset.workspace_id, scopedLead, change.value);
+        }
 
         // Persist raw event
         const { data: webhookEvent } = await supabase
@@ -107,7 +133,7 @@ Deno.serve(async (req) => {
 
         // Route by event type
         if (eventType === "leadgen") {
-          await handleLeadgen(supabase, workspaceId, asset, change.value);
+          if (!scopedLead) await handleLeadgen(supabase, workspaceId, change.value);
           if (webhookEvent) {
             await supabase.from("meta_webhook_events")
               .update({ processing_status: "processed", processed_at: new Date().toISOString() })
@@ -137,14 +163,48 @@ Deno.serve(async (req) => {
     return new Response("EVENT_RECEIVED", { status: 200 });
   } catch (error) {
     console.error("[meta-webhook-hub] Error:", error);
+    if (error instanceof RetryLeadDelivery) {
+      return new Response("LEAD_DELIVERY_RETRY", { status: 503 });
+    }
     return new Response("EVENT_RECEIVED", { status: 200 });
   }
 });
 
+async function queueScopedLead(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string,
+  lead: NonNullable<ReturnType<typeof readScopedMetaLead>>,
+  value: any,
+) {
+  // A notification may already have been handled while this Page used legacy routing.
+  const { data: existing, error: lookupError } = await supabase
+    .from("meta_leads")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("lead_id_external", lead.leadId)
+    .limit(1);
+  if (lookupError) throw new RetryLeadDelivery("Could not check for an existing lead");
+  if (existing?.length) return;
+
+  // The unique key closes the race between simultaneous deliveries of the same lead.
+  const { error: insertError } = await supabase.from("meta_leads").upsert({
+    workspace_id: workspaceId,
+    page_id: lead.pageId,
+    form_id: lead.formId,
+    lead_id_external: lead.leadId,
+    scoped_submission_id: lead.leadId,
+    ad_id: value.ad_id,
+    adset_id: value.adgroup_id,
+    platform: "facebook",
+    raw_payload_json: value,
+    processing_status: "pending",
+  }, { onConflict: "workspace_id,scoped_submission_id", ignoreDuplicates: true });
+  if (insertError) throw new RetryLeadDelivery("Could not save the selected form lead");
+}
+
 async function handleLeadgen(
   supabase: ReturnType<typeof createClient>,
   workspaceId: string,
-  asset: { page_access_token?: string },
   value: any
 ) {
   try {
