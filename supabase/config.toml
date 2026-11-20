@@ -59,6 +59,9 @@ verify_jwt = false
 [functions.meta-webhook-hub]
 verify_jwt = false
 
+[functions.ensi-meta-leads]
+verify_jwt = false
+
 [functions.meta-lead-processor]
 verify_jwt = false
 

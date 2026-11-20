@@ -41,8 +41,12 @@ DECLARE
   v_contact uuid;
   v_meta_lead uuid;
   v_disposition text;
+  v_lock_key text;
   v_receipt public.ensi_meta_lead_receipts%ROWTYPE;
 BEGIN
+  IF p_workspace_id IS NULL OR p_page_id IS NULL OR p_form_id IS NULL OR p_lead_id_external IS NULL THEN
+    RAISE EXCEPTION 'ENSI_MISSING_REQUIRED_ID';
+  END IF;
   IF p_workspace_id <> '0662fc16-6286-4156-a908-08c7dfec0fb7'::uuid
      OR p_page_id <> '113692350807474'
      OR p_form_id <> '29967420322844561'
@@ -73,11 +77,15 @@ BEGIN
   v_phone := nullif(left(btrim(coalesce(p_normalized_payload->>'phone_number', '')), 40), '');
   v_phone_digits := nullif(regexp_replace(coalesce(v_phone, ''), '\D', '', 'g'), '');
 
-  IF v_full_name IS NULL AND v_email IS NULL AND v_phone_digits IS NULL THEN
-    RAISE EXCEPTION 'ENSI_NO_USEFUL_DATA';
-  END IF;
   IF v_email IS NOT NULL AND v_email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' THEN
-    RAISE EXCEPTION 'ENSI_INVALID_EMAIL';
+    v_email := NULL;
+  END IF;
+  IF v_phone_digits IS NOT NULL AND (length(v_phone_digits) < 7 OR length(v_phone_digits) > 15) THEN
+    v_phone := NULL;
+    v_phone_digits := NULL;
+  END IF;
+  IF v_email IS NULL AND v_phone_digits IS NULL THEN
+    RAISE EXCEPTION 'ENSI_NO_CONTACT_DATA';
   END IF;
 
   SELECT wm.user_id INTO v_owner
@@ -87,7 +95,6 @@ BEGIN
   LIMIT 1;
   IF v_owner IS NULL THEN RAISE EXCEPTION 'ENSI_WORKSPACE_OWNER_MISSING'; END IF;
 
-  -- O bloqueio e a chave primária tornam a repetição segura, inclusive em paralelo.
   PERFORM pg_advisory_xact_lock(hashtextextended('ensi-meta-lead:' || p_lead_id_external, 0));
   SELECT * INTO v_receipt
   FROM public.ensi_meta_lead_receipts
@@ -97,12 +104,23 @@ BEGIN
       RAISE EXCEPTION 'ENSI_IDEMPOTENCY_CONFLICT';
     END IF;
     RETURN jsonb_build_object(
-      'status', 'duplicate',
-      'meta_lead_id', v_receipt.meta_lead_id,
-      'contact_id', v_receipt.contact_id,
-      'contact_disposition', v_receipt.contact_disposition
+      'status', 'duplicate', 'meta_lead_id', v_receipt.meta_lead_id,
+      'contact_id', v_receipt.contact_id, 'contact_disposition', v_receipt.contact_disposition
     );
   END IF;
+
+  -- Ordem estável entre leads distintos que partilham identificadores.
+  FOR v_lock_key IN
+    SELECT DISTINCT lock_key FROM (
+      VALUES
+        (CASE WHEN v_email IS NOT NULL THEN 'email:' || v_email END),
+        (CASE WHEN v_phone_digits IS NOT NULL THEN 'phone:' || v_phone_digits END)
+    ) AS keys(lock_key)
+    WHERE lock_key IS NOT NULL
+    ORDER BY lock_key
+  LOOP
+    PERFORM pg_advisory_xact_lock(hashtextextended('ensi-contact:' || v_workspace::text || ':' || v_lock_key, 0));
+  END LOOP;
 
   SELECT array_agg(matches.id) INTO v_matches
   FROM (
@@ -126,23 +144,15 @@ BEGIN
       workspace_id, created_by, name, email, phone, source, lead_source,
       external_provider, external_id, custom_fields
     ) VALUES (
-      v_workspace,
-      v_owner,
-      coalesce(v_full_name, v_email, v_phone),
-      v_email,
-      v_phone,
-      'meta_lead_ads',
-      'ENSI | Iniciação Porto e Lisboa | Janeiro 2027 | Nov 2026',
-      'ensi_meta_lead_ads',
-      p_lead_id_external,
-      jsonb_build_object(
-        'ensi', jsonb_build_object(
-          'edicao', p_normalized_payload->'edicao',
-          'presencial', p_normalized_payload->'presencial',
-          'atividade', p_normalized_payload->'atividade',
-          'attribution', p_normalized_payload->'attribution'
-        )
-      )
+      v_workspace, v_owner, coalesce(v_full_name, v_email, v_phone), v_email, v_phone,
+      'meta_lead_ads', 'ENSI | Iniciação Porto e Lisboa | Janeiro 2027 | Nov 2026',
+      'ensi_meta_lead_ads', p_lead_id_external,
+      jsonb_build_object('ensi', jsonb_build_object(
+        'edicao', p_normalized_payload->'edicao',
+        'presencial', p_normalized_payload->'presencial',
+        'atividade', p_normalized_payload->'atividade',
+        'attribution', p_normalized_payload->'attribution'
+      ))
     )
     RETURNING id INTO v_contact;
     v_disposition := 'created';
@@ -156,8 +166,7 @@ BEGIN
   ) VALUES (
     v_workspace, p_page_id, p_form_id, p_lead_id_external,
     p_campaign_id, p_adset_id, p_ad_id, 'facebook',
-    p_raw_payload, p_normalized_payload,
-    nullif(concat_ws('|', v_email, v_phone_digits), ''),
+    p_raw_payload, p_normalized_payload, nullif(concat_ws('|', v_email, v_phone_digits), ''),
     'processed', v_contact,
     CASE WHEN v_disposition = 'ambiguous' THEN 'ambiguous_contact_match' ELSE NULL END,
     coalesce(p_received_at, now()), now()
@@ -165,18 +174,14 @@ BEGIN
   RETURNING id INTO v_meta_lead;
 
   INSERT INTO public.ensi_meta_lead_receipts (
-    lead_id_external, workspace_id, page_id, form_id, meta_lead_id,
-    contact_id, contact_disposition
+    lead_id_external, workspace_id, page_id, form_id, meta_lead_id, contact_id, contact_disposition
   ) VALUES (
-    p_lead_id_external, v_workspace, p_page_id, p_form_id, v_meta_lead,
-    v_contact, v_disposition
+    p_lead_id_external, v_workspace, p_page_id, p_form_id, v_meta_lead, v_contact, v_disposition
   );
 
   RETURN jsonb_build_object(
-    'status', 'accepted',
-    'meta_lead_id', v_meta_lead,
-    'contact_id', v_contact,
-    'contact_disposition', v_disposition
+    'status', 'accepted', 'meta_lead_id', v_meta_lead,
+    'contact_id', v_contact, 'contact_disposition', v_disposition
   );
 END;
 $$;

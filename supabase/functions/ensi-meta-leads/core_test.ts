@@ -1,11 +1,12 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { ENSI_CONFIG } from "./core.ts";
+import { ENSI_CONFIG, parseMetaJson } from "./core.ts";
 import { createEnsiMetaLeadsHandler } from "./handler.ts";
 
 const APP_SECRET = "synthetic-app-secret-not-a-credential";
 const VERIFY_TOKEN = "synthetic-verify-token-not-a-credential";
 const PAGE_TOKEN = "synthetic-page-token-not-a-credential";
 const LEAD_ID = "900000000000001";
+const OTHER_LEAD_ID = "900000000000002";
 
 const payload = (overrides: Record<string, unknown> = {}) => ({
   object: "page",
@@ -58,12 +59,12 @@ async function request(body: unknown, invalidSignature = false) {
   const raw = typeof body === "string" ? body : JSON.stringify(body);
   return new Request("http://local.test/functions/v1/ensi-meta-leads", {
     method: "POST",
-    body: raw,
+    body: new TextEncoder().encode(raw),
     headers: { "x-hub-signature-256": invalidSignature ? "sha256=00" : await signature(raw) },
   });
 }
 
-class MockStore implements EnsiLeadStore {
+class MockStore {
   calls: Record<string, unknown>[] = [];
   receipts = new Map<string, Record<string, unknown>>();
 
@@ -74,7 +75,7 @@ class MockStore implements EnsiLeadStore {
     const existing = this.receipts.get(externalId);
     if (existing) return { data: { ...existing, status: "duplicate" }, error: null };
     const result = {
-      meta_lead_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      meta_lead_id: crypto.randomUUID(),
       contact_disposition: "created",
     };
     this.receipts.set(externalId, result);
@@ -82,14 +83,21 @@ class MockStore implements EnsiLeadStore {
   }
 }
 
-function setup(options: { graphResponse?: Response; store?: MockStore } = {}) {
+function setup(options: {
+  graphRespond?: (leadId: string, call: number) => Response;
+  store?: MockStore;
+} = {}) {
   const store = options.store ?? new MockStore();
   const graphRequests: Request[] = [];
+  let graphCalls = 0;
   const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    graphRequests.push(new Request(input, init));
-    return options.graphResponse?.clone() ?? new Response(JSON.stringify(graphLead), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    const graphRequest = new Request(input, init);
+    graphRequests.push(graphRequest);
+    graphCalls += 1;
+    const leadId = new URL(graphRequest.url).pathname.split("/").pop()!;
+    return options.graphRespond?.(leadId, graphCalls) ?? Response.json({
+      ...graphLead,
+      id: leadId,
     });
   }) as typeof fetch;
   const handler = createEnsiMetaLeadsHandler({
@@ -110,25 +118,122 @@ Deno.test("GET valida challenge sem expor configuração", async () => {
   await invalid.text();
 });
 
-Deno.test("aceite: valida HMAC, usa Graph com prova e guarda campos ENSI", async () => {
+Deno.test("aceite: bytes com Unicode, Graph v26 e campos canónicos", async () => {
   const { handler, store, graphRequests } = setup();
-  const response = await handler(await request(payload()));
+  const unicodePayload = payload() as any;
+  unicodePayload.entry[0].nota = "Confirmação João — ação";
+  const response = await handler(await request(unicodePayload));
   assertEquals(response.status, 200);
-  assertEquals((await response.json()).status, "accepted");
-  assertEquals(graphRequests.length, 1);
+  assertEquals((await response.json()).accepted, 1);
   const graphUrl = new URL(graphRequests[0].url);
+  assert(graphUrl.pathname.includes("/v26.0/"));
   assert(graphUrl.searchParams.has("appsecret_proof"));
   assert(!graphUrl.searchParams.has("access_token"));
   assertEquals(graphRequests[0].headers.get("Authorization"), `Bearer ${PAGE_TOKEN}`);
-  assertEquals(store.calls.length, 1);
   const normalized = store.calls[0].p_normalized_payload as Record<string, unknown>;
   assertEquals(normalized.full_name, "Pessoa Sintética");
+  assertEquals(normalized.name, "Pessoa Sintética");
   assertEquals(normalized.email, "pessoa@example.com");
   assertEquals(normalized.phone_number, "+351912345678");
   assertEquals(normalized.edicao, "Porto — Janeiro 2027");
   assertEquals(normalized.presencial, "Sim, presencial");
   assertEquals(normalized.atividade, "Profissional de estética");
   assertEquals((normalized.attribution as Record<string, unknown>).source, "graph_api");
+});
+
+Deno.test("Form ID numérico grande permanece exato no runtime suportado", async () => {
+  const raw = `{"object":"page","entry":[{"id":"${ENSI_CONFIG.pageId}","changes":[{"field":"leadgen","value":{"leadgen_id":"${LEAD_ID}","form_id":29967420322844561,"page_id":"${ENSI_CONFIG.pageId}"}}]}]}`;
+  const parsed = parseMetaJson(raw) as any;
+  assertEquals(parsed.entry[0].changes[0].value.form_id, ENSI_CONFIG.formId);
+  const { handler, store } = setup();
+  const response = await handler(await request(raw));
+  assertEquals(response.status, 200);
+  await response.text();
+  assertEquals(store.calls[0].p_form_id, ENSI_CONFIG.formId);
+});
+
+Deno.test("eventos alheios são filtrados antes da validação leadgen", async () => {
+  const mixed = {
+    object: "page",
+    entry: [
+      { id: "999", changes: [{ field: "leadgen", value: { invalid: true } }] },
+      { id: ENSI_CONFIG.pageId, changes: [
+        { field: "feed", value: { invalid: true } },
+        { field: "leadgen", value: { form_id: "999", page_id: ENSI_CONFIG.pageId } },
+        { field: "leadgen", value: payload().entry[0].changes[0].value },
+      ] },
+    ],
+  };
+  const { handler, store } = setup();
+  const response = await handler(await request(mixed));
+  assertEquals(response.status, 200);
+  const body = await response.json();
+  assertEquals(body.accepted, 1);
+  assertEquals(body.ignored, 3);
+  assertEquals(store.calls.length, 1);
+});
+
+Deno.test("processa todas as referências ENSI antes do 2xx", async () => {
+  const batch = payload();
+  batch.entry[0].changes.push({
+    field: "leadgen",
+    value: { ...batch.entry[0].changes[0].value, leadgen_id: OTHER_LEAD_ID },
+  });
+  const { handler, store } = setup();
+  const response = await handler(await request(batch));
+  assertEquals(response.status, 200);
+  const body = await response.json();
+  assertEquals(body.accepted, 2);
+  assertEquals(body.results.length, 2);
+  assertEquals(store.receipts.size, 2);
+});
+
+Deno.test("503 após um aceite; repetição deduplica o anterior e conclui o restante", async () => {
+  const batch = payload();
+  batch.entry[0].changes.push({
+    field: "leadgen",
+    value: { ...batch.entry[0].changes[0].value, leadgen_id: OTHER_LEAD_ID },
+  });
+  let failSecond = true;
+  const { handler, store } = setup({
+    graphRespond: (leadId) => {
+      if (failSecond && leadId === OTHER_LEAD_ID) {
+        failSecond = false;
+        return new Response("temporary", { status: 500 });
+      }
+      return Response.json({ ...graphLead, id: leadId });
+    },
+  });
+  const first = await handler(await request(batch));
+  assertEquals(first.status, 503);
+  assertEquals((await first.json()).completed, 1);
+  assertEquals(store.receipts.size, 1);
+
+  const retry = await handler(await request(batch));
+  assertEquals(retry.status, 200);
+  const body = await retry.json();
+  assertEquals(body.accepted, 1);
+  assertEquals(body.duplicates, 1);
+  assertEquals(store.receipts.size, 2);
+});
+
+Deno.test("dados de contacto inválidos não bloqueiam outro lead da batelada", async () => {
+  const batch = payload();
+  batch.entry[0].changes.push({
+    field: "leadgen",
+    value: { ...batch.entry[0].changes[0].value, leadgen_id: OTHER_LEAD_ID },
+  });
+  const { handler, store } = setup({
+    graphRespond: (leadId) => Response.json(leadId === LEAD_ID
+      ? { ...graphLead, id: leadId, field_data: [{ name: "full_name", values: ["Sem contacto"] }] }
+      : { ...graphLead, id: leadId }),
+  });
+  const response = await handler(await request(batch));
+  assertEquals(response.status, 200);
+  const body = await response.json();
+  assertEquals(body.accepted, 1);
+  assertEquals(body.ignored, 1);
+  assertEquals(store.receipts.size, 1);
 });
 
 Deno.test("assinatura inválida é rejeitada antes de Graph ou base", async () => {
@@ -140,22 +245,11 @@ Deno.test("assinatura inválida é rejeitada antes de Graph ou base", async () =
   assertEquals(graphRequests.length, 0);
 });
 
-Deno.test("outra Página e outro formulário são ignorados", async () => {
-  for (const overrides of [{ page_id: "999" }, { form_id: "999" }]) {
-    const { handler, store, graphRequests } = setup();
-    const response = await handler(await request(payload(overrides)));
-    assertEquals(response.status, 200);
-    assertEquals((await response.json()).status, "ignored");
-    assertEquals(store.calls.length, 0);
-    assertEquals(graphRequests.length, 0);
-  }
-});
-
 Deno.test("erro Graph é transitório e não cria lead", async () => {
-  const { handler, store } = setup({ graphResponse: new Response("temporary", { status: 500 }) });
+  const { handler, store } = setup({ graphRespond: () => new Response("temporary", { status: 500 }) });
   const response = await handler(await request(payload()));
   assertEquals(response.status, 503);
-  assertEquals(await response.json(), { status: "transient_error", reason: "graph_fetch_failed", retryable: true });
+  assertEquals((await response.json()).reason, "graph_fetch_failed");
   assertEquals(store.calls.length, 0);
 });
 
@@ -168,26 +262,14 @@ Deno.test("payload inválido é rejeitado sem Graph ou base", async () => {
   assertEquals(graphRequests.length, 0);
 });
 
-Deno.test("repetição Meta devolve duplicate e mantém uma única receção", async () => {
-  const { handler, store } = setup();
-  const first = await handler(await request(payload()));
-  assertEquals((await first.json()).status, "accepted");
-  const second = await handler(await request(payload()));
-  assertEquals(second.status, 200);
-  assertEquals((await second.json()).status, "duplicate");
-  assertEquals(store.calls.length, 2);
-  assertEquals((store as MockStore).receipts.size, 1);
-});
-
-Deno.test("sem dados úteis ou identidade Graph divergente é ignorado sem escrita", async () => {
-  const empty = { ...graphLead, field_data: [{ name: "edicao", values: ["Porto"] }] };
-  const first = setup({ graphResponse: Response.json(empty) });
-  const emptyResponse = await first.handler(await request(payload()));
-  assertEquals((await emptyResponse.json()).reason, "no_useful_data");
-  assertEquals(first.store.calls.length, 0);
-
-  const mismatch = setup({ graphResponse: Response.json({ ...graphLead, form_id: "999" }) });
-  const mismatchResponse = await mismatch.handler(await request(payload()));
-  assertEquals((await mismatchResponse.json()).reason, "graph_identity_mismatch");
-  assertEquals(mismatch.store.calls.length, 0);
+Deno.test("ID ou formulário Graph divergente é ignorado sem escrita", async () => {
+  for (const difference of [{ id: "999" }, { form_id: "999" }]) {
+    const { handler, store } = setup({ graphRespond: () => Response.json({ ...graphLead, ...difference }) });
+    const response = await handler(await request(payload()));
+    assertEquals(response.status, 200);
+    const body = await response.json();
+    assertEquals(body.status, "ignored");
+    assertEquals(body.results[0].reason, "graph_identity_mismatch");
+    assertEquals(store.calls.length, 0);
+  }
 });

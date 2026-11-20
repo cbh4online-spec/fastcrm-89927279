@@ -10,6 +10,7 @@ let db: PGlite;
 
 const normalized = {
   full_name: "Pessoa Sintética",
+  name: "Pessoa Sintética",
   email: "pessoa@example.com",
   phone_number: "+351912345678",
   edicao: "Porto — Janeiro 2027",
@@ -18,13 +19,18 @@ const normalized = {
   attribution: { form_id: "29967420322844561", source: "graph_api" },
 };
 
-async function ingest(leadId: string, data: Record<string, unknown> = normalized, formId = "29967420322844561") {
+async function ingest(
+  leadId: string | null,
+  data: Record<string, unknown> = normalized,
+  formId: string | null = "29967420322844561",
+  pageId: string | null = "113692350807474",
+) {
   const result = await db.query<{ result: any }>(
     `SELECT public.ensi_ingest_meta_lead(
-      $1::uuid, '113692350807474', $2, $3, '111', '222', '333',
-      $4::jsonb, $5::jsonb, now()
+      $1::uuid, $5, $2, $3, '111', '222', '333',
+      $4::jsonb, $6::jsonb, now()
     ) AS result`,
-    [workspaceId, formId, leadId, JSON.stringify({ id: leadId, field_data: [] }), JSON.stringify(data)],
+    [workspaceId, formId, leadId, JSON.stringify({ id: leadId, field_data: [] }), pageId, JSON.stringify(data)],
   );
   return result.rows[0].result;
 }
@@ -68,7 +74,7 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("RPC ENSI em Postgres isolado", () => {
-  it("aceita uma vez e repetições concorrentes não duplicam lead ou contacto", async () => {
+  it("repetições do mesmo lead não duplicam; PGlite serializa as seis promessas", async () => {
     const results = await Promise.all(Array.from({ length: 6 }, () => ingest("900000000000101")));
     expect(results.filter((result) => result.status === "accepted")).toHaveLength(1);
     expect(results.filter((result) => result.status === "duplicate")).toHaveLength(5);
@@ -81,7 +87,23 @@ describe("RPC ENSI em Postgres isolado", () => {
     expect(counts.rows[0]).toEqual({ leads: 1, contacts: 1, receipts: 1 });
     const lead = await db.query<any>(`SELECT * FROM public.meta_leads WHERE lead_id_external = '900000000000101'`);
     expect(lead.rows[0]).toMatchObject({ processing_status: "processed", opportunity_id: null, workflow_run_id: null });
-    expect(lead.rows[0].normalized_payload_json).toMatchObject({ edicao: "Porto — Janeiro 2027", presencial: "Sim", atividade: "Estética" });
+    expect(lead.rows[0].normalized_payload_json).toMatchObject({
+      name: "Pessoa Sintética", full_name: "Pessoa Sintética",
+      edicao: "Porto — Janeiro 2027", presencial: "Sim", atividade: "Estética",
+    });
+  });
+
+  it("dois leads distintos com os mesmos dados partilham um único contacto", async () => {
+    const shared = { ...normalized, email: "shared@example.com", phone_number: "+351910000101" };
+    const results = await Promise.all([
+      ingest("900000000000106", shared),
+      ingest("900000000000107", shared),
+    ]);
+    expect(results.map((result) => result.contact_disposition).sort()).toEqual(["created", "reused"]);
+    expect(results[0].contact_id).toBe(results[1].contact_id);
+    const contacts = await db.query<any>(`SELECT * FROM public.contacts WHERE email = 'shared@example.com'`);
+    expect(contacts.rows).toHaveLength(1);
+    expect(contacts.rows[0].name).toBe("Pessoa Sintética");
   });
 
   it("reutiliza correspondência única sem sobrescrever o contacto", async () => {
@@ -106,7 +128,7 @@ describe("RPC ENSI em Postgres isolado", () => {
       [workspaceId, ownerId],
     );
     const before = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM public.contacts`);
-    const result = await ingest("900000000000103", { ...normalized, email: "ambiguous@example.com" });
+    const result = await ingest("900000000000103", { ...normalized, email: "ambiguous@example.com", phone_number: null });
     expect(result).toMatchObject({ contact_disposition: "ambiguous", contact_id: null });
     const after = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM public.contacts`);
     expect(after.rows[0].count).toBe(before.rows[0].count);
@@ -114,10 +136,54 @@ describe("RPC ENSI em Postgres isolado", () => {
     expect(lead.rows[0]).toMatchObject({ contact_id: null, error_message: "ambiguous_contact_match" });
   });
 
-  it("recusa outro formulário e dados sem identificação útil", async () => {
-    await expect(ingest("900000000000104", normalized, "999")).rejects.toThrow("ENSI_INVALID_TARGET");
-    await expect(ingest("900000000000105", { full_name: null, email: null, phone_number: null })).rejects.toThrow("ENSI_NO_USEFUL_DATA");
-    const count = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM public.meta_leads WHERE lead_id_external IN ('900000000000104', '900000000000105')`);
-    expect(count.rows[0].count).toBe(0);
+  it("exige IDs não nulos e email válido ou telefone plausível", async () => {
+    await expect(ingest(null)).rejects.toThrow("ENSI_MISSING_REQUIRED_ID");
+    await expect(ingest("900000000000104", normalized, null)).rejects.toThrow("ENSI_MISSING_REQUIRED_ID");
+    await expect(ingest("900000000000104", normalized, "29967420322844561", null)).rejects.toThrow("ENSI_MISSING_REQUIRED_ID");
+    await expect(ingest("900000000000105", { ...normalized, email: null, phone_number: null })).rejects.toThrow("ENSI_NO_CONTACT_DATA");
+    await expect(ingest("900000000000108", { ...normalized, email: "invalid", phone_number: "123" })).rejects.toThrow("ENSI_NO_CONTACT_DATA");
+    const accepted = await ingest("900000000000109", { ...normalized, email: "invalid", phone_number: "+351910000109" });
+    expect(accepted.status).toBe("accepted");
+    const contact = await db.query<any>(`SELECT * FROM public.contacts WHERE external_id = '900000000000109'`);
+    expect(contact.rows[0].email).toBeNull();
+  });
+
+  it("faz rollback do contacto e da receção se o lead falhar", async () => {
+    await db.exec(`
+      CREATE FUNCTION public.force_ensi_test_failure() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'FORCE_META_LEAD_FAILURE'; END;
+      $$;
+      CREATE TRIGGER force_ensi_test_failure BEFORE INSERT ON public.meta_leads
+      FOR EACH ROW EXECUTE FUNCTION public.force_ensi_test_failure();
+    `);
+    await expect(ingest("900000000000110", { ...normalized, email: "rollback@example.com", phone_number: "+351910000110" }))
+      .rejects.toThrow("FORCE_META_LEAD_FAILURE");
+    const rolledBack = await db.query<{ contacts: number; receipts: number }>(
+      `SELECT
+        (SELECT count(*)::int FROM public.contacts WHERE external_id = '900000000000110') AS contacts,
+        (SELECT count(*)::int FROM public.ensi_meta_lead_receipts WHERE lead_id_external = '900000000000110') AS receipts`,
+    );
+    expect(rolledBack.rows[0]).toEqual({ contacts: 0, receipts: 0 });
+    await db.exec(`DROP TRIGGER force_ensi_test_failure ON public.meta_leads; DROP FUNCTION public.force_ensi_test_failure();`);
+    const retry = await ingest("900000000000110", { ...normalized, email: "rollback@example.com", phone_number: "+351910000110" });
+    expect(retry.status).toBe("accepted");
+  });
+
+  it("anon e authenticated não executam a RPC nem leem receções", async () => {
+    const privileges = await db.query<Record<string, boolean>>(
+      `SELECT
+        has_function_privilege('anon', 'public.ensi_ingest_meta_lead(uuid,text,text,text,text,text,text,jsonb,jsonb,timestamptz)', 'EXECUTE') AS anon_rpc,
+        has_function_privilege('authenticated', 'public.ensi_ingest_meta_lead(uuid,text,text,text,text,text,text,jsonb,jsonb,timestamptz)', 'EXECUTE') AS authenticated_rpc,
+        has_function_privilege('service_role', 'public.ensi_ingest_meta_lead(uuid,text,text,text,text,text,text,jsonb,jsonb,timestamptz)', 'EXECUTE') AS service_rpc,
+        has_table_privilege('anon', 'public.ensi_meta_lead_receipts', 'SELECT') AS anon_table,
+        has_table_privilege('authenticated', 'public.ensi_meta_lead_receipts', 'SELECT') AS authenticated_table`,
+    );
+    expect(privileges.rows[0]).toEqual({
+      anon_rpc: false,
+      authenticated_rpc: false,
+      service_rpc: true,
+      anon_table: false,
+      authenticated_table: false,
+    });
   });
 });

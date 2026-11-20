@@ -4,6 +4,7 @@ import {
   isValidMetaSignature,
   metaAppSecretProof,
   normalizeEnsiLead,
+  parseMetaJson,
   selectEnsiLeadReferences,
   type EnsiLeadReference,
 } from "./core.ts";
@@ -25,11 +26,22 @@ interface HandlerDependencies {
   };
 }
 
+type LeadResult = {
+  status: "accepted" | "duplicate" | "ignored";
+  reason?: string;
+  meta_lead_id?: string | null;
+  contact_disposition?: string;
+};
+
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
+}
+
+function isPermanentStoreError(message: string) {
+  return message.includes("ENSI_INVALID_") || message.includes("ENSI_NO_") || message.includes("ENSI_MISSING_");
 }
 
 async function fetchGraphLead(
@@ -50,15 +62,15 @@ async function fetchGraphLead(
       headers: { Authorization: `Bearer ${pageAccessToken}`, Accept: "application/json" },
       signal: controller.signal,
     });
-    if (!response.ok) return { kind: "transient" as const, httpStatus: response.status };
-    const parsed = graphLeadSchema.safeParse(await response.json());
-    if (!parsed.success) return { kind: "transient" as const, httpStatus: response.status };
+    if (!response.ok) return { kind: "transient" as const };
+    const parsed = graphLeadSchema.safeParse(parseMetaJson(await response.text()));
+    if (!parsed.success) return { kind: "transient" as const };
     if (parsed.data.id !== reference.leadId || parsed.data.form_id !== ENSI_CONFIG.formId) {
       return { kind: "ignored" as const, reason: "graph_identity_mismatch" };
     }
     return { kind: "success" as const, lead: parsed.data };
   } catch {
-    return { kind: "transient" as const, httpStatus: 0 };
+    return { kind: "transient" as const };
   } finally {
     clearTimeout(timeout);
   }
@@ -86,37 +98,49 @@ export function createEnsiMetaLeadsHandler(dependencies: HandlerDependencies) {
     const pageAccessToken = dependencies.config.pageAccessToken;
     if (!appSecret || !pageAccessToken) return json(503, { error: "configuration_unavailable" });
 
-    // A assinatura é sempre calculada sobre os bytes/texto cru, antes de interpretar JSON.
-    const rawBody = await request.text();
+    // HMAC sobre os bytes originais; só depois se descodifica e analisa o envelope.
+    const rawBody = new Uint8Array(await request.arrayBuffer());
     if (!await isValidMetaSignature(rawBody, request.headers.get("x-hub-signature-256"), appSecret)) {
       return json(401, { error: "invalid_signature" });
     }
-    if (rawBody.length > 256_000) return json(413, { error: "payload_too_large" });
+    if (rawBody.byteLength > 256_000) return json(413, { error: "payload_too_large" });
 
     let payload: unknown;
     try {
-      payload = JSON.parse(rawBody);
+      payload = parseMetaJson(new TextDecoder("utf-8", { fatal: true }).decode(rawBody));
     } catch {
       return json(400, { error: "invalid_payload" });
     }
     const selection = selectEnsiLeadReferences(payload);
     if (!selection.valid) return json(400, { error: "invalid_payload" });
     if (!selection.references.length) {
-      return json(200, { status: "ignored", reason: "no_matching_leadgen" });
+      return json(200, {
+        status: "ignored",
+        reason: selection.invalidEvents ? "invalid_leadgen" : "no_matching_leadgen",
+        ignored: selection.ignoredEvents + selection.invalidEvents,
+      });
     }
 
+    const results: LeadResult[] = [];
     for (const reference of selection.references) {
       const graphResult = await fetchGraphLead(reference, appSecret, pageAccessToken, fetchImpl);
       if (graphResult.kind === "transient") {
-        return json(503, { status: "transient_error", reason: "graph_fetch_failed", retryable: true });
+        return json(503, {
+          status: "transient_error",
+          reason: "graph_fetch_failed",
+          retryable: true,
+          completed: results.filter((result) => result.status !== "ignored").length,
+        });
       }
       if (graphResult.kind === "ignored") {
-        return json(200, { status: "ignored", reason: graphResult.reason, retryable: false });
+        results.push({ status: "ignored", reason: graphResult.reason });
+        continue;
       }
 
-      const { normalized, hasUsefulData, dedupeKey } = normalizeEnsiLead(graphResult.lead);
-      if (!hasUsefulData) {
-        return json(200, { status: "ignored", reason: "no_useful_data", retryable: false });
+      const { normalized, hasContactData, dedupeKey } = normalizeEnsiLead(graphResult.lead);
+      if (!hasContactData) {
+        results.push({ status: "ignored", reason: "invalid_contact_data" });
+        continue;
       }
 
       const graphCreatedAt = graphResult.lead.created_time ? Date.parse(graphResult.lead.created_time) : NaN;
@@ -133,21 +157,41 @@ export function createEnsiMetaLeadsHandler(dependencies: HandlerDependencies) {
         p_normalized_payload: normalized,
         p_received_at: receivedAt,
       });
-      if (error) return json(503, { status: "transient_error", reason: "store_failed", retryable: true });
+      if (error) {
+        if (isPermanentStoreError(error.message)) {
+          results.push({ status: "ignored", reason: "invalid_contact_data" });
+          continue;
+        }
+        return json(503, {
+          status: "transient_error",
+          reason: "store_failed",
+          retryable: true,
+          completed: results.filter((result) => result.status !== "ignored").length,
+        });
+      }
 
       const result = (data ?? {}) as {
         status?: string;
         meta_lead_id?: string;
         contact_disposition?: string;
       };
-      return json(200, {
+      results.push({
         status: result.status === "duplicate" ? "duplicate" : "accepted",
         meta_lead_id: result.meta_lead_id ?? null,
         contact_disposition: result.contact_disposition ?? "unknown",
-        retryable: false,
       });
     }
 
-    return json(200, { status: "ignored", reason: "no_matching_leadgen", retryable: false });
+    const accepted = results.filter((result) => result.status === "accepted").length;
+    const duplicates = results.filter((result) => result.status === "duplicate").length;
+    const ignored = results.filter((result) => result.status === "ignored").length
+      + selection.ignoredEvents + selection.invalidEvents;
+    return json(200, {
+      status: accepted ? "accepted" : duplicates ? "duplicate" : "ignored",
+      accepted,
+      duplicates,
+      ignored,
+      results,
+    });
   };
 }

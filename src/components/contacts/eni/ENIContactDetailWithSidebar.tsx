@@ -4,6 +4,7 @@ import { CloudtalkCallHistory } from "@/components/integrations/CloudtalkCallHis
 import { CloudtalkCallButton } from "@/components/integrations/CloudtalkCallButton";
 import { WascriptContactToolsGate } from "@/components/whatsapp-pro/WascriptContactToolsGate";
 import { ContactEssentialsCard } from "./ContactEssentialsCard";
+import { EnsiContactCard } from "@/components/contacts/EnsiContactCard";
 import { useWhatsAppStopSignals } from "@/hooks/useWhatsAppStopSignals";
 import { resolveWhatsAppAvailability } from "@/lib/whatsapp/availability";
 import { useState, useCallback, useEffect, useMemo } from "react";
@@ -271,6 +272,7 @@ export function ENIContactDetailWithSidebar() {
               marketingOptIn={!!contact.marketing_opt_in}
               preferences={contact.contact_preferences ?? null}
             />
+            <EnsiContactCard contactId={contact.id} workspaceId={currentWorkspace?.id} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <IdentificationSection
                 contact={contact}
