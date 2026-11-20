@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   useMetaConnections,
   useMetaAssets,
   useToggleAsset,
+  useRestrictMetaLeadForms,
   useMetaOAuthStart,
   useInstagramOAuthStart,
   useSyncAssets,
@@ -81,6 +83,7 @@ export function MetaConnectionsPage() {
   const syncAssets = useSyncAssets();
   const deleteConnection = useDeleteConnection();
   const toggleAsset = useToggleAsset();
+  const restrictLeadForms = useRestrictMetaLeadForms();
   const [expandedConn, setExpandedConn] = useState<string | null>(null);
 
   const errorCode = searchParams.get("error");
@@ -215,6 +218,12 @@ export function MetaConnectionsPage() {
         const connAssets = connectionAssets(conn.id);
         const isExpanded = expandedConn === conn.id;
         const badge = statusBadge[conn.status] || statusBadge.active;
+        const pageNames = new Map<string, string>(connAssets
+          .filter((asset: any) => asset.asset_type === "page")
+          .map((asset: any) => [asset.asset_id_external, asset.asset_name]));
+        const pagesWithSelectedForms = new Set(connAssets
+          .filter((asset: any) => asset.asset_type === "lead_form" && asset.selected_for_use)
+          .map((asset: any) => asset.metadata_json?.linked_page_id));
 
         return (
           <Card key={conn.id}>
@@ -283,31 +292,64 @@ export function MetaConnectionsPage() {
                   )}
                   {connAssets.map((asset: any) => {
                     const Icon = assetIcons[asset.asset_type] || FileText;
+                    const linkedPageId: unknown = asset.asset_type === "lead_form"
+                      ? asset.metadata_json?.linked_page_id
+                      : undefined;
+                    const restrictId = `meta-restrict-lead-forms-${asset.id}`;
                     return (
                       <div
                         key={asset.id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-border bg-background"
+                        className="space-y-3 p-3 rounded-lg border border-border bg-background"
                       >
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">{asset.asset_name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {asset.asset_type.replace("_", " ")} · {asset.asset_id_external}
-                            </p>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <Icon className="w-5 h-5 shrink-0 text-muted-foreground" />
+                            <div>
+                              <p id={`${restrictId}-asset`} className="text-sm font-medium">{asset.asset_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {asset.asset_type.replace("_", " ")} · {asset.asset_id_external}
+                              </p>
+                              {typeof linkedPageId === "string" && linkedPageId && (
+                                <p className="text-xs text-muted-foreground">Página: {pageNames.get(linkedPageId) || linkedPageId}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <span className="text-xs text-muted-foreground">
+                              {asset.selected_for_use ? "Ativo" : "Inativo"}
+                            </span>
+                            <Switch
+                              aria-label={`Ativar ${asset.asset_name || asset.asset_id_external}`}
+                              checked={asset.selected_for_use}
+                              onCheckedChange={(checked) =>
+                                toggleAsset.mutate({ assetId: asset.id, selected: checked })
+                              }
+                            />
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-muted-foreground">
-                            {asset.selected_for_use ? "Ativo" : "Inativo"}
-                          </span>
-                          <Switch
-                            checked={asset.selected_for_use}
-                            onCheckedChange={(checked) =>
-                              toggleAsset.mutate({ assetId: asset.id, selected: checked })
-                            }
-                          />
-                        </div>
+                        {asset.asset_type === "page" && typeof asset.restrict_lead_forms === "boolean" && (
+                          <div className="flex items-start justify-between gap-3 border-t border-border pt-3">
+                            <div className="space-y-1">
+                              <Label id={`${restrictId}-label`} htmlFor={restrictId}>
+                                Receber leads apenas dos formulários selecionados
+                              </Label>
+                              <p id={`${restrictId}-help`} className="text-xs text-muted-foreground" role="status">
+                                {asset.restrict_lead_forms && !pagesWithSelectedForms.has(asset.asset_id_external)
+                                  ? "Nenhum formulário desta página está ativo. Ative o formulário pretendido na lista de ativos."
+                                  : "Use o botão Ativo de cada formulário desta página para escolher quais enviam leads para o FastCRM."}
+                              </p>
+                            </div>
+                            <Switch
+                              id={restrictId}
+                              aria-labelledby={`${restrictId}-label ${restrictId}-asset`}
+                              aria-describedby={`${restrictId}-help`}
+                              className="shrink-0"
+                              checked={asset.restrict_lead_forms}
+                              disabled={restrictLeadForms.isPending}
+                              onCheckedChange={(restrict) => restrictLeadForms.mutate({ pageId: asset.id, restrict })}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })}

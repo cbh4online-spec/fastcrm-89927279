@@ -65,6 +65,37 @@ export function useToggleAsset() {
   });
 }
 
+export function useRestrictMetaLeadForms() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+
+  return useMutation({
+    mutationFn: async ({ pageId, restrict }: { pageId: string; restrict: boolean }) => {
+      if (!workspaceId) throw new Error("Espaço de trabalho indisponível");
+
+      const { data, error } = await supabase
+        .from("meta_assets" as any)
+        .update({ restrict_lead_forms: restrict, updated_at: new Date().toISOString() })
+        .eq("id", pageId)
+        .eq("workspace_id", workspaceId)
+        .eq("asset_type", "page")
+        .select("id")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) throw new Error("A página Meta não foi encontrada neste espaço");
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["meta-assets", workspaceId] });
+      toast.success("Receção dos formulários atualizada");
+    },
+    onError: () => {
+      toast.error("Não foi possível guardar a configuração dos formulários desta página");
+    },
+  });
+}
+
 export function useMetaOAuthStart() {
   return useMutation({
     mutationFn: async ({ workspaceId, userId }: { workspaceId: string; userId: string }) => {
