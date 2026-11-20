@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CohortSettingsTab } from "@/components/student-journey/CohortSettingsTab";
+import { CohortEnrollDialog } from "@/components/student-journey/CohortEnrollDialog";
 
 export default function SJCohortDetail() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +36,7 @@ export default function SJCohortDetail() {
   const { data: cohort, isLoading } = useCohort(id);
   const { enrollments } = useEnrollments({ cohortId: id });
   const [activeTab, setActiveTab] = useState("students");
+  const [enrollOpen, setEnrollOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -96,7 +98,7 @@ export default function SJCohortDetail() {
             <Edit className="h-4 w-4 mr-2" />
             Editar
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setEnrollOpen(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
             Inscrever Aluno
           </Button>
@@ -203,7 +205,7 @@ export default function SJCohortDetail() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">Alunos Inscritos</CardTitle>
-                    <Button size="sm">
+                    <Button size="sm" onClick={() => setEnrollOpen(true)}>
                       <Plus className="h-4 w-4 mr-1" />
                       Adicionar
                     </Button>
@@ -214,7 +216,7 @@ export default function SJCohortDetail() {
                     <div className="text-center py-8 text-muted-foreground">
                       <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p>Nenhum aluno inscrito</p>
-                      <Button variant="link" size="sm" className="mt-2">
+                      <Button variant="link" size="sm" className="mt-2" onClick={() => setEnrollOpen(true)}>
                         Inscrever primeiro aluno
                       </Button>
                     </div>
@@ -266,6 +268,13 @@ export default function SJCohortDetail() {
           </Tabs>
         </div>
       </div>
+      <CohortEnrollDialog
+        open={enrollOpen}
+        onOpenChange={setEnrollOpen}
+        cohortId={cohort.id}
+        courseId={cohort.course_id}
+        enrolledProfileIds={enrollments.map((e) => e.profile_id).filter(Boolean) as string[]}
+      />
     </div>
   );
 }
