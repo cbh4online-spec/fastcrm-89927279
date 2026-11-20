@@ -84,6 +84,7 @@ export function MetaLeadsTable() {
                   <th className="text-left text-xs font-medium text-muted-foreground p-3">Nome</th>
                   <th className="text-left text-xs font-medium text-muted-foreground p-3">Email</th>
                   <th className="text-left text-xs font-medium text-muted-foreground p-3">Formulário</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground p-3">Edição</th>
                   <th className="text-left text-xs font-medium text-muted-foreground p-3">Campanha</th>
                   <th className="text-left text-xs font-medium text-muted-foreground p-3">Estado</th>
                   <th className="text-right text-xs font-medium text-muted-foreground p-3">Ações</th>
@@ -92,14 +93,14 @@ export function MetaLeadsTable() {
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={7} className="text-center py-8">
+                    <td colSpan={8} className="text-center py-8">
                       <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                     </td>
                   </tr>
                 )}
                 {!isLoading && filteredLeads.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-muted-foreground text-sm">
+                    <td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
                       Nenhum lead encontrado
                     </td>
                   </tr>
@@ -119,9 +120,10 @@ export function MetaLeadsTable() {
                           minute: "2-digit",
                         })}
                       </td>
-                      <td className="p-3 text-sm font-medium">{norm.name || "—"}</td>
+                      <td className="p-3 text-sm font-medium">{norm.full_name || norm.name || "—"}</td>
                       <td className="p-3 text-sm">{norm.email || "—"}</td>
                       <td className="p-3 text-sm text-muted-foreground">{lead.form_id || "—"}</td>
+                      <td className="p-3 text-sm">{norm.edicao || "—"}</td>
                       <td className="p-3 text-sm text-muted-foreground">{lead.campaign_id || "—"}</td>
                       <td className="p-3">
                         <div className="flex items-center gap-1.5">
@@ -129,7 +131,11 @@ export function MetaLeadsTable() {
                           <span className="text-xs font-medium">{status.label}</span>
                         </div>
                         {lead.error_message && (
-                          <p className="text-xs text-destructive mt-0.5 truncate max-w-[200px]">{lead.error_message}</p>
+                          <p className="text-xs text-destructive mt-0.5 truncate max-w-[200px]">
+                            {lead.error_message === "ambiguous_contact_match"
+                              ? "Correspondência de contacto ambígua — rever"
+                              : lead.error_message}
+                          </p>
                         )}
                       </td>
                       <td className="p-3 text-right">
@@ -189,6 +195,24 @@ export function MetaLeadsTable() {
                     <p className="font-mono text-xs">{selectedLead.contact_id}</p>
                   </div>
                 )}
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium mb-2">Respostas do formulário</h4>
+                <dl className="grid gap-3 text-sm sm:grid-cols-3">
+                  <div className="rounded-lg border border-border p-3">
+                    <dt className="text-muted-foreground">Edição</dt>
+                    <dd className="mt-1 font-medium">{selectedLead.normalized_payload_json?.edicao || "—"}</dd>
+                  </div>
+                  <div className="rounded-lg border border-border p-3">
+                    <dt className="text-muted-foreground">Presencial</dt>
+                    <dd className="mt-1 font-medium">{selectedLead.normalized_payload_json?.presencial || "—"}</dd>
+                  </div>
+                  <div className="rounded-lg border border-border p-3">
+                    <dt className="text-muted-foreground">Atividade</dt>
+                    <dd className="mt-1 font-medium">{selectedLead.normalized_payload_json?.atividade || "—"}</dd>
+                  </div>
+                </dl>
               </div>
 
               <div>

@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   public: {
     Tables: {
       _cron_config: {
@@ -37314,6 +37309,82 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: []
+      }
+      ensi_meta_lead_receipts: {
+        Row: {
+          contact_disposition: string
+          contact_id: string | null
+          created_at: string
+          form_id: string
+          lead_id_external: string
+          meta_lead_id: string
+          page_id: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_disposition: string
+          contact_id?: string | null
+          created_at?: string
+          form_id: string
+          lead_id_external: string
+          meta_lead_id: string
+          page_id: string
+          workspace_id: string
+        }
+        Update: {
+          contact_disposition?: string
+          contact_id?: string | null
+          created_at?: string
+          form_id?: string
+          lead_id_external?: string
+          meta_lead_id?: string
+          page_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ensi_meta_lead_receipts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ensi_meta_lead_receipts_meta_lead_id_fkey"
+            columns: ["meta_lead_id"]
+            isOneToOne: true
+            referencedRelation: "meta_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ensi_meta_lead_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ensi_meta_lead_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "ensi_meta_lead_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ensi_meta_lead_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_activities: {
         Row: {
@@ -109800,13 +109871,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_b"]
-            isOneToOne: false
-            referencedRelation: "partner_b2b_catalog_grouped"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "partner_b2b_catalog_grouped"
@@ -109816,8 +109880,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_b2b_content"
-            referencedColumns: ["product_id"]
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -109830,8 +109894,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_catalog"
-            referencedColumns: ["id"]
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -109844,8 +109908,8 @@ export type Database = {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
             isOneToOne: false
-            referencedRelation: "product_usage_stats"
-            referencedColumns: ["product_id"]
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
@@ -109857,13 +109921,20 @@ export type Database = {
           {
             foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_b"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_a"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_items_product_id_fkey"
-            columns: ["product_a"]
+            columns: ["product_b"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
@@ -111303,6 +111374,21 @@ export type Database = {
       enroll_lead_in_leadchef_sequence: {
         Args: { p_lead_id: string; p_sequence_id: string }
         Returns: string
+      }
+      ensi_ingest_meta_lead: {
+        Args: {
+          p_ad_id: string
+          p_adset_id: string
+          p_campaign_id: string
+          p_form_id: string
+          p_lead_id_external: string
+          p_normalized_payload: Json
+          p_page_id: string
+          p_raw_payload: Json
+          p_received_at: string
+          p_workspace_id: string
+        }
+        Returns: Json
       }
       ensure_b2b_catalog_kb: {
         Args: { p_user_id: string; p_workspace_id: string }
@@ -114459,3 +114545,4 @@ export const Constants = {
     },
   },
 } as const
+

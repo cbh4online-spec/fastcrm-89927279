@@ -1023,6 +1023,20 @@
       "when": 1795040436849,
       "tag": "0145_sj_import_job_status_compatibility",
       "breakpoints": true
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1795211734848,
+      "tag": "0146_ensi_meta_leads_receipts",
+      "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1795211858433,
+      "tag": "0147_restrict_internal_function_access",
+      "breakpoints": true
     }
   ]
 }

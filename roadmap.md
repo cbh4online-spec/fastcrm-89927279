@@ -1,4 +1,10 @@
 
+## Receção ENSI Meta → Leads (2026-11-20)
+- [x] Isolar webhook ENSI no rascunho, com HMAC, Graph API e sem alterações às integrações Meta existentes.
+- [x] Criar migração aditiva e RPC transacional service_role, idempotente e sem oportunidades/automação.
+- [x] Mostrar edição, presencial e atividade na ficha Meta existente.
+- [x] Executar apenas testes sintéticos locais; não publicar, subscrever Meta ou alterar segredos.
+
 - [x] Corrigir violação de `entity_activities_activity_type_check` (tipo `message_sent` no registo de mensagens WhatsApp) — constraint alargada na migration 0005.
 
 ## Project monitoring (2026-10-27)
