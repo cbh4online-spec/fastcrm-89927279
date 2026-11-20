@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
-import { useEnrollments, useCourses, useProfiles } from "@/hooks/useStudentJourney";
+import { useEnrollments, useCourses, useProfiles, useCohorts } from "@/hooks/useStudentJourney";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -62,6 +62,8 @@ export function ContactStudentJourneySection({
   const navigate = useNavigate();
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>();
+  const [selectedCohortId, setSelectedCohortId] = useState<string | undefined>();
+  const { cohorts = [] } = useCohorts();
   const { data: profile, isLoading: isLoadingProfile } = useContactStudentJourneyProfile(contactId);
   const { enrollments = [], isLoading: isLoadingEnrollments } = useEnrollments(profile?.id ? { profileId: profile.id } : {});
   const { courses = [] } = useCourses();
@@ -73,6 +75,11 @@ export function ContactStudentJourneySection({
   const availableCourses = courses.filter(
     (course) => course.is_active && !enrolledCourseIds.includes(course.id)
   );
+  // Turmas/edições com inscrições abertas ou planeadas, onde o aluno ainda não está inscrito
+  const enrolledCohortIds = enrollments.map((e: any) => e.cohort_id).filter(Boolean);
+  const openCohorts = (cohorts as any[])
+    .filter((c) => (c.status === "open" || c.status === "planned") && !enrolledCohortIds.includes(c.id))
+    .sort((a, b) => String(a.start_date || "9999").localeCompare(String(b.start_date || "9999")));
 
   const handleViewProfile = () => {
     if (profile?.id) {
@@ -90,8 +97,9 @@ export function ContactStudentJourneySection({
     queryClient.invalidateQueries({ queryKey: ["sj-profile-by-contact", contactId] });
   };
 
-  const handleEnrollInCourse = (courseId: string) => {
+  const handleEnrollInCourse = (courseId: string, cohortId?: string) => {
     setSelectedCourseId(courseId);
+    setSelectedCohortId(cohortId);
     setEnrollDialogOpen(true);
   };
 
@@ -165,7 +173,7 @@ export function ContactStudentJourneySection({
                 Jornada ({enrollments.length})
               </TabsTrigger>
               <TabsTrigger value="available" className="text-xs">
-                Disponíveis ({availableCourses.length})
+                Disponíveis ({openCohorts.length + availableCourses.length})
               </TabsTrigger>
               <TabsTrigger value="profile" className="text-xs">
                 Perfil
@@ -261,7 +269,33 @@ export function ContactStudentJourneySection({
             </TabsContent>
 
             {/* Tab: Formações Disponíveis */}
-            <TabsContent value="available" className="mt-4">
+            <TabsContent value="available" className="mt-4 space-y-4">
+              {openCohorts.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Turmas abertas</p>
+                  {openCohorts.map((cohort) => (
+                    <div key={cohort.id} className="p-3 border rounded-lg flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{cohort.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {cohort.course?.name}
+                          {cohort.start_date && ` · ${format(new Date(cohort.start_date), "dd/MM/yyyy", { locale: pt })}`}
+                          {cohort.location && ` · ${cohort.location}`}
+                          {cohort.status === "planned" && " · Planeada"}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" className="h-7 text-xs shrink-0"
+                        onClick={() => handleEnrollInCourse(cohort.course_id, cohort.id)}>
+                        <Plus className="w-3 h-3 mr-1" />
+                        Inscrever
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {availableCourses.length > 0 && (
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Cursos do catálogo</p>
+              )}
               {availableCourses.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle2 className="w-10 h-10 text-emerald-500/50 mx-auto mb-3" />
@@ -329,9 +363,11 @@ export function ContactStudentJourneySection({
         open={enrollDialogOpen}
         onOpenChange={(open) => {
           setEnrollDialogOpen(open);
-          if (!open) setSelectedCourseId(undefined);
+          if (!open) { setSelectedCourseId(undefined); setSelectedCohortId(undefined); }
         }}
         profileId={profile.id}
+        initialCourseId={selectedCourseId}
+        initialCohortId={selectedCohortId}
       />
     </>
   );

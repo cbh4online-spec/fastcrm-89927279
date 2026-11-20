@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -24,12 +24,16 @@ interface CreateEnrollmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profileId?: string;
+  initialCourseId?: string;
+  initialCohortId?: string;
 }
 
 export function CreateEnrollmentDialog({
   open,
   onOpenChange,
   profileId,
+  initialCourseId,
+  initialCohortId,
 }: CreateEnrollmentDialogProps) {
   const { createEnrollment } = useEnrollments();
   const { courses } = useCourses();
@@ -41,6 +45,13 @@ export function CreateEnrollmentDialog({
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("unpaid");
   const [source, setSource] = useState<EnrollmentSource>("manual");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setSelectedCourseId(initialCourseId || "");
+      setCohortId(initialCohortId || "");
+    }
+  }, [open, initialCourseId, initialCohortId]);
 
   const resetForm = () => {
     setSelectedCourseId("");
