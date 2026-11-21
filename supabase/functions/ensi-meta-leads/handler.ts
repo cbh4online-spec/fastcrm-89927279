@@ -44,6 +44,51 @@ function isPermanentStoreError(message: string) {
   return message.includes("ENSI_INVALID_") || message.includes("ENSI_NO_") || message.includes("ENSI_MISSING_");
 }
 
+// Diagnóstico sanitizado: só categorias fixas, inteiros e códigos bem formados.
+// Nunca registar corpos, valores, URLs, IDs, tokens, cabeçalhos ou mensagens brutas.
+const GRAPH_SCHEMA_FIELDS = new Set(["id", "form_id", "created_time", "field_data", "campaign_id", "adset_id", "ad_id"]);
+
+function logFailure(category: string, details: Record<string, string | number | string[]> = {}) {
+  try {
+    console.warn(JSON.stringify({ event: "ensi_meta_leads_failure", category, ...details }));
+  } catch {
+    // o registo nunca altera a resposta
+  }
+}
+
+function safeInteger(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isSafeInteger(value) ? value : undefined;
+}
+
+async function logGraphHttpFailure(response: Response) {
+  const details: Record<string, number> = { http_status: response.status };
+  try {
+    const body = JSON.parse(await response.text()) as { error?: { code?: unknown; error_subcode?: unknown } };
+    if (body && typeof body === "object" && body.error && typeof body.error === "object") {
+      const code = safeInteger(body.error.code);
+      const subcode = safeInteger(body.error.error_subcode);
+      if (code !== undefined) details.meta_error_code = code;
+      if (subcode !== undefined) details.meta_error_subcode = subcode;
+    }
+  } catch {
+    // corpo ilegível: fica só o estado HTTP
+  }
+  logFailure("graph_http", details);
+}
+
+function logGraphSchemaFailure(issues: { path: (string | number)[] }[]) {
+  const fields = [...new Set(issues
+    .map((issue) => issue.path[0])
+    .filter((key): key is string => typeof key === "string" && GRAPH_SCHEMA_FIELDS.has(key)))].sort();
+  logFailure("graph_response_schema", fields.length ? { fields } : { issue_count: issues.length });
+}
+
+function logStoreFailure(error: unknown) {
+  const code = (error as { code?: unknown } | null)?.code;
+  const wellFormed = typeof code === "string" && /^(PGRST\d{3}|[0-9A-Z]{5})$/.test(code);
+  logFailure("store_error", wellFormed ? { code } : {});
+}
+
 async function fetchGraphLead(
   reference: EnsiLeadReference,
   appSecret: string,
@@ -62,14 +107,28 @@ async function fetchGraphLead(
       headers: { Authorization: `Bearer ${pageAccessToken}`, Accept: "application/json" },
       signal: controller.signal,
     });
-    if (!response.ok) return { kind: "transient" as const };
-    const parsed = graphLeadSchema.safeParse(parseMetaJson(await response.text()));
-    if (!parsed.success) return { kind: "transient" as const };
+    if (!response.ok) {
+      await logGraphHttpFailure(response);
+      return { kind: "transient" as const };
+    }
+    let graphJson: unknown;
+    try {
+      graphJson = parseMetaJson(await response.text());
+    } catch {
+      logFailure(controller.signal.aborted ? "graph_fetch_timeout" : "graph_json");
+      return { kind: "transient" as const };
+    }
+    const parsed = graphLeadSchema.safeParse(graphJson);
+    if (!parsed.success) {
+      logGraphSchemaFailure(parsed.error.issues);
+      return { kind: "transient" as const };
+    }
     if (parsed.data.id !== reference.leadId || parsed.data.form_id !== ENSI_CONFIG.formId) {
       return { kind: "ignored" as const, reason: "graph_identity_mismatch" };
     }
     return { kind: "success" as const, lead: parsed.data };
   } catch {
+    logFailure(controller.signal.aborted ? "graph_fetch_timeout" : "graph_fetch_exception");
     return { kind: "transient" as const };
   } finally {
     clearTimeout(timeout);
@@ -162,6 +221,7 @@ export function createEnsiMetaLeadsHandler(dependencies: HandlerDependencies) {
           results.push({ status: "ignored", reason: "invalid_contact_data" });
           continue;
         }
+        logStoreFailure(error);
         return json(503, {
           status: "transient_error",
           reason: "store_failed",
