@@ -111400,6 +111400,10 @@ export type Database = {
         Args: { p_lead_id: string; p_sequence_id: string }
         Returns: string
       }
+      ensi_answer_label: {
+        Args: { p_field: string; p_value: string }
+        Returns: string
+      }
       ensi_form_answers_text: { Args: { p_raw: Json }; Returns: string }
       ensi_ingest_meta_lead: {
         Args: {
@@ -111415,6 +111419,11 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: Json
+      }
+      ensi_question_label: { Args: { p_field: string }; Returns: string }
+      ensi_set_lead_form_fields: {
+        Args: { p_lead: string; p_raw: Json; p_workspace: string }
+        Returns: undefined
       }
       ensure_b2b_catalog_kb: {
         Args: { p_user_id: string; p_workspace_id: string }
