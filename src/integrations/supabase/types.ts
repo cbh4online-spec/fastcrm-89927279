@@ -37321,6 +37321,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           form_id: string
+          lead_id: string | null
           lead_id_external: string
           meta_lead_id: string
           page_id: string
@@ -37331,6 +37332,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           form_id: string
+          lead_id?: string | null
           lead_id_external: string
           meta_lead_id: string
           page_id: string
@@ -37341,6 +37343,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           form_id?: string
+          lead_id?: string | null
           lead_id_external?: string
           meta_lead_id?: string
           page_id?: string
@@ -37352,6 +37355,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ensi_meta_lead_receipts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
@@ -60592,6 +60602,7 @@ export type Database = {
           error_message: string | null
           form_id: string | null
           id: string
+          lead_id: string | null
           lead_id_external: string | null
           normalized_payload_json: Json | null
           opportunity_id: string | null
@@ -60614,6 +60625,7 @@ export type Database = {
           error_message?: string | null
           form_id?: string | null
           id?: string
+          lead_id?: string | null
           lead_id_external?: string | null
           normalized_payload_json?: Json | null
           opportunity_id?: string | null
@@ -60636,6 +60648,7 @@ export type Database = {
           error_message?: string | null
           form_id?: string | null
           id?: string
+          lead_id?: string | null
           lead_id_external?: string | null
           normalized_payload_json?: Json | null
           opportunity_id?: string | null
@@ -60649,6 +60662,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "meta_leads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meta_leads_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -111380,6 +111400,7 @@ export type Database = {
         Args: { p_lead_id: string; p_sequence_id: string }
         Returns: string
       }
+      ensi_form_answers_text: { Args: { p_raw: Json }; Returns: string }
       ensi_ingest_meta_lead: {
         Args: {
           p_ad_id: string
