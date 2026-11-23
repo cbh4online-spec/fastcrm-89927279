@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { HelpSupportDropdown } from "./HelpSupportDropdown";
 import { ContextScoreIndicator } from "./ContextScoreIndicator";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { NewLeadToastListener } from "@/components/notifications/NewLeadToastListener";
 import { MessagesTopBarButton } from "./MessagesTopBarButton";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 import { TopBarCreditsBadge } from "./TopBarCreditsBadge";
@@ -122,6 +123,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
 
         <MessagesTopBarButton />
         <NotificationBell />
+        <NewLeadToastListener />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

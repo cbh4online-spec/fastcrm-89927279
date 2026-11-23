@@ -18,6 +18,7 @@ export interface EnsiLeadStore {
 
 interface HandlerDependencies {
   store: EnsiLeadStore;
+  notifyNewLead?: (info: { metaLeadId: string; fullName: string | null }) => Promise<void>;
   fetchImpl?: typeof fetch;
   config: {
     appSecret?: string;
@@ -235,6 +236,16 @@ export function createEnsiMetaLeadsHandler(dependencies: HandlerDependencies) {
         meta_lead_id?: string;
         contact_disposition?: string;
       };
+      if (result.status !== "duplicate" && result.meta_lead_id && dependencies.notifyNewLead) {
+        try {
+          await dependencies.notifyNewLead({
+            metaLeadId: result.meta_lead_id,
+            fullName: (normalized as { full_name?: string | null }).full_name ?? null,
+          });
+        } catch {
+          // A notification failure must never block lead ingestion.
+        }
+      }
       results.push({
         status: result.status === "duplicate" ? "duplicate" : "accepted",
         meta_lead_id: result.meta_lead_id ?? null,

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Bell, Check, CheckCheck, ShoppingBag, AlertTriangle, Info, StickyNote, AtSign, Timer } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, UserPlus, Check, CheckCheck, ShoppingBag, AlertTriangle, Info, StickyNote, AtSign, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -14,6 +15,7 @@ import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  lead: UserPlus,
   new_order: ShoppingBag,
   low_stock: AlertTriangle,
   team_note: StickyNote,
@@ -22,6 +24,7 @@ const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 const typeColors: Record<string, string> = {
+  lead: "text-primary bg-primary/10",
   new_order: "text-success bg-success/10",
   low_stock: "text-warning bg-warning/10",
   team_note: "text-blue-500 bg-blue-500/10",
@@ -33,6 +36,7 @@ export function NotificationBell() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useAdminNotifications();
   const { preferences } = useUserNotificationPreferences();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const inAppEnabled = (preferences as any).channel_in_app ?? true;
 
@@ -88,6 +92,11 @@ export function NotificationBell() {
                     )}
                     onClick={() => {
                       if (!n.is_read) markAsRead.mutate(n.id);
+                      const leadId = (n.metadata as { lead_id?: string } | null)?.lead_id;
+                      if (n.type === "lead") {
+                        setOpen(false);
+                        navigate(leadId ? `/dashboard/leads/${leadId}` : "/dashboard/leads");
+                      }
                     }}
                   >
                     <div className={cn("h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0", colorClass)}>
