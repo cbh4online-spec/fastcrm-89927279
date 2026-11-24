@@ -9,20 +9,13 @@
 // - Nunca devolve a chave nem a escreve em logs.
 import { z } from "https://esm.sh/zod@3.23.8";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { MYMIA_STATUS_MAP, resolveMymiaTarget } from "../_shared/mymiaDedupe.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const MAX_LEADS = 1000;
 const MAX_MESSAGES_PER_CONV = 300;
 
-const STATUS_MAP: Record<string, string> = {
-  novo: "new",
-  contactado: "contacted",
-  reuniao_agendada: "meeting_scheduled",
-  proposta_enviada: "proposal_sent",
-  negociacao: "negotiation",
-  ganho: "won",
-  perdido: "lost",
-};
+const STATUS_MAP = MYMIA_STATUS_MAP;
 
 const BodySchema = z.object({
   workspace_id: z.string().uuid(),
@@ -234,16 +227,17 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       let leadId: string | null = link?.lead_id ?? null;
-
-      if (!leadId && email) {
-        const { data: existing } = await admin
-          .from("leads")
-          .select("id")
-          .eq("workspace_id", workspace_id)
-          .eq("email", email)
-          .maybeSingle();
-        if (existing) leadId = existing.id;
+      const target = await resolveMymiaTarget(admin, workspace_id, leadId, email, phone);
+      if (target.action === "skip") {
+        await admin.from("mymia_crm_sync_logs").insert({
+          workspace_id, direction: "inbound", action: "dedupe_skip", status: "skipped",
+          external_lead_id: externalId, lead_id: target.leadId ?? null,
+          details: { reason: target.reason, contact_id: target.contactId ?? null },
+        });
+        summary.skipped++;
+        continue;
       }
+      leadId = target.action === "update" ? target.leadId : null;
 
       const common: Record<string, unknown> = {
         name: String(raw.nome ?? "").trim() || "(sem nome)",

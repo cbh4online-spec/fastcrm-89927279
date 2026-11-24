@@ -4,20 +4,13 @@
 // Nunca confia no corpo: valida com Zod, normaliza telefone/email e verifica o workspace.
 import { z } from "https://esm.sh/zod@3.23.8";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { MYMIA_STATUS_MAP, resolveMymiaTarget } from "../_shared/mymiaDedupe.ts";
 import { validateWebhook, logSecurityEvent, getRemoteIp, makeAdmin } from "../_shared/hmac.ts";
 
 const MAX_LEADS = 500;
 
 /** Estados do CRM do mymia.world → estados do FastCRM. */
-const STATUS_MAP: Record<string, string> = {
-  novo: "new",
-  contactado: "contacted",
-  reuniao_agendada: "meeting_scheduled",
-  proposta_enviada: "proposal_sent",
-  negociacao: "negotiation",
-  ganho: "won",
-  perdido: "lost",
-};
+const STATUS_MAP = MYMIA_STATUS_MAP;
 
 const LeadSchema = z.object({
   external_id: z.string().min(1).max(64),
@@ -223,17 +216,17 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       let leadId = link?.lead_id ?? null;
-
-      // 3b) Sem ligação: tenta reconciliar por email no mesmo workspace (índice único).
-      if (!leadId && email) {
-        const { data: existing } = await admin
-          .from("leads")
-          .select("id")
-          .eq("workspace_id", workspace_id)
-          .eq("email", email)
-          .maybeSingle();
-        if (existing) leadId = existing.id;
+      const target = await resolveMymiaTarget(admin, workspace_id, leadId, email, phone);
+      if (target.action === "skip") {
+        await admin.from("mymia_crm_sync_logs").insert({
+          workspace_id, direction: "inbound", action: "dedupe_skip", status: "skipped",
+          external_lead_id: raw.external_id, lead_id: target.leadId ?? null,
+          details: { reason: target.reason, contact_id: target.contactId ?? null },
+        });
+        results.push({ external_id: raw.external_id, action: "skipped", reason: target.reason });
+        continue;
       }
+      leadId = target.action === "update" ? target.leadId : null;
 
       const common = {
         name: raw.nome.trim(),
