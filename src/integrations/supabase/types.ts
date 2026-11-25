@@ -111517,6 +111517,10 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      generate_renewal_invoice_number: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
       generate_rental_contract_number: {
         Args: { p_workspace_id: string }
         Returns: string

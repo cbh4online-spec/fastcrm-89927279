@@ -77,12 +77,9 @@ serve(async (req) => {
     const dueDate = new Date(`${issueDate}T00:00:00.000Z`);
     dueDate.setUTCDate(dueDate.getUTCDate() + Math.max(0, Number(contract.payment_terms_days || 0)));
     const dateStr = now.split("T")[0].replace(/-/g, "");
-    const { count } = await db.from("invoices")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspace_id)
-      .like("invoice_number", `REN-${dateStr}%`);
-    const seq = (count || 0) + 1;
-    const invoiceNumber = `REN-${dateStr}-${String(seq).padStart(3, "0")}`;
+    const { data: renNumber, error: renNumErr } = await db.rpc("generate_renewal_invoice_number", { p_workspace_id: workspace_id });
+    if (renNumErr || !renNumber) throw renNumErr ?? new Error("invoice_number_failed");
+    const invoiceNumber = renNumber as string;
 
     // Get company/contact names
     let clientName = "—";
