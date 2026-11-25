@@ -25199,6 +25199,8 @@ export type Database = {
           sales_rep_id: string | null
           size: string | null
           source: string | null
+          supplier_last_invoice_date: string | null
+          supplier_purchase_total: number | null
           tags: string[] | null
           tax_id: string | null
           tiktok_url: string | null
@@ -25337,6 +25339,8 @@ export type Database = {
           sales_rep_id?: string | null
           size?: string | null
           source?: string | null
+          supplier_last_invoice_date?: string | null
+          supplier_purchase_total?: number | null
           tags?: string[] | null
           tax_id?: string | null
           tiktok_url?: string | null
@@ -25475,6 +25479,8 @@ export type Database = {
           sales_rep_id?: string | null
           size?: string | null
           source?: string | null
+          supplier_last_invoice_date?: string | null
+          supplier_purchase_total?: number | null
           tags?: string[] | null
           tax_id?: string | null
           tiktok_url?: string | null
@@ -27745,6 +27751,8 @@ export type Database = {
           sales_rep_id: string | null
           segments: Json
           source: string | null
+          supplier_last_invoice_date: string | null
+          supplier_purchase_total: number | null
           tags: string[] | null
           tax_id: string | null
           tiktok_url: string | null
@@ -27873,6 +27881,8 @@ export type Database = {
           sales_rep_id?: string | null
           segments?: Json
           source?: string | null
+          supplier_last_invoice_date?: string | null
+          supplier_purchase_total?: number | null
           tags?: string[] | null
           tax_id?: string | null
           tiktok_url?: string | null
@@ -28001,6 +28011,8 @@ export type Database = {
           sales_rep_id?: string | null
           segments?: Json
           source?: string | null
+          supplier_last_invoice_date?: string | null
+          supplier_purchase_total?: number | null
           tags?: string[] | null
           tax_id?: string | null
           tiktok_url?: string | null
@@ -107839,6 +107851,41 @@ export type Database = {
           },
         ]
       }
+      workspace_record_links: {
+        Row: {
+          created_at: string
+          entity_type: string
+          id: string
+          link_id: string
+          source_id: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          id?: string
+          link_id: string
+          source_id: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          id?: string
+          link_id?: string
+          source_id?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_record_links_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_supply_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_settings: {
         Row: {
           ai_calls_alert_threshold: number | null
@@ -108241,6 +108288,7 @@ export type Database = {
           id: string
           origin_label: string
           supplier_workspace_id: string
+          sync_crm: boolean
         }
         Insert: {
           active?: boolean
@@ -108249,6 +108297,7 @@ export type Database = {
           id?: string
           origin_label: string
           supplier_workspace_id: string
+          sync_crm?: boolean
         }
         Update: {
           active?: boolean
@@ -108257,6 +108306,7 @@ export type Database = {
           id?: string
           origin_label?: string
           supplier_workspace_id?: string
+          sync_crm?: boolean
         }
         Relationships: [
           {
@@ -112680,6 +112730,10 @@ export type Database = {
         Returns: boolean
       }
       refresh_recommendation_views: { Args: never; Returns: undefined }
+      refresh_supplier_purchase_total: {
+        Args: { _company: string; _contact: string; _workspace: string }
+        Returns: undefined
+      }
       refund_funnel_credits: {
         Args: {
           p_action_key: string

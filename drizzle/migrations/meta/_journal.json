@@ -1079,6 +1079,20 @@
       "when": 1795619083602,
       "tag": "0153_workspace_supply_links",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1795619185233,
+      "tag": "0154_crm_cross_workspace_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 155,
+      "version": "7",
+      "when": 1795619229416,
+      "tag": "0155_supplier_purchase_totals",
+      "breakpoints": true
     }
   ]
 }
