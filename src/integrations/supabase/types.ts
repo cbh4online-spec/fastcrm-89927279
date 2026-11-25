@@ -111940,6 +111940,10 @@ export type Database = {
       }
       get_legal_page_content: { Args: { page_key: string }; Returns: Json }
       get_lifecycle_metrics: { Args: { p_workspace_id: string }; Returns: Json }
+      get_linked_contact_source_summary: {
+        Args: { _contact_id: string }
+        Returns: Json
+      }
       get_loyalty_balance: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: number

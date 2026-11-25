@@ -76,6 +76,7 @@ import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 import { EntityTimelineSection } from "@/components/timeline";
 import { RelationshipsPanel } from "@/components/objects/RelationshipsPanel";
 import { ContactOrderNotesSection } from "@/components/contacts/sections/ContactOrderNotesSection";
+import { LinkedSourceSummarySection } from "@/components/contacts/sections/LinkedSourceSummarySection";
 import { ContactStudentJourneySection } from "@/components/contacts/sections/ContactStudentJourneySection";
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
@@ -799,6 +800,7 @@ export function ENIContactDetailWithSidebar() {
                   <EntityHighlightsGrid entityType="contact" entity={contact as any} />
                   <CommercialSummaryCard entityType="contact" entityId={contact.id} />
                   <CommercialRiskSignals entityType="contact" entityId={contact.id} />
+                  <LinkedSourceSummarySection contactId={contact.id} />
                 </div>
               )}
               {renderSectionContent()}
