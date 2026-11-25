@@ -111934,6 +111934,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_lead_filter_options: {
+        Args: { _archive_state?: string; _workspace_id: string }
+        Returns: Json
+      }
       get_legal_page_content: { Args: { page_key: string }; Returns: Json }
       get_lifecycle_metrics: { Args: { p_workspace_id: string }; Returns: Json }
       get_loyalty_balance: {

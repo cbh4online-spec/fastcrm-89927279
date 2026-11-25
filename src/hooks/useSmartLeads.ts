@@ -423,16 +423,17 @@ export function useBulkAnalyzeLeads() {
   });
 }
 
+export interface LeadFilterValue { value: string; count: number }
 export interface LeadFilterOptions {
-  sources: string[];
-  tags: string[];
-  statuses: string[];
-  temperatures: string[];
+  sources: LeadFilterValue[];
+  tags: LeadFilterValue[];
+  statuses: LeadFilterValue[];
+  temperatures: LeadFilterValue[];
 }
 
 /**
- * Valores distintos de origem/tags/estado/temperatura das leads do workspace,
- * para alimentar os filtros multi-seleção das listagens.
+ * Valores distintos (com contagens) de origem/tags/estado/temperatura de TODAS as leads
+ * do workspace, calculados no servidor (RPC) para não ficarem cortados no limite de 1000 linhas.
  */
 export function useLeadFilterOptions(archiveState: "active" | "archived" | "all" = "active") {
   const { currentWorkspace } = useWorkspace();
@@ -441,45 +442,14 @@ export function useLeadFilterOptions(archiveState: "active" | "archived" | "all"
   return useQuery({
     queryKey: ["lead-filter-options", currentWorkspace?.id, archiveState],
     queryFn: async (): Promise<LeadFilterOptions> => {
-      if (!currentWorkspace) return { sources: [], tags: [], statuses: [], temperatures: [] };
-
-      let query = workspaceClient
-        .from("leads")
-        .select("source, tags, status, ai_temperature")
-        .eq("workspace_id", currentWorkspace.id)
-        .limit(5000);
-
-      if (archiveState === "active") query = query.is("archived_at", null);
-      else if (archiveState === "archived") query = query.not("archived_at", "is", null);
-
-      const { data, error } = await query;
+      const empty = { sources: [], tags: [], statuses: [], temperatures: [] };
+      if (!currentWorkspace) return empty;
+      const { data, error } = await (workspaceClient as any).rpc("get_lead_filter_options", {
+        _workspace_id: currentWorkspace.id,
+        _archive_state: archiveState,
+      });
       if (error) throw error;
-
-      const sources = new Set<string>();
-      const tags = new Set<string>();
-      const statuses = new Set<string>();
-      const temperatures = new Set<string>();
-
-      for (const row of (data || []) as Array<Record<string, unknown>>) {
-        const source = (row.source as string | null)?.trim();
-        if (source) sources.add(source);
-        for (const t of (row.tags as string[] | null) || []) {
-          const tag = (t || "").trim();
-          if (tag) tags.add(tag);
-        }
-        const status = (row.status as string | null)?.trim();
-        if (status) statuses.add(status);
-        const temp = (row.ai_temperature as string | null)?.trim();
-        if (temp) temperatures.add(temp);
-      }
-
-      const sorted = (s: Set<string>) => Array.from(s).sort((a, b) => a.localeCompare(b));
-      return {
-        sources: sorted(sources),
-        tags: sorted(tags),
-        statuses: sorted(statuses),
-        temperatures: sorted(temperatures),
-      };
+      return { ...empty, ...(data as Partial<LeadFilterOptions> | null) };
     },
     enabled: !!currentWorkspace,
     staleTime: 300_000,

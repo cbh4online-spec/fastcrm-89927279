@@ -49,7 +49,7 @@ import {
   type FacetDef,
   type FacetOption,
 } from "@/components/entity/EntityFacetFilters";
-import { getSourceLabel } from "@/lib/leadSourceLabels";
+import { getSourceLabel, getLeadStatusLabel, getLeadTemperatureLabel } from "@/lib/leadSourceLabels";
 import { useLeadFilterOptions } from "@/hooks/useSmartLeads";
 
 type SortKey =
@@ -287,8 +287,8 @@ export function LeadsListIX() {
   const { data: filterOptions } = useLeadFilterOptions(archiveState === "all" ? "all" : archiveState);
 
   const facets = useMemo<FacetDef[]>(() => {
-    const toOptions = (values: string[] | undefined, labelize?: (v: string) => string): FacetOption[] =>
-      (values ?? []).map((v) => ({ value: v, label: labelize ? labelize(v) : v, count: 0 }));
+    const toOptions = (values: { value: string; count: number }[] | undefined, labelize?: (v: string) => string): FacetOption[] =>
+      (values ?? []).map((v) => ({ value: v.value, label: labelize ? labelize(v.value) : v.value, count: v.count }));
     return [
       {
         key: "presence",
@@ -307,7 +307,7 @@ export function LeadsListIX() {
       {
         key: "status",
         label: "Estado",
-        options: toOptions(filterOptions?.statuses),
+        options: toOptions(filterOptions?.statuses, getLeadStatusLabel),
         selected: statusFilter,
         onChange: (v) => { setStatusFilter(v); setPage(0); },
       },
@@ -321,7 +321,7 @@ export function LeadsListIX() {
       {
         key: "temperature",
         label: "Temperatura",
-        options: toOptions(filterOptions?.temperatures),
+        options: toOptions(filterOptions?.temperatures, getLeadTemperatureLabel),
         selected: temperatureFilter,
         onChange: (v) => { setTemperatureFilter(v); setPage(0); },
       },
