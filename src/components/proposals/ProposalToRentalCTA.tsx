@@ -26,12 +26,11 @@ export function ProposalToRentalCTA({ proposal, proposalItems = [] }: ProposalTo
 
   const handleClick = () => {
     if (!proposal.company_id) {
-      toast.error("A proposta não tem empresa cliente associada.");
-      return;
+      toast.info("A proposta não tem cliente associado. Escolha o cliente final no contrato.");
     }
     const payload = {
       proposal_id: proposal.id,
-      end_client_company_id: proposal.company_id,
+      end_client_company_id: proposal.company_id ?? undefined,
       notes: `Origem: proposta ${proposal.title}`,
       locked: true,
       items: proposalItems.map((i) => ({
