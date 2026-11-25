@@ -76855,6 +76855,7 @@ export type Database = {
           sheet_slug: string | null
           short_description: string | null
           sku: string | null
+          source_product_id: string | null
           specifications: Json | null
           status: string
           stock_location_id: string | null
@@ -76869,6 +76870,7 @@ export type Database = {
           store_sort_order: number | null
           store_visibility: string
           subcategory: string | null
+          supply_origin: string | null
           tags: string[]
           target_audience: string | null
           target_margin_mode: string
@@ -77024,6 +77026,7 @@ export type Database = {
           sheet_slug?: string | null
           short_description?: string | null
           sku?: string | null
+          source_product_id?: string | null
           specifications?: Json | null
           status?: string
           stock_location_id?: string | null
@@ -77038,6 +77041,7 @@ export type Database = {
           store_sort_order?: number | null
           store_visibility?: string
           subcategory?: string | null
+          supply_origin?: string | null
           tags?: string[]
           target_audience?: string | null
           target_margin_mode?: string
@@ -77193,6 +77197,7 @@ export type Database = {
           sheet_slug?: string | null
           short_description?: string | null
           sku?: string | null
+          source_product_id?: string | null
           specifications?: Json | null
           status?: string
           stock_location_id?: string | null
@@ -77207,6 +77212,7 @@ export type Database = {
           store_sort_order?: number | null
           store_visibility?: string
           subcategory?: string | null
+          supply_origin?: string | null
           tags?: string[]
           target_audience?: string | null
           target_margin_mode?: string
@@ -77277,6 +77283,41 @@ export type Database = {
           {
             foreignKeyName: "products_parent_product_id_fkey"
             columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "partner_b2b_catalog_grouped"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_b2b_content"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "products_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "products_source_product_id_fkey"
+            columns: ["source_product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
@@ -108187,6 +108228,90 @@ export type Database = {
             foreignKeyName: "workspace_subscriptions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_supply_links: {
+        Row: {
+          active: boolean
+          buyer_workspace_id: string
+          created_at: string
+          id: string
+          origin_label: string
+          supplier_workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          buyer_workspace_id: string
+          created_at?: string
+          id?: string
+          origin_label: string
+          supplier_workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          buyer_workspace_id?: string
+          created_at?: string
+          id?: string
+          origin_label?: string
+          supplier_workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_supply_links_buyer_workspace_id_fkey"
+            columns: ["buyer_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_supply_links_buyer_workspace_id_fkey"
+            columns: ["buyer_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_supply_links_buyer_workspace_id_fkey"
+            columns: ["buyer_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_supply_links_buyer_workspace_id_fkey"
+            columns: ["buyer_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_supply_links_supplier_workspace_id_fkey"
+            columns: ["supplier_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "public_workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_supply_links_supplier_workspace_id_fkey"
+            columns: ["supplier_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_activation_overview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_supply_links_supplier_workspace_id_fkey"
+            columns: ["supplier_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_supply_links_supplier_workspace_id_fkey"
+            columns: ["supplier_workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces_public"
             referencedColumns: ["id"]
           },
