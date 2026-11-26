@@ -54,6 +54,7 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { proposalTotals, proposalTaxRate } from "@/lib/pricing/proposalPricing";
 
 interface ProposalInternalViewProps {
   proposal: Proposal;
@@ -162,7 +163,8 @@ export function ProposalInternalView({
   
   // Calculate totals only for enabled items
   const enabledItems = items.filter(item => item.is_enabled !== false);
-  const itemsTotal = enabledItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+  const totals = proposalTotals(enabledItems);
+  const itemsTotal = totals.subtotal;
   const disabledCount = items.length - enabledItems.length;
   
   // Calculate total cost and margin
@@ -175,9 +177,10 @@ export function ProposalInternalView({
   const marginPct = itemsTotal > 0 ? (totalMargin / itemsTotal) * 100 : 0;
 
   // VAT calculation (standard PT rate: 23%)
-  const VAT_RATE = 0.23;
-  const vatAmount = itemsTotal * VAT_RATE;
-  const totalWithVat = itemsTotal + vatAmount;
+  const taxRates = [...new Set(enabledItems.map(item => proposalTaxRate(item.product)))];
+  const vatLabel = taxRates.length === 1 ? `IVA (${taxRates[0]}%)` : "IVA";
+  const vatAmount = totals.vat;
+  const totalWithVat = totals.total;
 
   // Discounts applied (sum of positive differences between original price and current)
   const totalGrossBeforeDiscount = enabledItems.reduce((sum, item) => {
@@ -385,7 +388,7 @@ export function ProposalInternalView({
                 <TableHead>Item</TableHead>
                 <TableHead className="w-28">SKU</TableHead>
                 <TableHead className="w-20 text-center">Qtd.</TableHead>
-                <TableHead className="w-28 text-right">Preço</TableHead>
+                <TableHead className="w-28 text-right">Preço s/ IVA</TableHead>
                 <TableHead className="w-20 text-right">Desc.%</TableHead>
                 <TableHead className="w-24 text-right">Custo</TableHead>
                 <TableHead className="w-28 text-right">Margem</TableHead>
@@ -557,7 +560,7 @@ export function ProposalInternalView({
               </TableRow>
               <TableRow>
                 <TableCell colSpan={8} className="text-right text-sm text-muted-foreground">
-                  IVA ({(VAT_RATE * 100).toFixed(0)}%)
+                  {vatLabel}
                 </TableCell>
                 <TableCell className="text-right text-sm font-medium">
                   {formatCurrency(vatAmount, proposal.currency)}

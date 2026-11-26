@@ -31,6 +31,7 @@ export interface PreviewItem {
   unit_price: number;
   total_price: number;
   image_url?: string | null;
+  product?: { tax_rate_estimate_pct?: number | null } | null;
 }
 
 interface ProposalPreviewProps {

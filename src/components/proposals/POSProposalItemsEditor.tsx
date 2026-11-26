@@ -29,6 +29,7 @@ import { useProposalItems, useUpdateProposalItems } from "@/hooks/useProposals";
 import type { Product } from "@/types/product";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { proposalNetUnitPrice } from "@/lib/pricing/proposalPricing";
 
 interface EditableItem {
   id?: string;
@@ -128,7 +129,7 @@ export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }
           name: product.name,
           description: product.short_description,
           quantity: 1,
-          unit_price: product.base_price ?? 0,
+          unit_price: proposalNetUnitPrice(product),
           position: prev.length,
           cost_snapshot: product.direct_cost ?? null,
           operational_cost_snapshot: product.operational_cost ?? null,
@@ -197,7 +198,7 @@ export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }
   const handleUpdateDiscount = (index: number, discount: number | undefined) => {
     setItems(prev => prev.map((item, i) => {
       if (i !== index) return item;
-      const originalPrice = item.product?.base_price ?? item.unit_price;
+      const originalPrice = item.product ? proposalNetUnitPrice(item.product) : item.unit_price;
       const discountedPrice = discount 
         ? originalPrice * (1 - discount / 100)
         : originalPrice;
@@ -373,7 +374,7 @@ export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }
                   const isExpanded = expandedItems.has(itemKey);
                   const hasOverride = item.priceOverride !== undefined;
                   const itemTotal = calculateItemTotal(item);
-                  const originalPrice = item.product?.base_price ?? item.unit_price;
+                  const originalPrice = item.product ? proposalNetUnitPrice(item.product) : item.unit_price;
                   const originalTotal = originalPrice * item.quantity;
                   const hasDiscount = item.discount && item.discount > 0;
 
@@ -512,7 +513,7 @@ export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }
                             <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-1">
                                 <label className="text-xs text-muted-foreground">
-                                  Preço unitário
+                                  Preço unitário s/ IVA
                                 </label>
                                 <Input
                                   type="number"
@@ -542,12 +543,14 @@ export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }
                               </div>
                             </div>
                           </div>
-                          {hasOverride && item.product && item.unit_price !== item.product.base_price && (
+                          {item.product && item.unit_price !== proposalNetUnitPrice(item.product) && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="mt-2 h-6 text-xs"
-                              onClick={() => handleUpdatePrice(index, item.product!.base_price ?? 0)}
+                              onClick={() => {
+                                if (item.product) handleUpdatePrice(index, proposalNetUnitPrice(item.product));
+                              }}
                             >
                               Restaurar preço original
                             </Button>

@@ -82,3 +82,6 @@
 - [x] Validar localmente sem escritas na produção e sem publicar.
 - [x] Histórico de mensagens: conversas acessíveis por telefone nas fichas de lead/contacto e na cronologia; seis testes aprovados, mensagens reais da Karine confirmadas nas duas fichas, telemóvel sem overflow e sem erros de execução; sem alterar permissões ou enviar mensagens.
 - [x] Limitar prévia e importação às ocorrências integralmente mapeadas para a edição/curso escolhidos, com contagens e avisos locais.
+
+## IVA das propostas (2026-11-26)
+- [x] Respeitar preços de catálogo com IVA incluído na criação e edição; cinco testes aprovados e rascunho da Karine confirmado após refresh: 16,18 € + 3,72 € IVA = 19,90 €, custos intactos. Vistas Gestão/Documento verificadas sem erros; layout móvel existente apresenta cortes (não alterado neste pedido).

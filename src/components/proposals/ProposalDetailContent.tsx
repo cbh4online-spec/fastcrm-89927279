@@ -76,6 +76,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { proposalTotals } from "@/lib/pricing/proposalPricing";
 
 interface ProposalDetailContentProps {
   proposalId: string;
@@ -193,7 +194,7 @@ export function ProposalDetailContent({
   
   // Use calculated total when items exist, otherwise proposal.price
   const displayPrice = proposalItems && proposalItems.length > 0 
-    ? calculatedTotal 
+    ? proposalTotals(enabledItems).total
     : proposal?.price;
   
   // Auto-sync proposals.price when discrepancy detected
@@ -1102,6 +1103,7 @@ export function ProposalDetailContent({
                         quantity: item.quantity,
                         unit_price: item.unit_price,
                         total_price: item.total_price || (item.quantity * item.unit_price),
+                        product: item.product,
                         is_enabled: item.is_enabled,
                         cost_snapshot: item.cost_snapshot,
                         operational_cost_snapshot: item.operational_cost_snapshot,
@@ -1135,6 +1137,7 @@ export function ProposalDetailContent({
                           quantity: item.quantity,
                           unit_price: item.unit_price,
                           total_price: item.total_price || (item.quantity * item.unit_price),
+                          product: item.product,
                           is_enabled: item.is_enabled,
                           image_url: imageUrl,
                         };
@@ -1229,6 +1232,7 @@ export function ProposalDetailContent({
               quantity: item.quantity,
               unit_price: item.unit_price,
               total_price: item.quantity * item.unit_price,
+              product: item.product,
               is_enabled: item.is_enabled,
               image_url: imageUrl,
             };

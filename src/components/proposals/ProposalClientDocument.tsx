@@ -36,6 +36,7 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { proposalTotals, proposalTaxRate } from "@/lib/pricing/proposalPricing";
 
 // Helper function to truncate text for PDF compatibility (html2canvas doesn't support line-clamp)
 const truncateText = (text: string, maxLength: number): string => {
@@ -130,10 +131,12 @@ export function ProposalClientDocument({
   // Calculate totals only for enabled items
   const totalOnly = (proposal.styles as any)?.price_display === "total_only";
   const enabledItems = items.filter(item => item.is_enabled !== false);
-  const itemsTotal = enabledItems.reduce((sum, item) => sum + item.total_price, 0);
-  const vatRate = 0.23; // 23% IVA
-  const vatAmount = itemsTotal * vatRate;
-  const totalWithVat = itemsTotal + vatAmount;
+  const totals = proposalTotals(enabledItems);
+  const itemsTotal = totals.subtotal;
+  const taxRates = [...new Set(enabledItems.map(item => proposalTaxRate(item.product)))];
+  const vatLabel = taxRates.length === 1 ? `IVA (${taxRates[0]}%)` : "IVA";
+  const vatAmount = totals.vat;
+  const totalWithVat = totals.total;
 
   const companyName = workspace?.company_name || workspace?.name || "Empresa";
   const companyAddress = workspace?.billing_address;
@@ -621,7 +624,7 @@ export function ProposalClientDocument({
                     <span className="font-medium">{formatCurrency(itemsTotal, proposal.currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">IVA (23%):</span>
+                    <span className="text-muted-foreground">{vatLabel}:</span>
                     <span>{formatCurrency(vatAmount, proposal.currency)}</span>
                   </div>
                   <Separator className="my-2" />
@@ -689,7 +692,7 @@ export function ProposalClientDocument({
                       Imposto
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      IVA 23% (incluído nos valores apresentados)
+                      IVA incluído no total; preços unitários sem IVA
                     </td>
                   </tr>
                   

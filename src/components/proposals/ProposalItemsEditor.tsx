@@ -26,6 +26,7 @@ import { useProposalItems, useUpdateProposalItems } from "@/hooks/useProposals";
 import type { Product } from "@/types/product";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { proposalNetUnitPrice } from "@/lib/pricing/proposalPricing";
 
 interface EditableItem {
   id?: string;
@@ -120,7 +121,7 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
         name: product.name,
         description: product.short_description,
         quantity: 1,
-        unit_price: product.base_price ?? 0,
+        unit_price: proposalNetUnitPrice(product),
         position: prev.length,
         cost_snapshot: product.direct_cost ?? null,
         operational_cost_snapshot: product.operational_cost ?? null,
@@ -322,7 +323,7 @@ export function ProposalItemsEditor({ proposalId, onSaved }: ProposalItemsEditor
 
                       {/* Unit Price */}
                       <div className="col-span-2 space-y-1">
-                        <label className="text-xs text-muted-foreground">Preço Unit.</label>
+                        <label className="text-xs text-muted-foreground">Preço s/ IVA</label>
                         <Input
                           type="number"
                           step="0.01"

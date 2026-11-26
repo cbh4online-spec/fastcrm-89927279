@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/product";
+import { proposalNetUnitPrice } from "@/lib/pricing/proposalPricing";
 
 export interface CartItem {
   product: Product;
@@ -85,7 +86,7 @@ export function ProposalCart({
 
   const totals = items.reduce(
     (acc, item) => {
-      const itemTotal = calculateItemTotal(item);
+      const itemTotal = proposalNetUnitPrice(item.product, item.priceOverride, item.discount) * item.quantity;
       const itemCost = calculateItemCost(item);
       return {
         subtotal: acc.subtotal + itemTotal,
@@ -303,7 +304,7 @@ export function ProposalCart({
       {/* Totals */}
       <div className="mt-4 pt-4 border-t space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Subtotal</span>
+          <span className="text-muted-foreground">Subtotal s/ IVA</span>
           <span className="font-semibold">{formatPrice(totals.subtotal)}</span>
         </div>
         <div className="flex justify-between text-sm">

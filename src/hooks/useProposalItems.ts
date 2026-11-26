@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProducts } from "./useProducts";
 import type { Product } from "@/types/product";
 import type { CartItem } from "@/components/proposals/ProposalCart";
+import { proposalNetUnitPrice } from "@/lib/pricing/proposalPricing";
 
 interface SuggestProductsContext {
   opportunityTitle?: string;
@@ -94,9 +95,7 @@ export function useProposalCart() {
   const calculateTotals = useCallback(() => {
     return items.reduce(
       (acc, item) => {
-        const basePrice = item.priceOverride ?? item.product.base_price ?? 0;
-        const discountAmount = item.discount ? basePrice * (item.discount / 100) : 0;
-        const itemTotal = (basePrice - discountAmount) * item.quantity;
+        const itemTotal = proposalNetUnitPrice(item.product, item.priceOverride, item.discount) * item.quantity;
         const itemCost = ((item.product.direct_cost ?? 0) + (item.product.operational_cost ?? 0)) * item.quantity;
         
         return {

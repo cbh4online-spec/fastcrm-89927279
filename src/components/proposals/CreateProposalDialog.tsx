@@ -36,6 +36,7 @@ import { useGenerateProposalCopy, ProposalTone } from "@/hooks/useGeneratePropos
 import type { ContentBlock } from "@/types/proposal";
 import { toast } from "sonner";
 import { useInvoiceSettings } from "@/hooks/useInvoiceSettings";
+import { proposalNetUnitPrice } from "@/lib/pricing/proposalPricing";
 
 interface CreateProposalDialogProps {
   open: boolean;
@@ -128,9 +129,7 @@ export function CreateProposalDialog({
     setCartItems(items);
     // Auto-update price based on cart total
     const total = items.reduce((acc, item) => {
-      const basePrice = item.priceOverride ?? item.product.base_price ?? 0;
-      const discountAmount = item.discount ? basePrice * (item.discount / 100) : 0;
-      return acc + (basePrice - discountAmount) * item.quantity;
+      return acc + proposalNetUnitPrice(item.product, item.priceOverride, item.discount) * item.quantity;
     }, 0);
     if (total > 0) {
       setPrice(total.toString());
@@ -270,7 +269,7 @@ export function CreateProposalDialog({
           name: item.product.name,
           description: item.product.short_description || null,
           quantity: item.quantity,
-          unit_price: item.priceOverride ?? item.product.base_price ?? 0,
+          unit_price: proposalNetUnitPrice(item.product, item.priceOverride, item.discount),
           position: idx,
           is_enabled: true,
           cost_snapshot: item.product.direct_cost ?? null,

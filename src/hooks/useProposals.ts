@@ -564,6 +564,8 @@ export interface ProposalItem {
     id: string;
     name: string;
     base_price: number | null;
+    tax_included?: boolean | null;
+    tax_rate_estimate_pct?: number | null;
     direct_cost: number | null;
     operational_cost: number | null;
     images: string[] | null;
@@ -583,7 +585,7 @@ export function useProposalItems(proposalId: string | undefined) {
         .from("proposal_items")
         .select(`
           *,
-          product:products(id, name, base_price, direct_cost, operational_cost, images, primary_image_index, status, sku)
+          product:products(id, name, base_price, tax_included, tax_rate_estimate_pct, direct_cost, operational_cost, images, primary_image_index, status, sku)
         `)
         .eq("proposal_id", proposalId)
         .order("position", { ascending: true });
