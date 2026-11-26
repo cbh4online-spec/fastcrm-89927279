@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
     if (r.status < 200 || r.status >= 300) {
       console.error("[invoicexpress-push-document] upstream_error", r.status, data);
       const msg =
-        (data && (data.errors?.[0]?.message || data.error || data.message)) ||
+        (data && ((Array.isArray(data.errors) ? data.errors.map((e: any) => e?.error || e?.message).filter(Boolean).join("; ") : "") || data.error || data.message)) ||
         `InvoiceXpress respondeu ${r.status}`;
       return json({ ok: false, status: r.status, error: msg, details: data }, 200);
     }
