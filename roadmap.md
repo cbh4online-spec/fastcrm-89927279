@@ -80,4 +80,5 @@
 - [x] Fixar compatibilidade `xlsx`/`done` da RPC atual numa migração aditiva, sem importar nem alterar o catálogo.
 - [x] Permitir reutilizar o mesmo ficheiro noutra edição no passo 5, limpando apenas o estado da execução anterior.
 - [x] Validar localmente sem escritas na produção e sem publicar.
+- [x] Histórico de mensagens: conversas acessíveis por telefone nas fichas de lead/contacto e na cronologia; seis testes aprovados, mensagens reais da Karine confirmadas nas duas fichas, telemóvel sem overflow e sem erros de execução; sem alterar permissões ou enviar mensagens.
 - [x] Limitar prévia e importação às ocorrências integralmente mapeadas para a edição/curso escolhidos, com contagens e avisos locais.

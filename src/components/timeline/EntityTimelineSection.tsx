@@ -40,6 +40,7 @@ import {
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useEntityMessages } from "@/hooks/useEntityMessages";
 
 interface EntityActivity {
   id: string;
@@ -181,6 +182,8 @@ export function EntityTimelineSection({
   maxHeight = "500px",
 }: EntityTimelineSectionProps) {
   const { currentWorkspace } = useWorkspace();
+  const messageHistory = useEntityMessages(entityType === "opportunity" ? "company" : entityType,
+    entityType === "opportunity" ? undefined : entityId);
 
   // Fetch activities from entity_activities
   const { data: activities = [], isLoading, refetch, isRefetching } = useQuery({
@@ -400,6 +403,25 @@ export function EntityTimelineSection({
     });
 
     // Add tasks
+    const recordedMessages = new Set([...activities, ...crmActivities]
+      .map(a => a.metadata?.message_id).filter((id): id is string => typeof id === "string"));
+    for (const conversation of messageHistory.data ?? []) {
+      for (const message of conversation.messages) {
+        if (recordedMessages.has(message.id)) continue;
+        recordedMessages.add(message.id);
+        const outbound = message.direction === "outbound";
+        timeline.push({
+          id: `message-${message.id}`,
+          type: outbound ? "message_sent" : "message_received",
+          title: `${outbound ? "Mensagem enviada" : "Mensagem recebida"} · ${conversation.channel === "whatsapp" ? "WhatsApp" : conversation.channel}${conversation.workspace_id !== currentWorkspace?.id ? ` · ${conversation.workspace_name ?? "Outro workspace"}` : ""}`,
+          description: message.content || message.email_subject || "Anexo",
+          date: new Date(message.sent_at),
+          metadata: { message_id: message.id, conversation_id: conversation.id },
+        });
+      }
+    }
+
+    // Add tasks
     tasks.forEach((task: any) => {
       const taskCreatedId = `task-created-${task.id}`;
       if (!addedIds.has(taskCreatedId)) {
@@ -485,7 +507,7 @@ export function EntityTimelineSection({
     timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return timeline;
-  }, [activities, crmActivities, tasks, notes, orderNotes]);
+  }, [activities, crmActivities, tasks, notes, orderNotes, messageHistory.data, currentWorkspace?.id]);
 
   // Group by date
   const groupedTimeline = useMemo(() => {
@@ -504,7 +526,7 @@ export function EntityTimelineSection({
 
   const groupOrder = Object.keys(groupedTimeline);
 
-  if (isLoading) {
+  if (isLoading || messageHistory.isLoading) {
     return (
       <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
         <CardHeader className="pb-3 bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent">
@@ -543,8 +565,12 @@ export function EntityTimelineSection({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => refetch()}
-                disabled={isRefetching}
+                aria-label="Atualizar cronologia"
+                onClick={() => {
+                  void refetch();
+                  void messageHistory.refetch();
+                }}
+                disabled={isRefetching || messageHistory.isFetching}
               >
                 {isRefetching ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -560,6 +586,7 @@ export function EntityTimelineSection({
         </CardHeader>
       )}
       <CardContent className={cn(!showHeader && "pt-4")}>
+        {messageHistory.error && <p role="alert" className="text-sm text-destructive mb-3">Não foi possível carregar as mensagens na cronologia.</p>}
         {unifiedTimeline.length === 0 ? (
           <div className="text-center py-12">
             <Clock className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />

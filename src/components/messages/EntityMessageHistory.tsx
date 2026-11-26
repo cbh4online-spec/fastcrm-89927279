@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/formatters";
 import { useEntityMessages, EntityConversation } from "@/hooks/useEntityMessages";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface EntityMessageHistoryProps {
   entityType: 'lead' | 'contact' | 'company';
@@ -28,28 +29,32 @@ interface EntityMessageHistoryProps {
 }
 
 const channelConfig: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-  email: { icon: Mail, label: 'Email', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30' },
-  whatsapp: { icon: Phone, label: 'WhatsApp', color: 'bg-green-500/10 text-green-600 border-green-500/30' },
-  instagram: { icon: Instagram, label: 'Instagram', color: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
-  sms: { icon: MessageCircle, label: 'SMS', color: 'bg-purple-500/10 text-purple-600 border-purple-500/30' },
+  email: { icon: Mail, label: 'Email', color: 'text-primary border-border' },
+  whatsapp: { icon: Phone, label: 'WhatsApp', color: 'text-primary border-border' },
+  instagram: { icon: Instagram, label: 'Instagram', color: 'text-primary border-border' },
+  sms: { icon: MessageCircle, label: 'SMS', color: 'text-primary border-border' },
 };
 
 function ConversationThread({ conversation }: { conversation: EntityConversation }) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const config = channelConfig[conversation.channel] || { icon: MessageSquare, label: conversation.channel, color: 'bg-muted text-muted-foreground' };
   const ChannelIcon = config.icon;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <button className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors flex items-center gap-3">
+        <Button variant="ghost" className="w-full h-auto text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors flex items-center gap-3 whitespace-normal">
           <ChannelIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
+            <div className="flex flex-wrap items-center gap-2 mb-0.5">
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", config.color)}>
                 {config.label}
               </Badge>
+              {conversation.workspace_id !== currentWorkspace?.id && (
+                <Badge variant="outline" className="text-[10px]">{conversation.workspace_name ?? "Outro workspace"}</Badge>
+              )}
               {conversation.unread_count > 0 && (
                 <Badge className="text-[10px] px-1.5 py-0 bg-primary">
                   {conversation.unread_count} nova{conversation.unread_count > 1 ? 's' : ''}
@@ -69,7 +74,7 @@ function ConversationThread({ conversation }: { conversation: EntityConversation
             "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0",
             isOpen && "rotate-180"
           )} />
-        </button>
+        </Button>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="pl-4 pr-2 py-2 space-y-1.5 border-l-2 border-muted ml-5 mt-1">
@@ -110,7 +115,12 @@ function ConversationThread({ conversation }: { conversation: EntityConversation
             variant="ghost"
             size="sm"
             className="w-full h-7 text-xs gap-1 mt-1"
-            onClick={() => navigate(`/dashboard/inbox?conversation=${conversation.id}`)}
+            onClick={() => {
+              const workspace = workspaces.find(w => w.id === conversation.workspace_id);
+              if (!workspace) return;
+              if (workspace.id !== currentWorkspace?.id) setCurrentWorkspace(workspace);
+              navigate(`/dashboard/inbox?conversation=${conversation.id}`);
+            }}
           >
             <ExternalLink className="h-3 w-3" />
             Ver no Inbox
@@ -122,7 +132,8 @@ function ConversationThread({ conversation }: { conversation: EntityConversation
 }
 
 export function EntityMessageHistory({ entityType, entityId }: EntityMessageHistoryProps) {
-  const { data: conversations, isLoading } = useEntityMessages(entityType, entityId);
+  const [messageLimit, setMessageLimit] = useState(100);
+  const { data: conversations, isLoading, error, refetch, isFetching } = useEntityMessages(entityType, entityId, messageLimit);
 
   return (
     <Card>
@@ -142,6 +153,10 @@ export function EntityMessageHistory({ entityType, entityId }: EntityMessageHist
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : error ? (
+          <div className="text-sm text-destructive">Não foi possível carregar as mensagens.
+            <Button variant="ghost" size="sm" onClick={() => refetch()}>Tentar novamente</Button>
+          </div>
         ) : !conversations?.length ? (
           <div className="text-center py-8 text-muted-foreground">
             <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
@@ -153,6 +168,11 @@ export function EntityMessageHistory({ entityType, entityId }: EntityMessageHist
             {conversations.map((conv) => (
               <ConversationThread key={conv.id} conversation={conv} />
             ))}
+            {conversations.some(c => c.messages.length >= messageLimit) && (
+              <Button variant="outline" size="sm" disabled={isFetching} onClick={() => setMessageLimit(n => n + 100)}>
+                Carregar mensagens anteriores
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
