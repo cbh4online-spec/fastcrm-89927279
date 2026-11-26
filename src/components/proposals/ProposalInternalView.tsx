@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ComposeEmailDialog } from "@/components/email";
+import { getProposalEmailRecipient } from "@/lib/proposals/emailRecipient";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -204,10 +206,10 @@ export function ProposalInternalView({
     }
   };
 
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const emailRecipient = getProposalEmailRecipient(proposal);
   const handleSendEmail = () => {
-    if (primaryEmail) {
-      window.open(`mailto:${primaryEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
-    }
+    if (emailRecipient) setShowEmailDialog(true);
   };
 
   const hasClientCRM = !!(proposal.company?.id || proposal.contact?.id);
@@ -215,6 +217,14 @@ export function ProposalInternalView({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {emailRecipient && (
+        <ComposeEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          recipient={emailRecipient}
+          defaultSubject={`Proposta: ${proposal.title}`}
+        />
+      )}
       {/* Quick Task Dialog - uses opportunity as the related entity */}
       {hasOpportunity && (
         <QuickTaskDialog

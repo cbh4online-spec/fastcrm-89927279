@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ComposeEmailDialog } from "@/components/email";
+import { getProposalEmailRecipient } from "@/lib/proposals/emailRecipient";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -72,10 +75,10 @@ export function ProposalQuickLinks({
   };
 
   // Action handlers
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const emailRecipient = getProposalEmailRecipient(proposal);
   const handleSendEmail = () => {
-    if (clientEmail) {
-      window.open(`mailto:${clientEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
-    }
+    if (emailRecipient) setShowEmailDialog(true);
   };
 
   const handleWhatsApp = () => {
@@ -86,6 +89,14 @@ export function ProposalQuickLinks({
   if (variant === "compact") {
     return (
       <div className="flex items-center gap-1">
+      {emailRecipient && (
+        <ComposeEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          recipient={emailRecipient}
+          defaultSubject={`Proposta: ${proposal.title}`}
+        />
+      )}
         {hasOpportunity && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -187,6 +198,14 @@ export function ProposalQuickLinks({
   // Full variant
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {emailRecipient && (
+        <ComposeEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          recipient={emailRecipient}
+          defaultSubject={`Proposta: ${proposal.title}`}
+        />
+      )}
       {hasOpportunity && (
         <Button
           variant="outline"
