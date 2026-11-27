@@ -46,3 +46,4 @@
 - BGI action lists (collect/reactivate/upsell) come only from the `bgi_action_lists` RPC; tasks are created client-side deduped by pending (related_id+title) via `src/lib/bgi/actionLists.ts`, WhatsApp is assisted-only after a per-row opt-out check, and the PDF dossier (`exportGrowthDossierPdf`) uses only already-loaded RPC results.
 - CloudTalk: keys only via `cloudtalk-manage`; calls only via token-auth `cloudtalk-webhook`; AI summaries only via `cloudtalk-ai-summary` (atomic claim, daily cap, `_shared/cloudtalkAi.ts`).
 - Entity history uses useEntityMessages for exact phone matches across accessible workspaces; conversation RLS remains authoritative and timeline dedupes by message_id.
+- Cross-workspace CRM sync (`crm_sync_to_linked_workspace`) is append-only: fills empty target fields only and never matches companies by generic NIFs (999999990), because buyer workspace data and invoices must never change.
